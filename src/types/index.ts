@@ -138,19 +138,19 @@ export interface AppSettings {
   theme: 'light' | 'dark' | 'system';
   autoStart: boolean;
   lightweightMode: boolean;
-  
+
   // Proxy
   proxyEnabled: boolean;
   proxyPort: number;
   proxyHost: string;
-  
+
   // WebDAV
   webdavUrl?: string;
   webdavUsername?: string;
   webdavPassword?: string;
   webdavAutoSync: boolean;
   webdavSyncInterval: number;
-  
+
   // Backup
   autoBackup: boolean;
   backupRetention: number;
@@ -211,6 +211,18 @@ export type IpcChannel =
   | 'skills:getRepoInfo'
   | 'skills:openFolder'
   | 'skills:syncAll'
+  // Proxy
+  | 'proxy:getStatus'
+  | 'proxy:start'
+  | 'proxy:stop'
+  | 'proxy:getCircuitBreakerStats'
+  | 'proxy:resetCircuitBreaker'
+  | 'proxy:getFailoverStatus'
+  | 'proxy:resetFailover'
+  | 'proxy:getUsageStats'
+  | 'proxy:getTodayStats'
+  | 'proxy:getStatsByProvider'
+  | 'proxy:getRecentLogs'
   // Settings
   | 'settings:get'
   | 'settings:update'
@@ -236,9 +248,7 @@ export interface ApiResponse<T> {
   };
 }
 
-export type Result<T, E = Error> =
-  | { success: true; data: T }
-  | { success: false; error: E };
+export type Result<T, E = Error> = { success: true; data: T } | { success: false; error: E };
 
 // ============ Error Types ============
 export type ErrorCode =

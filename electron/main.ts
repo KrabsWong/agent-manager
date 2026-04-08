@@ -10,6 +10,9 @@ import { registerMcpHandlers } from './handlers/mcp';
 import { registerSkillsHandlers } from './handlers/skills';
 import { registerPromptHandlers } from './handlers/prompts';
 import { initializePromptService } from './services/prompt/crud';
+import { registerProxyHandlers } from './handlers/proxy';
+import { initializeProxyServer } from './services/proxy/server';
+import { initializeUsageTracker } from './services/proxy/usage-tracker';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -70,7 +73,7 @@ const createWindow = () => {
   // Show window when ready
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show();
-    
+
     // Check if first run
     if (configStore.isFirstRun()) {
       log.info('First run detected');
@@ -104,6 +107,11 @@ const initializeApp = () => {
     if (db) {
       initializePromptService(db);
       log.info('Prompt service initialized');
+
+      // Initialize proxy services
+      initializeUsageTracker(db);
+      initializeProxyServer();
+      log.info('Proxy services initialized');
     }
 
     // Log database stats
@@ -115,8 +123,9 @@ const initializeApp = () => {
     registerMcpHandlers();
     registerSkillsHandlers();
     registerPromptHandlers();
+    registerProxyHandlers();
     registerAppHandlers();
-    
+
     log.info('IPC handlers registered');
 
     // Create main window
@@ -168,7 +177,7 @@ app.whenReady().then(initializeApp);
 app.on('window-all-closed', () => {
   // Close database connection
   dbManager.close();
-  
+
   if (process.platform !== 'darwin') {
     app.quit();
   }
