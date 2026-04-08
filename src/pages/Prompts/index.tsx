@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { EmptyState } from '@/components/EmptyState';
-import { PromptCard } from '@/components/prompts/PromptCard';
+import { PromptListItem } from '@/components/prompts/PromptListItem';
 import { PromptEditor } from '@/components/prompts/PromptEditor';
 import {
   usePrompts,
@@ -158,11 +158,11 @@ export function PromptsPage() {
         />
       )}
 
-      {/* Prompts Grid */}
+      {/* Prompts List */}
       {!isLoading && prompts.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
           {prompts.map((prompt) => (
-            <PromptCard
+            <PromptListItem
               key={prompt.id}
               prompt={prompt}
               isActive={activePrompt?.id === prompt.id}
