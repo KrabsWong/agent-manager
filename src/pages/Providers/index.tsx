@@ -1,0 +1,163 @@
+/**
+ * Providers Page
+ *
+ * Main page for managing AI providers
+ */
+
+import { useState } from 'react';
+import { Plus, RefreshCw } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Select } from '@/components/ui/select';
+import { ProviderCard } from '@/components/providers/ProviderCard';
+import { AddProviderDialog } from '@/components/providers/AddProviderDialog';
+import { EditProviderDialog } from '@/components/providers/EditProviderDialog';
+import {
+  useProviders,
+  useCreateProvider,
+  useUpdateProvider,
+  useDeleteProvider,
+  useSwitchProvider,
+} from '@/hooks/useProviders';
+import type { AppType, Provider, CreateProviderInput } from '@/types';
+
+const APP_TYPES: AppType[] = ['claude', 'codex', 'gemini', 'opencode', 'openclaw'];
+
+export function ProvidersPage() {
+  const [selectedApp, setSelectedApp] = useState<AppType>('claude');
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [editingProvider, setEditingProvider] = useState<Provider | null>(null);
+
+  const { data: providers, isLoading, error, refetch } = useProviders(selectedApp);
+  const createProvider = useCreateProvider();
+  const updateProvider = useUpdateProvider();
+  const deleteProvider = useDeleteProvider();
+  const switchProvider = useSwitchProvider();
+
+  const handleAddProvider = (input: CreateProviderInput) => {
+    createProvider.mutate(input, {
+      onSuccess: () => {
+        setIsAddDialogOpen(false);
+      },
+    });
+  };
+
+  const handleEditProvider = (provider: Provider) => {
+    setEditingProvider(provider);
+  };
+
+  const handleSaveEdit = (
+    id: string,
+    appType: AppType,
+    settings: Record<string, unknown>
+  ) => {
+    updateProvider.mutate(
+      {
+        id,
+        appType,
+        input: { settingsConfig: settings },
+      },
+      {
+        onSuccess: () => {
+          setEditingProvider(null);
+        },
+      }
+    );
+  };
+
+  const handleDeleteProvider = (id: string, appType: AppType) => {
+    if (confirm('Are you sure you want to delete this provider?')) {
+      deleteProvider.mutate({ id, appType });
+    }
+  };
+
+  const handleSwitchProvider = (id: string, appType: AppType) => {
+    switchProvider.mutate({ id, appType });
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Providers</h1>
+          <p className="text-muted-foreground">
+            Manage AI providers for your applications
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+          <Button onClick={() => setIsAddDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Provider
+          </Button>
+        </div>
+      </div>
+
+      {/* App Selector */}
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium">Application:</span>
+        <Select
+          value={selectedApp}
+          onChange={(e) => setSelectedApp(e.target.value as AppType)}
+          className="w-40"
+        >
+          {APP_TYPES.map((app) => (
+            <option key={app} value={app}>
+              {app.charAt(0).toUpperCase() + app.slice(1)}
+            </option>
+          ))}
+        </Select>
+      </div>
+
+      {/* Providers List */}
+      {isLoading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-muted-foreground">Loading providers...</div>
+        </div>
+      ) : error ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-destructive">
+            Error loading providers: {error.message}
+          </div>
+        </div>
+      ) : providers?.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-64 space-y-4">
+          <div className="text-muted-foreground">No providers configured</div>
+          <Button onClick={() => setIsAddDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Your First Provider
+          </Button>
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {providers?.map((provider) => (
+            <ProviderCard
+              key={provider.id}
+              provider={provider}
+              onSwitch={() => handleSwitchProvider(provider.id, provider.appType)}
+              onEdit={() => handleEditProvider(provider)}
+              onDelete={() => handleDeleteProvider(provider.id, provider.appType)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Dialogs */}
+      <AddProviderDialog
+        appType={selectedApp}
+        isOpen={isAddDialogOpen}
+        onClose={() => setIsAddDialogOpen(false)}
+        onAdd={handleAddProvider}
+      />
+
+      <EditProviderDialog
+        provider={editingProvider}
+        isOpen={!!editingProvider}
+        onClose={() => setEditingProvider(null)}
+        onSave={handleSaveEdit}
+      />
+    </div>
+  );
+}

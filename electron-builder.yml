@@ -1,0 +1,46 @@
+appId: com.ccswitch.app
+productName: CC Switch
+copyright: Copyright © 2024 CC Switch Team
+directories:
+  output: release
+  buildResources: build
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - node_modules/better-sqlite3/**/*
+  - node_modules/keytar/**/*
+extraResources:
+  - from: node_modules/better-sqlite3
+    to: node_modules/better-sqlite3
+    filter:
+      - "**/*"
+  - from: node_modules/keytar
+    to: node_modules/keytar
+    filter:
+      - "**/*"
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - dmg
+    - zip
+  icon: build/icon.icns
+win:
+  target:
+    - nsis
+    - portable
+  icon: build/icon.ico
+linux:
+  target:
+    - AppImage
+    - deb
+    - rpm
+  category: Development
+  icon: build/icons
+publish:
+  provider: github
+  owner: cc-switch
+  repo: cc-switch-electron
+  releaseType: release
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true

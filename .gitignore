@@ -1,0 +1,16 @@
+.DS_Store
+node_modules
+dist
+dist-electron
+*.log
+.env
+.env.local
+.vscode
+.idea
+*.db
+*.db-journal
+coverage
+.nyc_output
+out/
+build/
+*.tsbuildinfo
