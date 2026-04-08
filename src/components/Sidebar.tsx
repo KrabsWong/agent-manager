@@ -1,24 +1,19 @@
 import { NavLink } from 'react-router-dom';
-import { 
-  Plug, 
-  Puzzle, 
-  Palette, 
-  FileText, 
-  Globe, 
-  Settings 
-} from 'lucide-react';
+import { Plug, Puzzle, Palette, FileText, Globe, Settings } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
 const navigation = [
-  { name: 'Providers', href: '/providers', icon: Plug },
-  { name: 'MCP Servers', href: '/mcp', icon: Puzzle },
-  { name: 'Skills', href: '/skills', icon: Palette },
-  { name: 'Prompts', href: '/prompts', icon: FileText },
-  { name: 'Proxy', href: '/proxy', icon: Globe },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'navigation.providers', href: '/providers', icon: Plug },
+  { name: 'navigation.mcp', href: '/mcp', icon: Puzzle },
+  { name: 'navigation.skills', href: '/skills', icon: Palette },
+  { name: 'navigation.prompts', href: '/prompts', icon: FileText },
+  { name: 'navigation.proxy', href: '/proxy', icon: Globe },
+  { name: 'navigation.settings', href: '/settings', icon: Settings },
 ];
 
 export function Sidebar() {
+  const { t } = useTranslation();
   return (
     <div className="flex w-64 flex-col border-r bg-card">
       <div className="flex h-16 items-center border-b px-6">
@@ -39,7 +34,7 @@ export function Sidebar() {
             }
           >
             <item.icon className="h-4 w-4" />
-            {item.name}
+            {t(item.name)}
           </NavLink>
         ))}
       </nav>
