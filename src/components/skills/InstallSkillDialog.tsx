@@ -48,11 +48,11 @@ export function InstallSkillDialog({
     !!selectedRepo
   );
 
-  const { data: availableSkills, isLoading: isScanning } = useScanRepo(
-    selectedRepo?.owner || '',
-    selectedRepo?.name || '',
-    !!selectedRepo
-  );
+  const {
+    data: availableSkills,
+    isLoading: isScanning,
+    error: scanError,
+  } = useScanRepo(selectedRepo?.owner || '', selectedRepo?.name || '', !!selectedRepo);
 
   if (!isOpen) return null;
 
@@ -198,6 +198,11 @@ export function InstallSkillDialog({
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   <span className="ml-2 text-muted-foreground">{t('skills.scanningRepo')}</span>
+                </div>
+              ) : scanError ? (
+                <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
+                  <p className="font-medium mb-1">Failed to scan repository</p>
+                  <p>{scanError instanceof Error ? scanError.message : 'Unknown error'}</p>
                 </div>
               ) : availableSkills && availableSkills.length > 0 ? (
                 <div className="space-y-2">

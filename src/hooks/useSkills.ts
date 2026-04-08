@@ -1,6 +1,6 @@
 /**
  * Skills Hooks
- * 
+ *
  * TanStack Query hooks for skills management
  */
 
@@ -49,6 +49,13 @@ export function useInstallSkill() {
     mutationFn: ({ repoUrl, directory }: { repoUrl: string; directory?: string }) =>
       skillsApi.install(repoUrl, directory),
     onSuccess: () => {
+      // Only refresh list on successful installation
+      queryClient.invalidateQueries({
+        queryKey: skillsKeys.list(),
+      });
+    },
+    onError: () => {
+      // Ensure cache is clean on error - remove any potentially stale data
       queryClient.invalidateQueries({
         queryKey: skillsKeys.list(),
       });
@@ -79,15 +86,8 @@ export function useToggleSkillApp() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      id,
-      appType,
-      enabled,
-    }: {
-      id: string;
-      appType: AppType;
-      enabled: boolean;
-    }) => skillsApi.toggleApp(id, appType, enabled),
+    mutationFn: ({ id, appType, enabled }: { id: string; appType: AppType; enabled: boolean }) =>
+      skillsApi.toggleApp(id, appType, enabled),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: skillsKeys.list(),

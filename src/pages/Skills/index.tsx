@@ -6,7 +6,7 @@
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, RefreshCw, FolderOpen, Sparkles, ExternalLink, Wand2 } from 'lucide-react';
+import { Plus, RefreshCw, FolderOpen, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SkillCard } from '@/components/skills/SkillCard';
 import { InstallSkillDialog } from '@/components/skills/InstallSkillDialog';
@@ -81,29 +81,23 @@ export function SkillsPage() {
         </div>
       </div>
 
-      {/* Quick Links - Compact horizontal style */}
-      <div className="flex flex-wrap items-center gap-3 p-3 rounded-lg border bg-muted/30">
-        <span className="text-sm text-muted-foreground">{t('skills.discover')}:</span>
+      {/* Quick Links - Simple text links */}
+      <div className="flex items-center gap-4 text-sm">
         <a
           href="https://github.com/anthropics/skills"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+          className="font-medium text-primary hover:underline"
         >
-          <Sparkles className="h-3.5 w-3.5" />
           {t('skills.officialSkills')}
-          <ExternalLink className="h-3 w-3" />
         </a>
-        <span className="text-muted-foreground">•</span>
         <a
           href="https://github.com/ComposioHQ/awesome-claude-skills"
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+          className="font-medium text-primary hover:underline"
         >
-          <Sparkles className="h-3.5 w-3.5" />
           {t('skills.communitySkills')}
-          <ExternalLink className="h-3 w-3" />
         </a>
       </div>
 

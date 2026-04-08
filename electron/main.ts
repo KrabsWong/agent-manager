@@ -203,9 +203,17 @@ app.on('before-quit', () => {
   ipcRegistry.clear();
 });
 
-// Security: Prevent new window creation
+// Security: Prevent new window creation, but allow external links
 app.on('web-contents-created', (_event, contents) => {
   contents.setWindowOpenHandler(({ url }) => {
+    // Allow external links to open in system browser
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      const { shell } = require('electron');
+      shell.openExternal(url);
+      return { action: 'deny' };
+    }
+
+    // Deny all other window creation attempts
     log.warn(`Prevented new window creation: ${url}`);
     return { action: 'deny' };
   });
