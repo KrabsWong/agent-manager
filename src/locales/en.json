@@ -1,0 +1,252 @@
+{
+  "nav": {
+    "providers": "Providers",
+    "mcpServers": "MCP Servers",
+    "skills": "Skills",
+    "prompts": "Prompts",
+    "proxy": "Proxy",
+    "settings": "Settings"
+  },
+  "providers": {
+    "title": "Providers",
+    "description": "Manage AI providers for your applications",
+    "application": "Application",
+    "loading": "Loading providers...",
+    "error": "Error loading providers: {{message}}",
+    "empty": "No providers configured",
+    "addFirst": "Add Your First Provider",
+    "add": "Add Provider",
+    "deleteConfirm": "Are you sure you want to delete this provider?",
+    "card": {
+      "switch": "Switch",
+      "edit": "Edit",
+      "delete": "Delete",
+      "active": "Active"
+    },
+    "form": {
+      "name": "Name",
+      "description": "Description",
+      "baseUrl": "Base URL",
+      "apiKey": "API Key",
+      "model": "Model",
+      "temperature": "Temperature",
+      "maxTokens": "Max Tokens"
+    }
+  },
+  "mcp": {
+    "title": "MCP Servers",
+    "description": "Manage Model Context Protocol servers for your applications",
+    "loading": "Loading MCP servers...",
+    "error": "Error loading MCP servers: {{message}}",
+    "empty": "No MCP servers configured",
+    "add": "Add Server",
+    "addFirst": "Add Your First MCP Server",
+    "syncAll": "Sync All",
+    "deleteConfirm": "Are you sure you want to delete this MCP server?",
+    "stats": {
+      "totalServers": "Total Servers",
+      "activeConfigurations": "Active Configurations",
+      "enabledServers": "Enabled Servers"
+    },
+    "card": {
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "form": {
+      "name": "Name",
+      "description": "Description",
+      "command": "Command",
+      "args": "Arguments",
+      "env": "Environment Variables"
+    }
+  },
+  "skills": {
+    "title": "Skills",
+    "description": "Discover and manage AI skills for your applications",
+    "loading": "Loading skills...",
+    "error": "Error loading skills: {{message}}",
+    "empty": "No skills installed",
+    "install": "Install Skill",
+    "installFirst": "Install Your First Skill",
+    "openFolder": "Open Folder",
+    "deleteConfirm": "Are you sure you want to uninstall this skill?",
+    "quickLinks": {
+      "official": {
+        "title": "Official Skills",
+        "description": "Browse Anthropic's official skill collection"
+      },
+      "community": {
+        "title": "Community Skills",
+        "description": "Explore community-contributed skills"
+      }
+    },
+    "stats": {
+      "installed": "Installed Skills",
+      "activeConfigurations": "Active Configurations",
+      "enabled": "Enabled Skills"
+    },
+    "card": {
+      "delete": "Delete"
+    },
+    "form": {
+      "repoUrl": "Repository URL",
+      "directory": "Directory (optional)"
+    }
+  },
+  "prompts": {
+    "title": "Prompts",
+    "description": "Manage system prompts and instructions for your AI assistants",
+    "loading": "Loading prompts...",
+    "error": "Failed to load prompts",
+    "empty": {
+      "title": "No prompts yet",
+      "description": "You haven't created any prompts for {{app}} yet. Create a new prompt or import from the app."
+    },
+    "create": "Create",
+    "createPrompt": "Create Prompt",
+    "import": "Import",
+    "importFromApp": "Import from App",
+    "activePrompt": "Currently Active Prompt",
+    "card": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "setActive": "Set Active",
+      "active": "Active"
+    },
+    "form": {
+      "name": "Name",
+      "description": "Description",
+      "content": "Content",
+      "appType": "Application Type"
+    },
+    "deleteConfirm": "Are you sure you want to delete \"{{name}}\"?"
+  },
+  "proxy": {
+    "title": "Proxy Service",
+    "description": "Manage HTTP proxy service, monitor usage, configure circuit breakers",
+    "status": {
+      "title": "Proxy Status",
+      "state": "Status",
+      "port": "Port",
+      "running": "Running",
+      "stopped": "Stopped",
+      "start": "Start",
+      "stop": "Stop"
+    },
+    "stats": {
+      "todayRequests": "Today's Requests",
+      "todayCost": "Today's Cost",
+      "totalRequests": "Total Requests",
+      "description": {
+        "todayRequests": "Total requests today",
+        "todayCost": "Total cost today (USD)"
+      }
+    },
+    "circuitBreaker": {
+      "title": "Circuit Breaker Status",
+      "successes": "Successes",
+      "failures": "Failures",
+      "reset": "Reset",
+      "states": {
+        "closed": "CLOSED",
+        "open": "OPEN",
+        "halfOpen": "HALF-OPEN"
+      },
+      "empty": "No circuit breaker data"
+    },
+    "usage": {
+      "title": "Usage Statistics",
+      "7days": "7 Days",
+      "30days": "30 Days"
+    },
+    "logs": {
+      "title": "Recent Logs",
+      "time": "Time",
+      "provider": "Provider",
+      "status": "Status",
+      "cost": "Cost",
+      "success": "Success",
+      "failed": "Failed",
+      "empty": "No log data"
+    },
+    "loading": {
+      "status": "Loading status...",
+      "circuitBreakers": "Loading circuit breakers...",
+      "charts": "Loading chart data...",
+      "logs": "Loading logs..."
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Configure application settings and preferences"
+  },
+  "common": {
+    "buttons": {
+      "add": "Add",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "close": "Close",
+      "refresh": "Refresh",
+      "back": "Back",
+      "next": "Next",
+      "submit": "Submit",
+      "create": "Create",
+      "update": "Update"
+    },
+    "labels": {
+      "name": "Name",
+      "description": "Description",
+      "status": "Status",
+      "active": "Active",
+      "inactive": "Inactive",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "loading": "Loading...",
+      "error": "Error",
+      "success": "Success",
+      "warning": "Warning",
+      "info": "Info",
+      "actions": "Actions"
+    },
+    "messages": {
+      "saveSuccess": "Saved successfully",
+      "saveError": "Failed to save",
+      "deleteSuccess": "Deleted successfully",
+      "deleteError": "Failed to delete",
+      "createSuccess": "Created successfully",
+      "createError": "Failed to create",
+      "updateSuccess": "Updated successfully",
+      "updateError": "Failed to update",
+      "confirmDelete": "Are you sure you want to delete this item?",
+      "unsavedChanges": "You have unsaved changes. Are you sure you want to leave?",
+      "required": "This field is required",
+      "invalid": "Invalid input"
+    },
+    "emptyStates": {
+      "title": "Nothing to show",
+      "description": "Get started by creating your first item",
+      "action": "Create New"
+    },
+    "errors": {
+      "generic": "Something went wrong",
+      "network": "Network error",
+      "notFound": "Not found",
+      "unauthorized": "Unauthorized",
+      "forbidden": "Forbidden",
+      "validation": "Validation error",
+      "server": "Server error",
+      "timeout": "Request timeout",
+      "unknown": "Unknown error"
+    },
+    "apps": {
+      "claude": "Claude Code",
+      "codex": "Codex CLI",
+      "gemini": "Gemini CLI",
+      "opencode": "OpenCode",
+      "openclaw": "OpenClaw"
+    }
+  }
+}
