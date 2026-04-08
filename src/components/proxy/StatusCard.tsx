@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
@@ -19,35 +20,36 @@ export function ProxyStatusCard({
   onStop,
   isLoading,
 }: ProxyStatusCardProps) {
+  const { t } = useTranslation();
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">代理状态</CardTitle>
+        <CardTitle className="text-sm font-medium">{t('proxy.title')}</CardTitle>
         {isRunning ? (
           <Badge className="bg-green-500 hover:bg-green-600">
             <CheckCircle className="w-3 h-3 mr-1" />
-            运行中
+            {t('proxy.status.running')}
           </Badge>
         ) : (
           <Badge variant="secondary">
             <XCircle className="w-3 h-3 mr-1" />
-            已停止
+            {t('proxy.status.stopped')}
           </Badge>
         )}
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{isRunning ? `端口 ${port}` : '-'}</div>
+        <div className="text-2xl font-bold">{isRunning ? `Port ${port}` : '-'}</div>
         <p className="text-xs text-muted-foreground">
-          {isRunning ? '代理服务器正在运行' : '代理服务器已停止'}
+          {isRunning ? t('proxy.status.running') : t('proxy.status.stopped')}
         </p>
         <div className="mt-4">
           {isRunning ? (
             <Button variant="destructive" size="sm" onClick={onStop} disabled={isLoading}>
-              停止代理
+              {t('proxy.stop')}
             </Button>
           ) : (
             <Button size="sm" onClick={onStart} disabled={isLoading}>
-              启动代理
+              {t('proxy.start')}
             </Button>
           )}
         </div>
@@ -71,6 +73,7 @@ export function CircuitBreakerCard({
   successes,
   onReset,
 }: CircuitBreakerCardProps) {
+  const { t } = useTranslation();
   const getStateColor = () => {
     switch (state) {
       case 'CLOSED':
@@ -85,11 +88,11 @@ export function CircuitBreakerCard({
   const getStateText = () => {
     switch (state) {
       case 'CLOSED':
-        return '正常';
+        return t('proxy.status.running');
       case 'HALF_OPEN':
-        return '半开';
+        return t('proxy.status.stopped');
       case 'OPEN':
-        return '熔断';
+        return t('proxy.circuitBreaker');
     }
   };
 
@@ -104,12 +107,16 @@ export function CircuitBreakerCard({
       </CardHeader>
       <CardContent>
         <div className="flex justify-between text-sm">
-          <span className="text-muted-foreground">失败: {failures}</span>
-          <span className="text-muted-foreground">成功: {successes}</span>
+          <span className="text-muted-foreground">
+            {t('proxy.cost')}: {failures}
+          </span>
+          <span className="text-muted-foreground">
+            {t('proxy.requests')}: {successes}
+          </span>
         </div>
         {state !== 'CLOSED' && (
           <Button variant="outline" size="sm" className="mt-2 w-full" onClick={onReset}>
-            重置熔断器
+            {t('proxy.circuitBreaker')}
           </Button>
         )}
       </CardContent>

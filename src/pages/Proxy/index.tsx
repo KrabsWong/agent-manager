@@ -6,6 +6,7 @@
  */
 
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Activity,
   Play,
@@ -62,24 +63,25 @@ function ProxyStatusCard({
   onStop: () => void;
   isLoading: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
           <Server className="h-4 w-4" />
-          代理状态
+          {t('proxy.title')}
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">状态</span>
+            <span className="text-sm text-muted-foreground">{t('proxy.title')}</span>
             <Badge variant={isRunning ? 'default' : 'secondary'}>
-              {isRunning ? '运行中' : '已停止'}
+              {isRunning ? t('proxy.status.running') : t('proxy.status.stopped')}
             </Badge>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">端口</span>
+            <span className="text-sm text-muted-foreground">Port</span>
             <span className="text-sm font-medium">{port}</span>
           </div>
           <div className="flex gap-2 pt-2">
@@ -92,12 +94,12 @@ function ProxyStatusCard({
                 className="flex-1"
               >
                 <Square className="h-4 w-4 mr-1" />
-                停止
+                {t('proxy.stop')}
               </Button>
             ) : (
               <Button size="sm" onClick={onStart} disabled={isLoading} className="flex-1">
                 <Play className="h-4 w-4 mr-1" />
-                启动
+                {t('proxy.start')}
               </Button>
             )}
           </div>
@@ -151,6 +153,7 @@ function CircuitBreakerCard({
   onReset: () => void;
   isResetting: boolean;
 }) {
+  const { t } = useTranslation();
   const getStateColor = (s: string) => {
     switch (s.toLowerCase()) {
       case 'closed':
@@ -194,11 +197,11 @@ function CircuitBreakerCard({
         <div className="grid grid-cols-2 gap-2 mb-3">
           <div className="text-center p-2 bg-muted rounded">
             <div className="text-lg font-semibold text-green-600">{successes}</div>
-            <div className="text-xs text-muted-foreground">成功</div>
+            <div className="text-xs text-muted-foreground">{t('proxy.requests')}</div>
           </div>
           <div className="text-center p-2 bg-muted rounded">
             <div className="text-lg font-semibold text-red-600">{failures}</div>
-            <div className="text-xs text-muted-foreground">失败</div>
+            <div className="text-xs text-muted-foreground">{t('proxy.cost')}</div>
           </div>
         </div>
         <Button
@@ -209,7 +212,7 @@ function CircuitBreakerCard({
           className="w-full"
         >
           <RotateCcw className="h-3 w-3 mr-1" />
-          重置
+          {t('proxy.circuitBreaker')}
         </Button>
       </CardContent>
     </Card>
@@ -240,6 +243,7 @@ function Alert({
 
 // Main Proxy Page Component
 export function ProxyPage() {
+  const { t } = useTranslation();
   const [dateRange, setDateRange] = useState<'7days' | '30days'>('7days');
 
   // Calculate date range
@@ -296,8 +300,8 @@ export function ProxyPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold">代理服务</h1>
-        <p className="text-muted-foreground">管理 HTTP 代理服务，监控使用情况，配置熔断器</p>
+        <h1 className="text-2xl font-bold">{t('proxy.title')}</h1>
+        <p className="text-muted-foreground">{t('proxy.description')}</p>
       </div>
 
       {/* Error Alerts */}
@@ -315,13 +319,13 @@ export function ProxyPage() {
       <section className="space-y-4">
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <Activity className="h-5 w-5" />
-          运行状态
+          {t('proxy.status.running')}
         </h2>
         <div className="grid gap-4 md:grid-cols-3">
           {isStatusLoading ? (
             <Card className="md:col-span-3">
               <CardContent className="p-6 text-center text-muted-foreground">
-                加载状态...
+                {t('proxy.status.running')}
               </CardContent>
             </Card>
           ) : status ? (
@@ -334,16 +338,16 @@ export function ProxyPage() {
                 isLoading={startProxy.isPending || stopProxy.isPending}
               />
               <StatsCard
-                title="今日请求"
+                title={t('proxy.requests')}
                 value={isTodayStatsLoading ? '-' : (todayStats?.requests ?? 0)}
                 icon={TrendingUp}
-                description="今日总请求数量"
+                description={t('proxy.requests')}
               />
               <StatsCard
-                title="今日成本"
+                title={t('proxy.cost')}
                 value={isTodayStatsLoading ? '-' : formatCost(todayStats?.cost ?? 0)}
                 icon={DollarSign}
-                description="今日总成本 (USD)"
+                description={t('proxy.cost')}
               />
             </>
           ) : null}
@@ -352,11 +356,11 @@ export function ProxyPage() {
 
       {/* Circuit Breakers Section */}
       <section className="space-y-4">
-        <h2 className="text-lg font-semibold">熔断器状态</h2>
+        <h2 className="text-lg font-semibold">{t('proxy.circuitBreaker')}</h2>
         {isCircuitBreakersLoading ? (
           <Card>
             <CardContent className="p-6 text-center text-muted-foreground">
-              加载熔断器状态...
+              {t('proxy.circuitBreaker')}
             </CardContent>
           </Card>
         ) : circuitBreakers && Object.keys(circuitBreakers).length > 0 ? (
@@ -376,7 +380,7 @@ export function ProxyPage() {
         ) : (
           <Card>
             <CardContent className="p-6 text-center text-muted-foreground">
-              暂无熔断器数据
+              {t('proxy.circuitBreaker')}
             </CardContent>
           </Card>
         )}
@@ -385,26 +389,26 @@ export function ProxyPage() {
       {/* Usage Charts Section */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">使用统计</h2>
+          <h2 className="text-lg font-semibold">{t('proxy.requests')}</h2>
           <Select
             value={dateRange}
             onChange={(e) => setDateRange(e.target.value as '7days' | '30days')}
             className="w-32"
           >
-            <option value="7days">7 天</option>
-            <option value="30days">30 天</option>
+            <option value="7days">7 days</option>
+            <option value="30days">30 days</option>
           </Select>
         </div>
         {isUsageStatsLoading ? (
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardContent className="p-6 text-center text-muted-foreground">
-                加载图表数据...
+                {t('proxy.requests')}
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-6 text-center text-muted-foreground">
-                加载图表数据...
+                {t('proxy.cost')}
               </CardContent>
             </Card>
           </div>
@@ -416,7 +420,7 @@ export function ProxyPage() {
         ) : (
           <Card>
             <CardContent className="p-6 text-center text-muted-foreground">
-              暂无使用统计数据
+              {t('proxy.requests')}
             </CardContent>
           </Card>
         )}
@@ -426,21 +430,23 @@ export function ProxyPage() {
       <section className="space-y-4">
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <Clock className="h-5 w-5" />
-          最近日志
+          {t('proxy.status.running')}
         </h2>
         <Card>
           <CardContent className="p-0">
             {isLogsLoading ? (
-              <div className="p-6 text-center text-muted-foreground">加载日志...</div>
+              <div className="p-6 text-center text-muted-foreground">
+                {t('proxy.status.running')}
+              </div>
             ) : recentLogs && recentLogs.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b bg-muted/50">
-                      <th className="text-left p-4 text-sm font-medium">时间</th>
-                      <th className="text-left p-4 text-sm font-medium">提供商</th>
-                      <th className="text-left p-4 text-sm font-medium">状态</th>
-                      <th className="text-right p-4 text-sm font-medium">成本</th>
+                      <th className="text-left p-4 text-sm font-medium">Time</th>
+                      <th className="text-left p-4 text-sm font-medium">Provider</th>
+                      <th className="text-left p-4 text-sm font-medium">Status</th>
+                      <th className="text-right p-4 text-sm font-medium">{t('proxy.cost')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -453,7 +459,7 @@ export function ProxyPage() {
                             variant={log.success ? 'default' : 'destructive'}
                             className="text-xs"
                           >
-                            {log.success ? '成功' : '失败'}
+                            {log.success ? t('proxy.status.running') : t('proxy.status.stopped')}
                           </Badge>
                         </td>
                         <td className="p-4 text-sm text-right">{formatCost(log.costUsd)}</td>
@@ -463,7 +469,9 @@ export function ProxyPage() {
                 </table>
               </div>
             ) : (
-              <div className="p-6 text-center text-muted-foreground">暂无日志数据</div>
+              <div className="p-6 text-center text-muted-foreground">
+                {t('proxy.status.stopped')}
+              </div>
             )}
           </CardContent>
         </Card>

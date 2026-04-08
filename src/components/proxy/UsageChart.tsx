@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import {
   LineChart,
   Line,
@@ -15,6 +16,7 @@ interface UsageChartProps {
 }
 
 export function UsageChart({ data, type }: UsageChartProps) {
+  const { t } = useTranslation();
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
@@ -31,7 +33,7 @@ export function UsageChart({ data, type }: UsageChartProps) {
     <Card>
       <CardHeader>
         <CardTitle className="text-sm font-medium">
-          {type === 'requests' ? '请求量趋势' : '成本趋势'}
+          {type === 'requests' ? t('proxy.requests') : t('proxy.cost')}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -47,7 +49,7 @@ export function UsageChart({ data, type }: UsageChartProps) {
             <Tooltip
               formatter={(value) => [
                 formatValue(Number(value)),
-                type === 'requests' ? '请求数' : '成本',
+                type === 'requests' ? t('proxy.requests') : t('proxy.cost'),
               ]}
               labelFormatter={(label) => formatDate(label as string)}
             />
