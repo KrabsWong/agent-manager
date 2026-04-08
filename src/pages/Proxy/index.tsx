@@ -21,7 +21,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Select } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { UsageChart } from '@/components/proxy/UsageChart';
 import {
   useProxyStatus,
@@ -392,11 +398,15 @@ export function ProxyPage() {
           <h2 className="text-lg font-semibold">{t('proxy.requests')}</h2>
           <Select
             value={dateRange}
-            onChange={(e) => setDateRange(e.target.value as '7days' | '30days')}
-            className="w-32"
+            onValueChange={(value) => setDateRange(value as '7days' | '30days')}
           >
-            <option value="7days">7 days</option>
-            <option value="30days">30 days</option>
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="Select Range" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7days">7 days</SelectItem>
+              <SelectItem value="30days">30 days</SelectItem>
+            </SelectContent>
           </Select>
         </div>
         {isUsageStatsLoading ? (

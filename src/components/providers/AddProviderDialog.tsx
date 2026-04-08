@@ -10,7 +10,13 @@ import { Plus, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { providerPresets, presetToCreateInput } from '@/config/providerPresets';
 import type { AppType, CreateProviderInput } from '@/types';
@@ -171,9 +177,14 @@ export function AddProviderDialog({ appType, isOpen, onClose, onAdd }: AddProvid
               <div className="space-y-2">
                 <Label>{t('providers.targetApplication')}</Label>
                 <Select value={appType} disabled>
-                  <option value={appType}>
-                    {appType.charAt(0).toUpperCase() + appType.slice(1)}
-                  </option>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={appType}>
+                      {appType.charAt(0).toUpperCase() + appType.slice(1)}
+                    </SelectItem>
+                  </SelectContent>
                 </Select>
               </div>
 

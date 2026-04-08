@@ -1,11 +1,25 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Plus, FileText, Download, AlertCircle } from 'lucide-react';
 import { PromptCard } from '@/components/prompts/PromptCard';
 import { PromptEditor } from '@/components/prompts/PromptEditor';
-import { usePrompts, useActivePrompt, useCreatePrompt, useUpdatePrompt, useDeletePrompt, useSetActivePrompt, useImportPromptFromApp } from '@/hooks/usePrompts';
+import {
+  usePrompts,
+  useActivePrompt,
+  useCreatePrompt,
+  useUpdatePrompt,
+  useDeletePrompt,
+  useSetActivePrompt,
+  useImportPromptFromApp,
+} from '@/hooks/usePrompts';
 import type { Prompt, CreatePromptInput, AppType } from '@/types';
 import { APP_TYPES } from '@/types';
 
@@ -24,7 +38,7 @@ export function PromptsPage() {
 
   const { data: prompts = [], isLoading, error } = usePrompts(selectedApp);
   const { data: activePrompt } = useActivePrompt(selectedApp);
-  
+
   const createMutation = useCreatePrompt();
   const updateMutation = useUpdatePrompt();
   const deleteMutation = useDeletePrompt();
@@ -81,16 +95,17 @@ export function PromptsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Select
-            value={selectedApp}
-            onChange={(e) => setSelectedApp(e.target.value as AppType)}
-            className="w-40"
-          >
-            {APP_TYPES.map((app) => (
-              <option key={app} value={app}>
-                {APP_LABELS[app]}
-              </option>
-            ))}
+          <Select value={selectedApp} onValueChange={(value) => setSelectedApp(value as AppType)}>
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="Select App" />
+            </SelectTrigger>
+            <SelectContent>
+              {APP_TYPES.map((app) => (
+                <SelectItem key={app} value={app}>
+                  {APP_LABELS[app]}
+                </SelectItem>
+              ))}
+            </SelectContent>
           </Select>
           <Button variant="outline" onClick={handleImport} disabled={importMutation.isPending}>
             <Download className="h-4 w-4 mr-2" />
@@ -139,8 +154,8 @@ export function PromptsPage() {
             <FileText className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No prompts yet</h3>
             <p className="text-muted-foreground text-center max-w-sm mb-6">
-              You haven't created any prompts for {APP_LABELS[selectedApp]} yet. 
-              Create a new prompt or import from the app.
+              You haven't created any prompts for {APP_LABELS[selectedApp]} yet. Create a new prompt
+              or import from the app.
             </p>
             <div className="flex gap-2">
               <Button variant="outline" onClick={handleImport} disabled={importMutation.isPending}>

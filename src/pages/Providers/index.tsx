@@ -8,7 +8,13 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Select } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ProviderCard } from '@/components/providers/ProviderCard';
 import { AddProviderDialog } from '@/components/providers/AddProviderDialog';
 import { EditProviderDialog } from '@/components/providers/EditProviderDialog';
@@ -94,16 +100,17 @@ export function ProvidersPage() {
       {/* App Selector */}
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium">{t('providers.application')}:</span>
-        <Select
-          value={selectedApp}
-          onChange={(e) => setSelectedApp(e.target.value as AppType)}
-          className="w-40"
-        >
-          {APP_TYPES.map((app) => (
-            <option key={app} value={app}>
-              {app.charAt(0).toUpperCase() + app.slice(1)}
-            </option>
-          ))}
+        <Select value={selectedApp} onValueChange={(value) => setSelectedApp(value as AppType)}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Select App" />
+          </SelectTrigger>
+          <SelectContent>
+            {APP_TYPES.map((app) => (
+              <SelectItem key={app} value={app}>
+                {app.charAt(0).toUpperCase() + app.slice(1)}
+              </SelectItem>
+            ))}
+          </SelectContent>
         </Select>
       </div>
 
