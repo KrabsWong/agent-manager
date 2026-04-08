@@ -1,6 +1,6 @@
 /**
  * Skills IPC Handlers
- * 
+ *
  * Handles all skills-related IPC communication
  */
 
@@ -32,25 +32,23 @@ export function registerSkillsHandlers(): void {
   });
 
   // Install a skill from GitHub
-  ipcRegistry.register('skills:install', async (
-    _event: IpcMainInvokeEvent,
-    ...args: unknown[]
-  ) => {
+  ipcRegistry.register('skills:install', async (_event: IpcMainInvokeEvent, ...args: unknown[]) => {
     const [repoUrl, directory] = args as [string, string | undefined];
-    
+
     // Parse repo URL (format: owner/repo)
     const parts = repoUrl.replace('https://github.com/', '').split('/');
     if (parts.length < 2) {
       throw new Error('Invalid repository URL format. Use: owner/repo');
     }
-    
+
     const [owner, repo] = parts;
     const skillDir = directory || repo;
+    let skillPath: string | null = null;
 
     try {
       // Install skill files
-      const skillPath = await skillInstallService.installFromRepo(owner, repo, skillDir);
-      
+      skillPath = await skillInstallService.installFromRepo(owner, repo, skillDir);
+
       // Get skill info
       const metadata = skillInstallService.readSkillMetadata(skillPath);
       const skillName = (metadata?.name as string) || skillDir;
@@ -72,63 +70,74 @@ export function registerSkillsHandlers(): void {
       return skill;
     } catch (error) {
       log.error('Failed to install skill:', error);
+
+      // Cleanup: remove installed files if database creation failed
+      if (skillPath) {
+        try {
+          skillInstallService.uninstall(skillPath);
+          log.info(`Cleaned up skill files at: ${skillPath}`);
+        } catch (cleanupError) {
+          log.error('Failed to cleanup skill files:', cleanupError);
+        }
+      }
+
       throw error;
     }
   });
 
   // Uninstall a skill
-  ipcRegistry.register('skills:uninstall', async (
-    _event: IpcMainInvokeEvent,
-    ...args: unknown[]
-  ) => {
-    const [id] = args as [string];
-    
-    const skill = service.getById(id);
-    if (!skill) {
-      throw new Error('Skill not found');
+  ipcRegistry.register(
+    'skills:uninstall',
+    async (_event: IpcMainInvokeEvent, ...args: unknown[]) => {
+      const [id] = args as [string];
+
+      const skill = service.getById(id);
+      if (!skill) {
+        throw new Error('Skill not found');
+      }
+
+      // Remove files
+      skillInstallService.uninstall(skill.directory);
+
+      // Remove from database
+      service.delete(id);
+
+      // Sync to apps
+      const allSkills = service.getAll();
+      skillsConfigAdapter.syncToAllApps(allSkills);
     }
-
-    // Remove files
-    skillInstallService.uninstall(skill.directory);
-    
-    // Remove from database
-    service.delete(id);
-
-    // Sync to apps
-    const allSkills = service.getAll();
-    skillsConfigAdapter.syncToAllApps(allSkills);
-  });
+  );
 
   // Toggle skill for an app
-  ipcRegistry.register('skills:toggleApp', async (
-    _event: IpcMainInvokeEvent,
-    ...args: unknown[]
-  ) => {
-    const [id, appType, enabled] = args as [string, AppType, boolean];
-    service.toggleApp(id, appType, enabled);
-    
-    // Sync to specific app
-    const allSkills = service.getAll();
-    skillsConfigAdapter.syncToApp(appType, allSkills);
-  });
+  ipcRegistry.register(
+    'skills:toggleApp',
+    async (_event: IpcMainInvokeEvent, ...args: unknown[]) => {
+      const [id, appType, enabled] = args as [string, AppType, boolean];
+      service.toggleApp(id, appType, enabled);
+
+      // Sync to specific app
+      const allSkills = service.getAll();
+      skillsConfigAdapter.syncToApp(appType, allSkills);
+    }
+  );
 
   // Scan a GitHub repository for skills
-  ipcRegistry.register('skills:scanRepo', async (
-    _event: IpcMainInvokeEvent,
-    ...args: unknown[]
-  ) => {
-    const [owner, name] = args as [string, string];
-    return githubService.scanRepo(owner, name);
-  });
+  ipcRegistry.register(
+    'skills:scanRepo',
+    async (_event: IpcMainInvokeEvent, ...args: unknown[]) => {
+      const [owner, name] = args as [string, string];
+      return githubService.scanRepo(owner, name);
+    }
+  );
 
   // Get repository info
-  ipcRegistry.register('skills:getRepoInfo', async (
-    _event: IpcMainInvokeEvent,
-    ...args: unknown[]
-  ) => {
-    const [owner, name] = args as [string, string];
-    return githubService.getRepoInfo(owner, name);
-  });
+  ipcRegistry.register(
+    'skills:getRepoInfo',
+    async (_event: IpcMainInvokeEvent, ...args: unknown[]) => {
+      const [owner, name] = args as [string, string];
+      return githubService.getRepoInfo(owner, name);
+    }
+  );
 
   // Open skills folder
   ipcRegistry.register('skills:openFolder', async () => {

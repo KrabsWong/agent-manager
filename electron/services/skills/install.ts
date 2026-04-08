@@ -1,6 +1,6 @@
 /**
  * Skill Installation Service
- * 
+ *
  * Handles downloading and installing skills from GitHub
  */
 
@@ -77,16 +77,31 @@ export class SkillInstallService {
       'main.py',
     ];
 
+    let downloadedCount = 0;
+
     for (const file of filesToDownload) {
       try {
         const content = await githubService.getRawFile(owner, repo, `${directory}/${file}`);
         const filePath = path.join(localPath, file);
         fs.writeFileSync(filePath, content, 'utf-8');
+        downloadedCount++;
         log.debug(`Downloaded: ${file}`);
       } catch (error) {
+        // Check if it's a rate limit error
+        if (error instanceof Error && error.message.includes('rate limit')) {
+          throw error; // Re-throw rate limit errors
+        }
         // File might not exist, that's ok
         log.debug(`File not found: ${directory}/${file}`);
       }
+    }
+
+    // Verify at least one file was downloaded
+    if (downloadedCount === 0) {
+      throw new Error(
+        `Failed to download any files for ${owner}/${repo}/${directory}. ` +
+          'This may be due to GitHub API rate limits. Please try again later or add a GitHub token in Settings.'
+      );
     }
   }
 

@@ -195,11 +195,23 @@ export class GitHubService {
     const response = await fetch(url);
 
     if (!response.ok) {
+      // Check for rate limit
+      if (response.status === 429) {
+        throw new Error(
+          'GitHub raw content rate limit exceeded. Please try again later or add a GitHub token in Settings.'
+        );
+      }
+
       // Try with 'master' branch
       const masterUrl = `https://raw.githubusercontent.com/${owner}/${repo}/master/${path}`;
       const masterResponse = await fetch(masterUrl);
 
       if (!masterResponse.ok) {
+        if (masterResponse.status === 429) {
+          throw new Error(
+            'GitHub raw content rate limit exceeded. Please try again later or add a GitHub token in Settings.'
+          );
+        }
         throw errors.notFound('File', path);
       }
 
