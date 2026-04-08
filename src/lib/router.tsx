@@ -1,45 +1,50 @@
+import { Suspense, lazy } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
-import { ProvidersPage } from '@/pages/Providers';
-import { McpPage } from '@/pages/Mcp';
-import { SkillsPage } from '@/pages/Skills';
-import { PromptsPage } from '@/pages/Prompts';
-import { ProxyPage } from '@/pages/Proxy';
-import { SettingsPage } from '@/pages/Settings';
+import { Spinner } from '@/components/ui/spinner';
+
+// Lazy load all pages (using wrapper to handle named exports)
+const ProvidersPage = lazy(() =>
+  import('@/pages/Providers').then((m) => ({ default: m.ProvidersPage }))
+);
+const McpPage = lazy(() => import('@/pages/Mcp').then((m) => ({ default: m.McpPage })));
+const SkillsPage = lazy(() => import('@/pages/Skills').then((m) => ({ default: m.SkillsPage })));
+const PromptsPage = lazy(() => import('@/pages/Prompts').then((m) => ({ default: m.PromptsPage })));
+const ProxyPage = lazy(() => import('@/pages/Proxy').then((m) => ({ default: m.ProxyPage })));
+const SettingsPage = lazy(() =>
+  import('@/pages/Settings').then((m) => ({ default: m.SettingsPage }))
+);
+
+// Loading fallback component
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center h-screen">
+      <Spinner className="w-8 h-8" />
+    </div>
+  );
+}
+
+// Wrap lazy components with Suspense
+function withSuspense(Component: React.ComponentType) {
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <Component />
+    </Suspense>
+  );
+}
 
 export const router = createBrowserRouter([
   {
     path: '/',
     element: <Layout />,
     children: [
-      {
-        path: '/',
-        element: <ProvidersPage />,
-      },
-      {
-        path: '/providers',
-        element: <ProvidersPage />,
-      },
-      {
-        path: '/mcp',
-        element: <McpPage />,
-      },
-      {
-        path: '/skills',
-        element: <SkillsPage />,
-      },
-      {
-        path: '/prompts',
-        element: <PromptsPage />,
-      },
-      {
-        path: '/proxy',
-        element: <ProxyPage />,
-      },
-      {
-        path: '/settings',
-        element: <SettingsPage />,
-      },
+      { path: '/', element: withSuspense(ProvidersPage) },
+      { path: '/providers', element: withSuspense(ProvidersPage) },
+      { path: '/mcp', element: withSuspense(McpPage) },
+      { path: '/skills', element: withSuspense(SkillsPage) },
+      { path: '/prompts', element: withSuspense(PromptsPage) },
+      { path: '/proxy', element: withSuspense(ProxyPage) },
+      { path: '/settings', element: withSuspense(SettingsPage) },
     ],
   },
 ]);
