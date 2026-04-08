@@ -15,6 +15,7 @@ interface SkillCardProps {
   skill: Skill;
   onDelete: () => void;
   onToggleApp: (appType: AppType, enabled: boolean) => void;
+  isToggling?: boolean;
 }
 
 const APP_CONFIG: Record<AppType, { label: string; icon: React.ReactNode; color: string }> = {
@@ -47,7 +48,7 @@ const APP_CONFIG: Record<AppType, { label: string; icon: React.ReactNode; color:
 
 const APP_ORDER: AppType[] = ['claude', 'codex', 'gemini', 'opencode', 'openclaw'];
 
-export function SkillCard({ skill, onDelete, onToggleApp }: SkillCardProps) {
+export function SkillCard({ skill, onDelete, onToggleApp, isToggling }: SkillCardProps) {
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleDateString();
   };
@@ -94,9 +95,11 @@ export function SkillCard({ skill, onDelete, onToggleApp }: SkillCardProps) {
                 <button
                   key={app}
                   onClick={() => onToggleApp(app, !isEnabled)}
+                  disabled={isToggling}
                   className={`
                     inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
                     border-2 transition-all duration-200
+                    ${isToggling ? 'opacity-50 cursor-not-allowed' : ''}
                     ${
                       isEnabled
                         ? `${config.color} shadow-sm`

@@ -90,7 +90,10 @@ export function useUninstallSkill() {
   return useMutation({
     mutationFn: (id: string) => skillsApi.uninstall(id),
     onSuccess: async () => {
-      // Immediately refetch to update the UI
+      // Remove from cache immediately and refetch
+      queryClient.removeQueries({
+        queryKey: skillsKeys.list(),
+      });
       await queryClient.refetchQueries({
         queryKey: skillsKeys.list(),
       });
@@ -107,8 +110,9 @@ export function useToggleSkillApp() {
   return useMutation({
     mutationFn: ({ id, appType, enabled }: { id: string; appType: AppType; enabled: boolean }) =>
       skillsApi.toggleApp(id, appType, enabled),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
+    onSuccess: async () => {
+      // Immediately refetch to show updated state
+      await queryClient.refetchQueries({
         queryKey: skillsKeys.list(),
       });
     },

@@ -158,6 +158,7 @@ export function SkillsPage() {
               skill={skill}
               onDelete={() => handleUninstallSkill(skill.id)}
               onToggleApp={(appType, enabled) => handleToggleApp(skill.id, appType, enabled)}
+              isToggling={toggleSkillApp.isPending}
             />
           ))}
         </div>
