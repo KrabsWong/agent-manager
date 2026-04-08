@@ -5,11 +5,12 @@
  */
 
 import { useState } from 'react';
-import { Plus, RefreshCw, Zap } from 'lucide-react';
+import { Plus, RefreshCw, Zap, Puzzle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { McpCard } from '@/components/mcp/McpCard';
 import { AddMcpDialog } from '@/components/mcp/AddMcpDialog';
 import { EditMcpDialog } from '@/components/mcp/EditMcpDialog';
+import { EmptyState } from '@/components/EmptyState';
 import {
   useMcpServers,
   useCreateMcpServer,
@@ -68,10 +69,11 @@ export function McpPage() {
     syncMcpServers.mutate();
   };
 
-  const totalEnabledCount = servers?.reduce(
-    (total, server) => total + Object.values(server.enabledApps).filter(Boolean).length,
-    0
-  ) || 0;
+  const totalEnabledCount =
+    servers?.reduce(
+      (total, server) => total + Object.values(server.enabledApps).filter(Boolean).length,
+      0
+    ) || 0;
 
   return (
     <div className="space-y-6">
@@ -110,7 +112,7 @@ export function McpPage() {
         </div>
         <div className="p-4 rounded-lg border bg-card">
           <div className="text-2xl font-bold">
-            {servers?.filter(s => Object.values(s.enabledApps).some(Boolean)).length || 0}
+            {servers?.filter((s) => Object.values(s.enabledApps).some(Boolean)).length || 0}
           </div>
           <div className="text-sm text-muted-foreground">Enabled Servers</div>
         </div>
@@ -123,18 +125,20 @@ export function McpPage() {
         </div>
       ) : error ? (
         <div className="flex items-center justify-center h-64">
-          <div className="text-destructive">
-            Error loading MCP servers: {error.message}
-          </div>
+          <div className="text-destructive">Error loading MCP servers: {error.message}</div>
         </div>
       ) : servers?.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-64 space-y-4">
-          <div className="text-muted-foreground">No MCP servers configured</div>
-          <Button onClick={() => setIsAddDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Your First MCP Server
-          </Button>
-        </div>
+        <EmptyState
+          icon={<Puzzle className="h-8 w-8" />}
+          title="No MCP Servers Yet"
+          description="MCP (Model Context Protocol) servers give your AI assistant superpowers like reading files, searching the web, or accessing databases."
+          secondaryText="Think of them as plugins that extend what your AI can do. For example, add a filesystem server to let AI read and edit your code files directly."
+          action={{
+            label: 'Add Your First MCP Server',
+            onClick: () => setIsAddDialogOpen(true),
+            icon: <Plus className="h-4 w-4" />,
+          }}
+        />
       ) : (
         <div className="grid gap-4">
           {servers?.map((server) => (

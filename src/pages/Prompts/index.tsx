@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { Plus, FileText, Download, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -8,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, FileText, Download, AlertCircle } from 'lucide-react';
+import { EmptyState } from '@/components/EmptyState';
 import { PromptCard } from '@/components/prompts/PromptCard';
 import { PromptEditor } from '@/components/prompts/PromptEditor';
 import {
@@ -149,26 +150,17 @@ export function PromptsPage() {
 
       {/* Empty State */}
       {!isLoading && prompts.length === 0 && !error && (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No prompts yet</h3>
-            <p className="text-muted-foreground text-center max-w-sm mb-6">
-              You haven't created any prompts for {APP_LABELS[selectedApp]} yet. Create a new prompt
-              or import from the app.
-            </p>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handleImport} disabled={importMutation.isPending}>
-                <Download className="h-4 w-4 mr-2" />
-                Import from App
-              </Button>
-              <Button onClick={handleCreate}>
-                <Plus className="h-4 w-4 mr-2" />
-                Create Prompt
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={<FileText className="h-8 w-8" />}
+          title={`No Prompts for ${APP_LABELS[selectedApp]} Yet`}
+          description="System prompts are like giving your AI assistant a personality and instructions. They guide how the AI responds to your coding questions and tasks."
+          secondaryText="For example, you can create a prompt that makes the AI focus on clean code, or one that helps with debugging. You can also import prompts you've already set up in the app."
+          action={{
+            label: 'Create Your First Prompt',
+            onClick: handleCreate,
+            icon: <Plus className="h-4 w-4" />,
+          }}
+        />
       )}
 
       {/* Prompts Grid */}

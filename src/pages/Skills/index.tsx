@@ -5,10 +5,11 @@
  */
 
 import { useState } from 'react';
-import { Plus, RefreshCw, FolderOpen, Sparkles, ExternalLink } from 'lucide-react';
+import { Plus, RefreshCw, FolderOpen, Sparkles, ExternalLink, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SkillCard } from '@/components/skills/SkillCard';
 import { InstallSkillDialog } from '@/components/skills/InstallSkillDialog';
+import { EmptyState } from '@/components/EmptyState';
 import {
   useSkills,
   useInstallSkill,
@@ -48,10 +49,11 @@ export function SkillsPage() {
     toggleSkillApp.mutate({ id: skillId, appType, enabled });
   };
 
-  const totalEnabledCount = skills?.reduce(
-    (total, skill) => total + Object.values(skill.enabledApps).filter(Boolean).length,
-    0
-  ) || 0;
+  const totalEnabledCount =
+    skills?.reduce(
+      (total, skill) => total + Object.values(skill.enabledApps).filter(Boolean).length,
+      0
+    ) || 0;
 
   return (
     <div className="space-y-6">
@@ -91,7 +93,9 @@ export function SkillsPage() {
           </div>
           <div className="flex-1">
             <p className="font-medium">Official Skills</p>
-            <p className="text-sm text-muted-foreground">Browse Anthropic's official skill collection</p>
+            <p className="text-sm text-muted-foreground">
+              Browse Anthropic's official skill collection
+            </p>
           </div>
           <ExternalLink className="h-4 w-4 text-muted-foreground" />
         </a>
@@ -124,7 +128,7 @@ export function SkillsPage() {
         </div>
         <div className="p-4 rounded-lg border bg-card">
           <div className="text-2xl font-bold">
-            {skills?.filter(s => Object.values(s.enabledApps).some(Boolean)).length || 0}
+            {skills?.filter((s) => Object.values(s.enabledApps).some(Boolean)).length || 0}
           </div>
           <div className="text-sm text-muted-foreground">Enabled Skills</div>
         </div>
@@ -137,18 +141,20 @@ export function SkillsPage() {
         </div>
       ) : error ? (
         <div className="flex items-center justify-center h-64">
-          <div className="text-destructive">
-            Error loading skills: {error.message}
-          </div>
+          <div className="text-destructive">Error loading skills: {error.message}</div>
         </div>
       ) : skills?.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-64 space-y-4">
-          <div className="text-muted-foreground">No skills installed</div>
-          <Button onClick={() => setIsInstallDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Install Your First Skill
-          </Button>
-        </div>
+        <EmptyState
+          icon={<Wand2 className="h-8 w-8" />}
+          title="No Skills Installed Yet"
+          description="Skills are ready-to-use AI capabilities that extend what your assistant can do. They're like apps for your AI - from code review to documentation generation."
+          secondaryText="Browse our skill marketplace to find tools that match your workflow. Popular options include code review assistants, commit message generators, and documentation writers."
+          action={{
+            label: 'Install Your First Skill',
+            onClick: () => setIsInstallDialogOpen(true),
+            icon: <Plus className="h-4 w-4" />,
+          }}
+        />
       ) : (
         <div className="grid gap-4">
           {skills?.map((skill) => (
