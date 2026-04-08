@@ -13,6 +13,7 @@ import { initializePromptService } from './services/prompt/crud';
 import { registerProxyHandlers } from './handlers/proxy';
 import { initializeProxyServer } from './services/proxy/server';
 import { initializeUsageTracker } from './services/proxy/usage-tracker';
+import { performanceMonitor } from './services/performance/monitor';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -98,9 +99,12 @@ const initializeApp = () => {
   try {
     log.info('Initializing application...');
 
-    // Initialize database
+    // Initialize database first (critical path)
     dbManager.initialize();
     log.info('Database initialized');
+
+    // Log startup time after database initialization
+    performanceMonitor.logStartupTime();
 
     // Initialize prompt service with database
     const db = dbManager.getDatabase();
@@ -118,17 +122,20 @@ const initializeApp = () => {
     const stats = dbManager.getStats();
     log.info('Database stats:', stats);
 
-    // Register IPC handlers
+    // Register core IPC handlers first
     registerProviderHandlers();
     registerMcpHandlers();
-    registerSkillsHandlers();
-    registerPromptHandlers();
-    registerProxyHandlers();
     registerAppHandlers();
 
-    log.info('IPC handlers registered');
+    // Register remaining handlers asynchronously to speed up startup
+    setImmediate(() => {
+      registerSkillsHandlers();
+      registerPromptHandlers();
+      registerProxyHandlers();
+      log.info('All IPC handlers registered');
+    });
 
-    // Create main window
+    // Create main window immediately (don't wait for all handlers)
     createWindow();
   } catch (error) {
     log.error('Failed to initialize application:', error);
