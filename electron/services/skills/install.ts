@@ -106,6 +106,73 @@ export class SkillInstallService {
   }
 
   /**
+   * Install a skill from a local folder
+   */
+  installFromLocal(localPath: string, skillName: string): string {
+    try {
+      log.info(`Installing local skill from: ${localPath}`);
+
+      // Verify source folder exists
+      if (!fs.existsSync(localPath)) {
+        throw errors.notFound('Local skill folder', localPath);
+      }
+
+      // Create skills directory if it doesn't exist
+      if (!fs.existsSync(this.skillsBasePath)) {
+        fs.mkdirSync(this.skillsBasePath, { recursive: true });
+      }
+
+      // Create unique directory name for this skill
+      const safeName = skillName.replace(/[^a-zA-Z0-9-_]/g, '_');
+      const localDirName = `local-${safeName}-${Date.now()}`;
+      const skillPath = path.join(this.skillsBasePath, localDirName);
+
+      // Check if already installed (check by path similarity)
+      const existingSkills = fs.readdirSync(this.skillsBasePath);
+      for (const existingDir of existingSkills) {
+        const existingPath = path.join(this.skillsBasePath, existingDir);
+        if (fs.realpathSync(existingPath) === fs.realpathSync(localPath)) {
+          throw errors.alreadyExists('Skill', `Skill from ${localPath} is already installed`);
+        }
+      }
+
+      // Copy skill files from local folder
+      this.copySkillFiles(localPath, skillPath);
+
+      log.info(`Local skill installed successfully: ${skillPath}`);
+      return skillPath;
+    } catch (error) {
+      log.error('Failed to install local skill:', error);
+      throw errors.fileSystemError('installLocal', localPath, error);
+    }
+  }
+
+  /**
+   * Copy all files from source to destination
+   */
+  private copySkillFiles(sourcePath: string, destPath: string): void {
+    // Create destination directory
+    fs.mkdirSync(destPath, { recursive: true });
+
+    // Copy all files from source
+    const entries = fs.readdirSync(sourcePath, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const sourceEntryPath = path.join(sourcePath, entry.name);
+      const destEntryPath = path.join(destPath, entry.name);
+
+      if (entry.isDirectory()) {
+        // Recursively copy subdirectories
+        this.copySkillFiles(sourceEntryPath, destEntryPath);
+      } else {
+        // Copy file
+        fs.copyFileSync(sourceEntryPath, destEntryPath);
+        log.debug(`Copied file: ${entry.name}`);
+      }
+    }
+  }
+
+  /**
    * Uninstall a skill (remove directory)
    */
   uninstall(skillPath: string): void {

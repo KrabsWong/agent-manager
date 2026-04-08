@@ -85,6 +85,43 @@ export function registerSkillsHandlers(): void {
     }
   });
 
+  // Install a skill from local folder
+  ipcRegistry.register(
+    'skills:installLocal',
+    async (_event: IpcMainInvokeEvent, ...args: unknown[]) => {
+      const [localPath, skillName] = args as [string, string];
+
+      try {
+        log.info(`Installing local skill from: ${localPath}`);
+
+        // Install skill files from local folder
+        const skillPath = await skillInstallService.installFromLocal(localPath, skillName);
+
+        // Get skill info
+        const metadata = skillInstallService.readSkillMetadata(skillPath);
+        const finalSkillName = skillName || (metadata?.name as string) || 'Local Skill';
+        const skillDescription = metadata?.description as string | undefined;
+
+        // Create skill record in database
+        const skill = service.create({
+          name: finalSkillName,
+          description: skillDescription,
+          directory: skillPath,
+        });
+
+        // Sync to apps (none enabled by default)
+        const allSkills = service.getAll();
+        skillsConfigAdapter.syncToAllApps(allSkills);
+
+        log.info(`Local skill installed successfully: ${finalSkillName}`);
+        return skill;
+      } catch (error) {
+        log.error('Failed to install local skill:', error);
+        throw error;
+      }
+    }
+  );
+
   // Uninstall a skill
   ipcRegistry.register(
     'skills:uninstall',

@@ -64,6 +64,24 @@ export function useInstallSkill() {
 }
 
 /**
+ * Hook to install a local skill
+ */
+export function useInstallLocalSkill() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ localPath, skillName }: { localPath: string; skillName: string }) =>
+      skillsApi.installLocal(localPath, skillName),
+    onSuccess: async () => {
+      // Immediately refetch to update the UI
+      await queryClient.refetchQueries({
+        queryKey: skillsKeys.list(),
+      });
+    },
+  });
+}
+
+/**
  * Hook to uninstall a skill
  */
 export function useUninstallSkill() {
@@ -71,8 +89,9 @@ export function useUninstallSkill() {
 
   return useMutation({
     mutationFn: (id: string) => skillsApi.uninstall(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
+    onSuccess: async () => {
+      // Immediately refetch to update the UI
+      await queryClient.refetchQueries({
         queryKey: skillsKeys.list(),
       });
     },

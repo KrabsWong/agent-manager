@@ -6,29 +6,31 @@
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, RefreshCw, FolderOpen, Wand2 } from 'lucide-react';
+import { Plus, RefreshCw, FolderPlus, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SkillCard } from '@/components/skills/SkillCard';
 import { InstallSkillDialog } from '@/components/skills/InstallSkillDialog';
+import { AddLocalSkillDialog } from '@/components/skills/AddLocalSkillDialog';
 import { EmptyState } from '@/components/EmptyState';
 import {
   useSkills,
   useInstallSkill,
+  useInstallLocalSkill,
   useUninstallSkill,
   useToggleSkillApp,
-  useOpenSkillsFolder,
 } from '@/hooks/useSkills';
 import type { AppType } from '@/types';
 
 export function SkillsPage() {
   const { t } = useTranslation();
   const [isInstallDialogOpen, setIsInstallDialogOpen] = useState(false);
+  const [isLocalDialogOpen, setIsLocalDialogOpen] = useState(false);
 
   const { data: skills, isLoading, error, refetch } = useSkills();
   const installSkill = useInstallSkill();
+  const installLocalSkill = useInstallLocalSkill();
   const uninstallSkill = useUninstallSkill();
   const toggleSkillApp = useToggleSkillApp();
-  const openSkillsFolder = useOpenSkillsFolder();
 
   const handleInstallSkill = (repoUrl: string, directory?: string) => {
     installSkill.mutate(
@@ -36,6 +38,17 @@ export function SkillsPage() {
       {
         onSuccess: () => {
           setIsInstallDialogOpen(false);
+        },
+      }
+    );
+  };
+
+  const handleInstallLocalSkill = (localPath: string, skillName: string) => {
+    installLocalSkill.mutate(
+      { localPath, skillName },
+      {
+        onSuccess: () => {
+          setIsLocalDialogOpen(false);
         },
       }
     );
@@ -70,9 +83,9 @@ export function SkillsPage() {
           <Button variant="outline" size="icon" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4" />
           </Button>
-          <Button variant="outline" onClick={() => openSkillsFolder.mutate()}>
-            <FolderOpen className="h-4 w-4 mr-2" />
-            {t('skills.openFolder')}
+          <Button variant="outline" onClick={() => setIsLocalDialogOpen(true)}>
+            <FolderPlus className="h-4 w-4 mr-2" />
+            Add Local
           </Button>
           <Button onClick={() => setIsInstallDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
@@ -156,6 +169,13 @@ export function SkillsPage() {
         onClose={() => setIsInstallDialogOpen(false)}
         onInstall={handleInstallSkill}
         isInstalling={installSkill.isPending}
+      />
+
+      <AddLocalSkillDialog
+        isOpen={isLocalDialogOpen}
+        onClose={() => setIsLocalDialogOpen(false)}
+        onAdd={handleInstallLocalSkill}
+        isAdding={installLocalSkill.isPending}
       />
     </div>
   );

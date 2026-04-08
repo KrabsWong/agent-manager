@@ -209,6 +209,7 @@ export type IpcChannel =
   | 'skills:getAll'
   | 'skills:getInstalled'
   | 'skills:install'
+  | 'skills:installLocal'
   | 'skills:uninstall'
   | 'skills:toggleApp'
   | 'skills:scanRepo'

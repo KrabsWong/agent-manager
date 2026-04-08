@@ -84,7 +84,7 @@ export function SkillCard({ skill, onDelete, onToggleApp }: SkillCardProps) {
       </CardHeader>
       <CardContent className="pt-0">
         <div className="space-y-3">
-          {/* App toggles - Modern chip style */}
+          {/* App toggles - Modern chip style with clear visual feedback */}
           <div className="flex flex-wrap gap-2">
             {APP_ORDER.map((app) => {
               const isEnabled = skill.enabledApps[app];
@@ -96,15 +96,19 @@ export function SkillCard({ skill, onDelete, onToggleApp }: SkillCardProps) {
                   onClick={() => onToggleApp(app, !isEnabled)}
                   className={`
                     inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
-                    border transition-all duration-200
+                    border-2 transition-all duration-200
                     ${
                       isEnabled
-                        ? config.color
-                        : 'bg-muted text-muted-foreground border-transparent hover:bg-muted/80'
+                        ? `${config.color} shadow-sm`
+                        : 'bg-muted/50 text-muted-foreground border-muted hover:bg-muted border-transparent'
                     }
                   `}
                 >
-                  {isEnabled && <Check className="h-3 w-3" />}
+                  {isEnabled ? (
+                    <Check className="h-3.5 w-3.5" />
+                  ) : (
+                    <span className="w-3.5 h-3.5 rounded-full border-2 border-current opacity-30" />
+                  )}
                   {config.icon}
                   <span>{config.label}</span>
                 </button>
@@ -112,13 +116,15 @@ export function SkillCard({ skill, onDelete, onToggleApp }: SkillCardProps) {
             })}
           </div>
 
-          {/* Footer info */}
-          <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
-            <div className="flex items-center gap-2">
-              <Folder className="h-3 w-3" />
-              <span className="truncate font-mono max-w-[200px]">{skill.directory}</span>
+          {/* Footer info - show full path */}
+          <div className="space-y-2 text-xs text-muted-foreground pt-3 border-t">
+            <div className="flex items-start gap-2">
+              <Folder className="h-3 w-3 mt-0.5 shrink-0" />
+              <span className="font-mono break-all">{skill.directory}</span>
             </div>
-            <span>Installed {formatDate(skill.installedAt)}</span>
+            <div className="text-right">
+              <span>Installed {formatDate(skill.installedAt)}</span>
+            </div>
           </div>
         </div>
       </CardContent>

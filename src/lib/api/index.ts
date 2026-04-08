@@ -391,6 +391,15 @@ export const skillsApi = {
     return extractData(response);
   },
 
+  installLocal: async (localPath: string, skillName: string): Promise<Skill> => {
+    const response = (await window.electronAPI.invoke(
+      'skills:installLocal',
+      localPath,
+      skillName
+    )) as ApiResponse<Skill>;
+    return extractData(response);
+  },
+
   uninstall: async (id: string): Promise<void> => {
     const response = (await window.electronAPI.invoke('skills:uninstall', id)) as ApiResponse<void>;
     return extractData(response);
