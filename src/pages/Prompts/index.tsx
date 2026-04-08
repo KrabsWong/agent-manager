@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, FileText, Download, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
 import {
   Select,
   SelectContent,
@@ -118,20 +118,6 @@ export function PromptsPage() {
           </Button>
         </div>
       </div>
-
-      {/* Active Prompt Info Card */}
-      {activePrompt && (
-        <Card className="border-primary">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-primary">
-              {t('prompts.currentlyActive')}
-            </CardTitle>
-            <CardDescription className="text-lg font-semibold text-foreground">
-              {activePrompt.name}
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      )}
 
       {/* Error State */}
       {error && (
