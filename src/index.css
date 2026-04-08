@@ -57,3 +57,17 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  /* Draggable region for frameless Electron window */
+  .app-drag-region {
+    -webkit-app-region: drag;
+    app-region: drag;
+  }
+  
+  /* Non-draggable elements within draggable region */
+  .app-no-drag {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+  }
+}

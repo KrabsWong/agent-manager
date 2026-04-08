@@ -4,12 +4,12 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
 const navigation = [
-  { name: 'navigation.providers', href: '/providers', icon: Plug },
-  { name: 'navigation.mcp', href: '/mcp', icon: Puzzle },
-  { name: 'navigation.skills', href: '/skills', icon: Palette },
-  { name: 'navigation.prompts', href: '/prompts', icon: FileText },
-  { name: 'navigation.proxy', href: '/proxy', icon: Globe },
-  { name: 'navigation.settings', href: '/settings', icon: Settings },
+  { name: 'nav.providers', href: '/providers', icon: Plug },
+  { name: 'nav.mcpServers', href: '/mcp', icon: Puzzle },
+  { name: 'nav.skills', href: '/skills', icon: Palette },
+  { name: 'nav.prompts', href: '/prompts', icon: FileText },
+  { name: 'nav.proxy', href: '/proxy', icon: Globe },
+  { name: 'nav.settings', href: '/settings', icon: Settings },
 ];
 
 export function Sidebar() {
