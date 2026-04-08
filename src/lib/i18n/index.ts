@@ -324,6 +324,7 @@ const enTranslations = {
     collapseAll: 'Collapse All',
     resume: 'Resume Session',
     resuming: 'Opening...',
+    noWorkingDir: 'Cannot resume: working directory not found in session data',
   },
 };
 
@@ -646,6 +647,7 @@ const zhTranslations = {
     collapseAll: '全部收起',
     resume: '回放会话',
     resuming: '正在打开...',
+    noWorkingDir: '无法回放：会话数据中未找到工作目录',
   },
 };
 

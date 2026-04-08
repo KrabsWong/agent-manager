@@ -293,9 +293,15 @@ export function SessionsPage() {
                       workingDir: selectedSession.directory,
                     });
                   }}
-                  disabled={resumeMutation.isPending}
+                  disabled={resumeMutation.isPending || !selectedSession.directory}
                   className="flex items-center gap-1.5"
-                  title={terminalInfo?.ghosttyInstalled ? 'Open in Ghostty' : 'Open in Terminal'}
+                  title={
+                    !selectedSession.directory
+                      ? t('sessions.noWorkingDir') || 'Cannot resume: working directory not found'
+                      : terminalInfo?.ghosttyInstalled
+                        ? 'Open in Ghostty'
+                        : 'Open in Terminal'
+                  }
                 >
                   <Play className="h-3.5 w-3.5" />
                   {resumeMutation.isPending
