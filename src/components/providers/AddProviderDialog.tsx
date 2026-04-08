@@ -1,10 +1,11 @@
 /**
  * Add Provider Dialog
- * 
+ *
  * Dialog for adding a new provider (preset or custom)
  */
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +23,7 @@ interface AddProviderDialogProps {
 }
 
 export function AddProviderDialog({ appType, isOpen, onClose, onAdd }: AddProviderDialogProps) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<'select' | 'configure'>('select');
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [customName, setCustomName] = useState('');
@@ -45,7 +47,7 @@ export function AddProviderDialog({ appType, isOpen, onClose, onAdd }: AddProvid
     if (isCustom) {
       onAdd({
         appType,
-        name: customName || 'Custom Provider',
+        name: customName || t('providers.customProvider'),
         settingsConfig: {},
         category: 'custom',
       });
@@ -82,14 +84,12 @@ export function AddProviderDialog({ appType, isOpen, onClose, onAdd }: AddProvid
       <div className="bg-background rounded-lg shadow-lg w-full max-w-lg max-h-[80vh] overflow-auto">
         <div className="p-6">
           <h2 className="text-xl font-semibold mb-4">
-            {step === 'select' ? 'Add Provider' : 'Configure Provider'}
+            {step === 'select' ? t('providers.addProvider') : t('providers.configureProvider')}
           </h2>
 
           {step === 'select' ? (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Select a preset provider or create a custom one.
-              </p>
+              <p className="text-sm text-muted-foreground">{t('providers.selectPresetOrCustom')}</p>
 
               <div className="space-y-2">
                 {providerPresets.map((preset) => (
@@ -111,9 +111,7 @@ export function AddProviderDialog({ appType, isOpen, onClose, onAdd }: AddProvid
                           {preset.category}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {preset.description}
-                      </p>
+                      <p className="text-sm text-muted-foreground truncate">{preset.description}</p>
                     </div>
                   </button>
                 ))}
@@ -126,9 +124,9 @@ export function AddProviderDialog({ appType, isOpen, onClose, onAdd }: AddProvid
                     <Plus className="h-4 w-4" />
                   </div>
                   <div>
-                    <span className="font-medium">Custom Provider</span>
+                    <span className="font-medium">{t('providers.customProvider')}</span>
                     <p className="text-sm text-muted-foreground">
-                      Configure your own provider settings
+                      {t('providers.configureCustom')}
                     </p>
                   </div>
                 </button>
@@ -138,12 +136,12 @@ export function AddProviderDialog({ appType, isOpen, onClose, onAdd }: AddProvid
             <div className="space-y-4">
               {isCustom ? (
                 <div className="space-y-2">
-                  <Label htmlFor="custom-name">Provider Name</Label>
+                  <Label htmlFor="custom-name">{t('providers.providerName')}</Label>
                   <Input
                     id="custom-name"
                     value={customName}
                     onChange={(e) => setCustomName(e.target.value)}
-                    placeholder="Enter provider name"
+                    placeholder={t('providers.enterProviderName')}
                   />
                 </div>
               ) : (
@@ -171,26 +169,26 @@ export function AddProviderDialog({ appType, isOpen, onClose, onAdd }: AddProvid
               )}
 
               <div className="space-y-2">
-                <Label>Target Application</Label>
+                <Label>{t('providers.targetApplication')}</Label>
                 <Select value={appType} disabled>
-                  <option value={appType}>{appType.charAt(0).toUpperCase() + appType.slice(1)}</option>
+                  <option value={appType}>
+                    {appType.charAt(0).toUpperCase() + appType.slice(1)}
+                  </option>
                 </Select>
               </div>
 
-              <p className="text-sm text-muted-foreground">
-                You can configure the API key and other settings after adding the provider.
-              </p>
+              <p className="text-sm text-muted-foreground">{t('providers.configureAfterAdding')}</p>
             </div>
           )}
 
           <div className="flex justify-end gap-2 mt-6">
             <Button variant="outline" onClick={handleClose}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             {step === 'configure' && (
               <Button onClick={handleSubmit}>
                 <Check className="h-4 w-4 mr-2" />
-                Add Provider
+                {t('common.create')}
               </Button>
             )}
           </div>

@@ -5,6 +5,7 @@
  */
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
@@ -23,6 +24,7 @@ import type { AppType, Provider, CreateProviderInput } from '@/types';
 const APP_TYPES: AppType[] = ['claude', 'codex', 'gemini', 'opencode', 'openclaw'];
 
 export function ProvidersPage() {
+  const { t } = useTranslation();
   const [selectedApp, setSelectedApp] = useState<AppType>('claude');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingProvider, setEditingProvider] = useState<Provider | null>(null);
@@ -45,11 +47,7 @@ export function ProvidersPage() {
     setEditingProvider(provider);
   };
 
-  const handleSaveEdit = (
-    id: string,
-    appType: AppType,
-    settings: Record<string, unknown>
-  ) => {
+  const handleSaveEdit = (id: string, appType: AppType, settings: Record<string, unknown>) => {
     updateProvider.mutate(
       {
         id,
@@ -65,7 +63,7 @@ export function ProvidersPage() {
   };
 
   const handleDeleteProvider = (id: string, appType: AppType) => {
-    if (confirm('Are you sure you want to delete this provider?')) {
+    if (confirm(t('providers.deleteConfirm'))) {
       deleteProvider.mutate({ id, appType });
     }
   };
@@ -79,10 +77,8 @@ export function ProvidersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Providers</h1>
-          <p className="text-muted-foreground">
-            Manage AI providers for your applications
-          </p>
+          <h1 className="text-2xl font-bold">{t('providers.title')}</h1>
+          <p className="text-muted-foreground">{t('providers.description')}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => refetch()}>
@@ -90,14 +86,14 @@ export function ProvidersPage() {
           </Button>
           <Button onClick={() => setIsAddDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            Add Provider
+            {t('providers.addProvider')}
           </Button>
         </div>
       </div>
 
       {/* App Selector */}
       <div className="flex items-center gap-2">
-        <span className="text-sm font-medium">Application:</span>
+        <span className="text-sm font-medium">{t('providers.application')}:</span>
         <Select
           value={selectedApp}
           onChange={(e) => setSelectedApp(e.target.value as AppType)}
@@ -114,20 +110,20 @@ export function ProvidersPage() {
       {/* Providers List */}
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="text-muted-foreground">Loading providers...</div>
+          <div className="text-muted-foreground">{t('providers.loading')}</div>
         </div>
       ) : error ? (
         <div className="flex items-center justify-center h-64">
           <div className="text-destructive">
-            Error loading providers: {error.message}
+            {t('providers.errorLoading')}: {error.message}
           </div>
         </div>
       ) : providers?.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64 space-y-4">
-          <div className="text-muted-foreground">No providers configured</div>
+          <div className="text-muted-foreground">{t('providers.noProviders')}</div>
           <Button onClick={() => setIsAddDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            Add Your First Provider
+            {t('providers.addFirstProvider')}
           </Button>
         </div>
       ) : (

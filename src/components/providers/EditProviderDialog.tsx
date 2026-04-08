@@ -1,10 +1,11 @@
 /**
  * Edit Provider Dialog
- * 
+ *
  * Dialog for editing provider settings
  */
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,7 @@ interface EditProviderDialogProps {
 }
 
 export function EditProviderDialog({ provider, isOpen, onClose, onSave }: EditProviderDialogProps) {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [baseUrl, setBaseUrl] = useState('');
@@ -56,61 +58,59 @@ export function EditProviderDialog({ provider, isOpen, onClose, onSave }: EditPr
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
       <div className="bg-background rounded-lg shadow-lg w-full max-w-lg max-h-[80vh] overflow-auto">
         <div className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Edit Provider</h2>
+          <h2 className="text-xl font-semibold mb-4">{t('providers.editProvider')}</h2>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-name">Provider Name</Label>
+              <Label htmlFor="edit-name">{t('providers.providerName')}</Label>
               <Input
                 id="edit-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Provider name"
+                placeholder={t('providers.providerNamePlaceholder')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-api-key">API Key</Label>
+              <Label htmlFor="edit-api-key">{t('providers.apiKey')}</Label>
               <Input
                 id="edit-api-key"
                 type="password"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Enter API key"
+                placeholder={t('providers.enterApiKey')}
               />
-              <p className="text-xs text-muted-foreground">
-                Leave empty to keep current API key
-              </p>
+              <p className="text-xs text-muted-foreground">{t('providers.leaveEmptyKeepKey')}</p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-base-url">Base URL (Optional)</Label>
+              <Label htmlFor="edit-base-url">{t('providers.baseUrl')}</Label>
               <Input
                 id="edit-base-url"
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
-                placeholder="https://api.example.com"
+                placeholder={t('providers.baseUrlPlaceholder')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-model">Model</Label>
+              <Label htmlFor="edit-model">{t('providers.model')}</Label>
               <Input
                 id="edit-model"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
-                placeholder="Model name"
+                placeholder={t('providers.modelPlaceholder')}
               />
             </div>
           </div>
 
           <div className="flex justify-end gap-2 mt-6">
             <Button variant="outline" onClick={handleClose}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button onClick={handleSubmit}>
               <Save className="h-4 w-4 mr-2" />
-              Save Changes
+              {t('common.save')}
             </Button>
           </div>
         </div>

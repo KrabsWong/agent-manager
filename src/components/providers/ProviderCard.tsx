@@ -1,9 +1,10 @@
 /**
  * Provider Card Component
- * 
+ *
  * Displays a single provider with actions
  */
 
+import { useTranslation } from 'react-i18next';
 import { Zap, Settings, Trash2, ExternalLink } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,14 +19,16 @@ interface ProviderCardProps {
 }
 
 export function ProviderCard({ provider, onSwitch, onEdit, onDelete }: ProviderCardProps) {
+  const { t } = useTranslation();
+
   const getCategoryLabel = (category?: string) => {
     const labels: Record<string, string> = {
-      official: 'Official',
-      cn_official: 'CN Official',
-      aggregator: 'Aggregator',
-      third_party: 'Third Party',
-      cloud_provider: 'Cloud',
-      custom: 'Custom',
+      official: t('providers.categories.official'),
+      cn_official: t('providers.categories.cnOfficial'),
+      aggregator: t('providers.categories.aggregator'),
+      third_party: t('providers.categories.thirdParty'),
+      cloud_provider: t('providers.categories.cloud'),
+      custom: t('providers.categories.custom'),
     };
     return labels[category || 'custom'] || category;
   };
@@ -52,7 +55,7 @@ export function ProviderCard({ provider, onSwitch, onEdit, onDelete }: ProviderC
               {provider.isCurrent && (
                 <Badge variant="default" className="gap-1">
                   <Zap className="h-3 w-3" />
-                  Active
+                  {t('common.active')}
                 </Badge>
               )}
             </div>
@@ -78,9 +81,11 @@ export function ProviderCard({ provider, onSwitch, onEdit, onDelete }: ProviderC
         <div className="flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
             {provider.settingsConfig.model ? (
-              <span>Model: {String(provider.settingsConfig.model)}</span>
+              <span>
+                {t('providers.model')}: {String(provider.settingsConfig.model)}
+              </span>
             ) : (
-              <span>No model configured</span>
+              <span>{t('providers.noModelConfigured')}</span>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -90,7 +95,7 @@ export function ProviderCard({ provider, onSwitch, onEdit, onDelete }: ProviderC
               onClick={onSwitch}
               disabled={provider.isCurrent}
             >
-              {provider.isCurrent ? 'Active' : 'Switch'}
+              {provider.isCurrent ? t('common.active') : t('providers.switch')}
             </Button>
             <Button variant="ghost" size="icon" onClick={onEdit}>
               <Settings className="h-4 w-4" />
