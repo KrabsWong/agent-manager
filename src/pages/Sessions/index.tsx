@@ -139,7 +139,7 @@ export function SessionsPage() {
 
       {/* Stats */}
       {isSupported && stats && (
-        <div className="flex items-center justify-center gap-8 py-6 text-base shrink-0">
+        <div className="flex items-center justify-end gap-8 py-6 text-base shrink-0">
           <div className="flex items-center gap-1">
             <span className="text-muted-foreground">会话总数：</span>
             <span className="font-semibold text-foreground">{stats.totalSessions}</span>
