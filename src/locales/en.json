@@ -305,6 +305,25 @@
       "logs": "Loading logs..."
     }
   },
+  "sessions": {
+    "title": "Sessions",
+    "description": "View conversation history from your AI applications",
+    "selectApp": "Select Application",
+    "loading": "Loading sessions...",
+    "error": "Failed to load sessions",
+    "comingSoon": "Coming Soon",
+    "unsupportedApp": "Session viewing is not yet supported for this application.",
+    "noSessions": "No Sessions Found",
+    "noSessionsDesc": "No conversation history found for this application.",
+    "selectSession": "Select a session to view details",
+    "totalSessions": "Total Sessions",
+    "totalMessages": "Total Messages",
+    "lastActivity": "Last Activity",
+    "switchToClaude": "Switch to Claude Code",
+    "loadingConversation": "Loading conversation...",
+    "noMessages": "No messages found",
+    "messages": "messages"
+  },
   "settings": {
     "title": "Settings",
     "description": "Configure application settings and preferences",

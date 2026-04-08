@@ -140,6 +140,7 @@ export class ClaudeSessionService {
       }
 
       const stats = fs.statSync(filePath);
+      const firstMessage = messages[0];
 
       return {
         id: sessionId,
@@ -149,7 +150,7 @@ export class ClaudeSessionService {
         createdAt: stats.birthtime.getTime(),
         updatedAt: stats.mtime.getTime(),
         messageCount: messages.length,
-        firstMessage: messages[0]?.content?.substring(0, 100) || '',
+        firstMessage: firstMessage?.content?.substring(0, 100) || '',
         lastMessage: messages[messages.length - 1]?.content?.substring(0, 100) || '',
         messages,
       };

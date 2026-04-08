@@ -309,6 +309,14 @@ const enTranslations = {
     noSessionsDesc: 'No conversation history found for this application.',
     comingSoon: 'Coming Soon',
     unsupportedApp: 'Session viewing is not yet supported for this application.',
+    selectSession: 'Select a session to view details',
+    totalSessions: 'Total Sessions',
+    totalMessages: 'Total Messages',
+    lastActivity: 'Last Activity',
+    switchToClaude: 'Switch to Claude Code',
+    loadingConversation: 'Loading conversation...',
+    noMessages: 'No messages found',
+    messages: 'messages',
   },
 };
 
@@ -616,6 +624,14 @@ const zhTranslations = {
     noSessionsDesc: '未找到此应用程序的对话历史。',
     comingSoon: '即将推出',
     unsupportedApp: '此应用程序暂不支持查看会话记录。',
+    selectSession: '选择一个会话来查看详情',
+    totalSessions: '会话总数',
+    totalMessages: '消息总数',
+    lastActivity: '最后活动',
+    switchToClaude: '切换到 Claude Code',
+    loadingConversation: '正在加载对话...',
+    noMessages: '未找到消息',
+    messages: '条消息',
   },
 };
 

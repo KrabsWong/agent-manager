@@ -5,12 +5,14 @@
  */
 
 export interface SessionMessage {
-  type: 'user' | 'assistant' | 'tool_use' | 'tool_result' | 'system';
+  type: 'user' | 'assistant' | 'tool_use' | 'tool_result';
   timestamp: string;
   content?: string;
   tool_name?: string;
   tool_input?: Record<string, unknown>;
   tool_output?: {
+    output?: string;
+    content?: Array<{ type: string; text?: string }>;
     preview?: string;
     truncated?: boolean;
     [key: string]: unknown;
