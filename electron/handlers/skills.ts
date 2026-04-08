@@ -6,6 +6,7 @@
 
 import type { IpcMainInvokeEvent } from 'electron';
 import { dialog } from 'electron';
+import path from 'path';
 import { dbManager } from '../database';
 import { SkillsService } from '../services/skills/crud';
 import { githubService } from '../services/skills/github';
@@ -55,13 +56,14 @@ export function registerSkillsHandlers(): void {
       const skillName = (metadata?.name as string) || skillDir;
       const skillDescription = metadata?.description as string | undefined;
 
-      // Create skill record in database
+      // Create skill record in database (store only directory name, not full path)
+      const dirName = path.basename(skillPath);
       const skill = service.create({
         name: skillName,
         description: skillDescription,
         repoOwner: owner,
         repoName: repo,
-        directory: skillPath,
+        directory: dirName,
       });
 
       // Sync to apps (none enabled by default)
@@ -103,11 +105,12 @@ export function registerSkillsHandlers(): void {
         const finalSkillName = skillName || (metadata?.name as string) || 'Local Skill';
         const skillDescription = metadata?.description as string | undefined;
 
-        // Create skill record in database
+        // Create skill record in database (store only directory name, not full path)
+        const dirName = path.basename(skillPath);
         const skill = service.create({
           name: finalSkillName,
           description: skillDescription,
-          directory: skillPath,
+          directory: dirName,
         });
 
         // Sync to apps (none enabled by default)
@@ -134,8 +137,9 @@ export function registerSkillsHandlers(): void {
         throw new Error('Skill not found');
       }
 
-      // Remove files
-      skillInstallService.uninstall(skill.directory);
+      // Remove files (use full path)
+      const fullSkillPath = path.join(skillInstallService.getSkillsBasePath(), skill.directory);
+      skillInstallService.uninstall(fullSkillPath);
 
       // Remove from database
       service.delete(id);
