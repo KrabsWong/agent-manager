@@ -16,6 +16,7 @@ interface ProviderCardProps {
   onSwitch: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  isDeleting?: boolean;
 }
 
 export function ProviderCard({ provider, onSwitch, onEdit, onDelete }: ProviderCardProps) {

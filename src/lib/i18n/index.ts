@@ -12,15 +12,35 @@ const enTranslations = {
     settings: 'Settings',
   },
   providers: {
-    title: 'Providers',
-    description: 'Manage AI providers for your applications',
+    title: 'AI Providers',
+    description: 'Choose which AI service powers your coding assistant',
     application: 'Application',
     loading: 'Loading providers...',
     errorLoading: 'Error loading providers',
-    noProviders: 'No providers configured',
-    addFirstProvider: 'Add Your First Provider',
+    noProviders: 'No AI Providers Yet',
+    noProvidersDesc:
+      'AI providers are the services that power your coding assistant. Think of them like choosing which AI brain to use for your coding tasks.',
+    noProvidersSecondary:
+      'Popular options include Claude (for thoughtful coding), GPT-4 (for versatile tasks), or DeepSeek (for Chinese language support).',
+    addFirstProvider: 'Add Your First AI Provider',
     addProvider: 'Add Provider',
     deleteConfirm: 'Are you sure you want to delete this provider?',
+    switch: 'Switch',
+    model: 'Model',
+    noModelConfigured: 'No model configured',
+    categories: {
+      official: 'Official',
+      cnOfficial: 'CN Official',
+      aggregator: 'Aggregator',
+      thirdParty: 'Third Party',
+      cloud: 'Cloud Provider',
+      custom: 'Custom',
+    },
+    configureProvider: 'Configure Provider',
+    selectPresetOrCustom: 'Select a preset provider or create custom',
+    customProvider: 'Custom Provider',
+    targetApplication: 'Target Application',
+    configureAfterAdding: 'You can configure detailed settings after adding',
   },
   common: {
     save: 'Save',
@@ -60,6 +80,18 @@ const enTranslations = {
     requests: 'Requests',
     cost: 'Cost',
   },
+  mcp: {
+    title: 'MCP Servers',
+    description: 'Manage Model Context Protocol servers',
+  },
+  skills: {
+    title: 'Skills',
+    description: 'Manage AI skills and capabilities',
+  },
+  prompts: {
+    title: 'Prompts',
+    description: 'Manage system prompts and instructions',
+  },
 };
 
 // Chinese translations
@@ -82,6 +114,22 @@ const zhTranslations = {
     addFirstProvider: '添加第一个供应商',
     addProvider: '添加供应商',
     deleteConfirm: '确定要删除此供应商吗？',
+    switch: '切换',
+    model: '模型',
+    noModelConfigured: '未配置模型',
+    categories: {
+      official: '官方',
+      cnOfficial: '国内官方',
+      aggregator: '聚合平台',
+      thirdParty: '第三方',
+      cloud: '云服务商',
+      custom: '自定义',
+    },
+    configureProvider: '配置供应商',
+    selectPresetOrCustom: '选择预设供应商或创建自定义',
+    customProvider: '自定义供应商',
+    targetApplication: '目标应用程序',
+    configureAfterAdding: '添加后您可以配置详细设置',
   },
   common: {
     save: '保存',
@@ -120,6 +168,18 @@ const zhTranslations = {
     circuitBreaker: '熔断器',
     requests: '请求数',
     cost: '成本',
+  },
+  mcp: {
+    title: 'MCP 服务器',
+    description: '管理模型上下文协议服务器',
+  },
+  skills: {
+    title: '技能',
+    description: '管理 AI 技能和能力',
+  },
+  prompts: {
+    title: '提示词',
+    description: '管理系统提示词和指令',
   },
 };
 

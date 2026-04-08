@@ -6,7 +6,7 @@
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, RefreshCw } from 'lucide-react';
+import { Plus, RefreshCw, Zap, Bot, Sparkles, Terminal, Code2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select,
@@ -18,6 +18,7 @@ import {
 import { ProviderCard } from '@/components/providers/ProviderCard';
 import { AddProviderDialog } from '@/components/providers/AddProviderDialog';
 import { EditProviderDialog } from '@/components/providers/EditProviderDialog';
+import { EmptyState } from '@/components/EmptyState';
 import {
   useProviders,
   useCreateProvider,
@@ -28,6 +29,22 @@ import {
 import type { AppType, Provider, CreateProviderInput } from '@/types';
 
 const APP_TYPES: AppType[] = ['claude', 'codex', 'gemini', 'opencode', 'openclaw'];
+
+const APP_ICONS: Record<AppType, React.ReactNode> = {
+  claude: <Bot className="h-4 w-4" />,
+  codex: <Terminal className="h-4 w-4" />,
+  gemini: <Sparkles className="h-4 w-4" />,
+  opencode: <Code2 className="h-4 w-4" />,
+  openclaw: <Zap className="h-4 w-4" />,
+};
+
+const APP_COLORS: Record<AppType, string> = {
+  claude: 'text-emerald-600',
+  codex: 'text-teal-600',
+  gemini: 'text-green-600',
+  opencode: 'text-lime-600',
+  openclaw: 'text-emerald-700',
+};
 
 export function ProvidersPage() {
   const { t } = useTranslation();
@@ -69,6 +86,7 @@ export function ProvidersPage() {
   };
 
   const handleDeleteProvider = (id: string, appType: AppType) => {
+    if (deleteProvider.isPending) return; // Prevent double submission
     if (confirm(t('providers.deleteConfirm'))) {
       deleteProvider.mutate({ id, appType });
     }
@@ -101,13 +119,19 @@ export function ProvidersPage() {
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium">{t('providers.application')}:</span>
         <Select value={selectedApp} onValueChange={(value) => setSelectedApp(value as AppType)}>
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="Select App" />
+          <SelectTrigger className="w-48">
+            <div className="flex items-center gap-2">
+              <span className={APP_COLORS[selectedApp]}>{APP_ICONS[selectedApp]}</span>
+              <span>{selectedApp.charAt(0).toUpperCase() + selectedApp.slice(1)}</span>
+            </div>
           </SelectTrigger>
           <SelectContent>
             {APP_TYPES.map((app) => (
               <SelectItem key={app} value={app}>
-                {app.charAt(0).toUpperCase() + app.slice(1)}
+                <div className="flex items-center gap-2">
+                  <span className={APP_COLORS[app]}>{APP_ICONS[app]}</span>
+                  <span>{app.charAt(0).toUpperCase() + app.slice(1)}</span>
+                </div>
               </SelectItem>
             ))}
           </SelectContent>
@@ -126,13 +150,17 @@ export function ProvidersPage() {
           </div>
         </div>
       ) : providers?.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-64 space-y-4">
-          <div className="text-muted-foreground">{t('providers.noProviders')}</div>
-          <Button onClick={() => setIsAddDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            {t('providers.addFirstProvider')}
-          </Button>
-        </div>
+        <EmptyState
+          icon={<Bot className="h-8 w-8" />}
+          title={t('providers.noProviders')}
+          description="AI providers are the services that power your coding assistant. Think of them like choosing which AI brain to use for your coding tasks."
+          secondaryText="Popular options include Claude (for thoughtful coding), GPT-4 (for versatile tasks), or DeepSeek (for Chinese language support)."
+          action={{
+            label: t('providers.addFirstProvider'),
+            onClick: () => setIsAddDialogOpen(true),
+            icon: <Plus className="h-4 w-4" />,
+          }}
+        />
       ) : (
         <div className="grid gap-4">
           {providers?.map((provider) => (
