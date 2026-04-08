@@ -5,6 +5,7 @@
  */
 
 import type { IpcMainInvokeEvent } from 'electron';
+import { dialog } from 'electron';
 import { dbManager } from '../database';
 import { SkillsService } from '../services/skills/crud';
 import { githubService } from '../services/skills/github';
@@ -183,7 +184,6 @@ export function registerSkillsHandlers(): void {
 
   // Select local skill folder
   ipcRegistry.register('skills:selectFolder', async () => {
-    const { dialog } = require('electron');
     const result = await dialog.showOpenDialog({
       properties: ['openDirectory'],
       title: 'Select Skill Folder',
