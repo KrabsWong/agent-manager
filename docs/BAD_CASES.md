@@ -156,9 +156,106 @@ export default {
 - IPC 处理器：`electron/handlers/*.ts`
 - 服务层：`electron/services/**/*.ts`
 
+---
+
+### 4. Service 初始化顺序问题
+
+**错误信息：**
+```
+Failed to initialize application: {
+  code: 'DATABASE_ERROR',
+  message: 'Prompt service not initialized'
+}
+```
+
+**问题原因：**
+使用了单例模式的 Service（如 PromptService）需要在 `main.ts` 中显式初始化。如果只在 handlers 中调用 `getPromptService()` 而没有先初始化，会抛出错误。
+
+**解决方案：**
+在 `electron/main.ts` 的数据库初始化之后、注册 IPC handlers 之前，显式初始化 Service：
+
+```typescript
+import { initializePromptService } from './services/prompt/crud';
+
+const initializeApp = () => {
+  // Initialize database first
+  dbManager.initialize();
+  
+  // Initialize services with database
+  const db = dbManager.getDatabase();
+  if (db) {
+    initializePromptService(db);
+  }
+  
+  // Then register IPC handlers
+  registerPromptHandlers();
+}
+```
+
+**参考文件：**
+- `electron/main.ts`
+- `electron/services/prompt/crud.ts`
+
+---
+
+## 开发规范
+
+### ES Modules vs CommonJS
+
+| 场景 | 推荐格式 | 说明 |
+|------|---------|------|
+| Electron Main 进程 | ES Modules | 使用 `.ts` + `import.meta.url` 模拟 `__dirname` |
+| Electron Preload 脚本 | CommonJS | 使用 `require()` 语法，见问题 #2 |
+| 渲染进程 (React) | ES Modules | 标准 Vite React 配置 |
+
+### 文件命名规范
+
+- Main 进程：`electron/main.ts`
+- Preload 脚本：`electron/preload.ts`（输出为 `.js`）
+- IPC 处理器：`electron/handlers/*.ts`
+- 服务层：`electron/services/**/*.ts`
+
+### 服务初始化规范
+
+当创建新的 Service 时，遵循以下模式：
+
+```typescript
+// electron/services/example/crud.ts
+export class ExampleService {
+  constructor(private db: Database | null) {}
+  // ... methods
+}
+
+let instance: ExampleService | null = null;
+
+export function initializeExampleService(db: Database): ExampleService {
+  instance = new ExampleService(db);
+  return instance;
+}
+
+export function getExampleService(): ExampleService {
+  if (!instance) {
+    throw new CCError('DATABASE_ERROR', 'Example service not initialized');
+  }
+  return instance;
+}
+```
+
+然后在 `electron/main.ts` 中：
+```typescript
+import { initializeExampleService } from './services/example/crud';
+
+// After dbManager.initialize()
+const db = dbManager.getDatabase();
+if (db) {
+  initializeExampleService(db);
+}
+```
+
 ### 注意事项
 
 1. **preload 脚本必须保持简单**：只暴露必要的 API，不要包含业务逻辑
 2. **contextIsolation 必须开启**：安全要求，防止渲染进程直接访问 Node.js API
 3. **nodeIntegration 必须关闭**：安全要求，防止渲染进程直接访问 Node.js
 4. **IPC 通道命名规范**：使用 `category:action` 格式，如 `providers:getAll`
+5. **Service 必须在 main.ts 中初始化**：每个 Service 都需要显式初始化后才能使用
