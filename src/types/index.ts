@@ -217,6 +217,11 @@ export type IpcChannel =
   | 'skills:openFolder'
   | 'skills:selectFolder'
   | 'skills:syncAll'
+  // Sessions
+  | 'sessions:getAll'
+  | 'sessions:getDetail'
+  | 'sessions:getStats'
+  | 'sessions:getSupportStatus'
   // Proxy
   | 'proxy:getStatus'
   | 'proxy:start'
@@ -297,3 +302,12 @@ export interface ProxyStatusEvent {
 }
 
 export type AppEvent = ProviderSwitchEvent | ProxyStatusEvent;
+
+// ============ Session Types ============
+export type {
+  Session,
+  SessionDetail,
+  SessionMessage,
+  SessionStats,
+  AppSupportStatus,
+} from './session';

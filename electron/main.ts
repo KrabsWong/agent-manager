@@ -14,6 +14,7 @@ import { registerProxyHandlers } from './handlers/proxy';
 import { initializeProxyServer } from './services/proxy/server';
 import { initializeUsageTracker } from './services/proxy/usage-tracker';
 import { performanceMonitor } from './services/performance/monitor';
+import { registerSessionsHandlers } from './handlers/sessions';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -132,6 +133,7 @@ const initializeApp = () => {
       registerSkillsHandlers();
       registerPromptHandlers();
       registerProxyHandlers();
+      registerSessionsHandlers();
       log.info('All IPC handlers registered');
     });
 

@@ -16,6 +16,8 @@ import type {
   Prompt,
   CreatePromptInput,
   Skill,
+  Session,
+  SessionDetail,
 } from '@/types';
 
 /**
@@ -456,6 +458,54 @@ export const skillsApi = {
 
   syncAll: async (): Promise<void> => {
     const response = (await window.electronAPI.invoke('skills:syncAll')) as ApiResponse<void>;
+    return extractData(response);
+  },
+};
+
+/**
+ * Sessions API
+ */
+export const sessionsApi = {
+  getAll: async (appType: AppType): Promise<Session[]> => {
+    const response = (await window.electronAPI.invoke('sessions:getAll', appType)) as ApiResponse<
+      Session[]
+    >;
+    return extractData(response);
+  },
+
+  getDetail: async (sessionId: string): Promise<SessionDetail | null> => {
+    const response = (await window.electronAPI.invoke(
+      'sessions:getDetail',
+      sessionId
+    )) as ApiResponse<SessionDetail | null>;
+    return extractData(response);
+  },
+
+  getStats: async (
+    appType: AppType
+  ): Promise<{
+    totalSessions: number;
+    totalMessages: number;
+    firstSessionDate?: number;
+    lastSessionDate?: number;
+  }> => {
+    const response = (await window.electronAPI.invoke(
+      'sessions:getStats',
+      appType
+    )) as ApiResponse<{
+      totalSessions: number;
+      totalMessages: number;
+      firstSessionDate?: number;
+      lastSessionDate?: number;
+    }>;
+    return extractData(response);
+  },
+
+  getSupportStatus: async (appType: AppType): Promise<{ supported: boolean; status: string }> => {
+    const response = (await window.electronAPI.invoke(
+      'sessions:getSupportStatus',
+      appType
+    )) as ApiResponse<{ supported: boolean; status: string }>;
     return extractData(response);
   },
 };

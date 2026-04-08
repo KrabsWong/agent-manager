@@ -4,7 +4,7 @@
  * Displays an installed skill with app enablement toggles
  */
 
-import { Trash2, Folder, Github, Check } from 'lucide-react';
+import { Trash2, Folder, Github } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -97,21 +97,16 @@ export function SkillCard({ skill, onDelete, onToggleApp, isToggling }: SkillCar
                   onClick={() => onToggleApp(app, !isEnabled)}
                   disabled={isToggling}
                   className={`
-                    inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium
-                    border-2 transition-all duration-200
+                    inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
+                    border transition-all duration-150
                     ${isToggling ? 'opacity-50 cursor-not-allowed' : ''}
                     ${
                       isEnabled
-                        ? `${config.color} shadow-sm`
-                        : 'bg-muted/50 text-muted-foreground border-muted hover:bg-muted border-transparent'
+                        ? `${config.color} shadow-sm border-current`
+                        : 'bg-white text-muted-foreground border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                     }
                   `}
                 >
-                  {isEnabled ? (
-                    <Check className="h-3.5 w-3.5" />
-                  ) : (
-                    <span className="w-3.5 h-3.5 rounded-full border-2 border-current opacity-30" />
-                  )}
                   {config.icon}
                   <span>{config.label}</span>
                 </button>
