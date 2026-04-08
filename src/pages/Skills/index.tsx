@@ -5,6 +5,7 @@
  */
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, RefreshCw, FolderOpen, Sparkles, ExternalLink, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SkillCard } from '@/components/skills/SkillCard';
@@ -20,6 +21,7 @@ import {
 import type { AppType } from '@/types';
 
 export function SkillsPage() {
+  const { t } = useTranslation();
   const [isInstallDialogOpen, setIsInstallDialogOpen] = useState(false);
 
   const { data: skills, isLoading, error, refetch } = useSkills();
@@ -40,7 +42,8 @@ export function SkillsPage() {
   };
 
   const handleUninstallSkill = (id: string) => {
-    if (confirm('Are you sure you want to uninstall this skill?')) {
+    if (uninstallSkill.isPending) return; // Prevent double submission
+    if (confirm(t('skills.deleteConfirm'))) {
       uninstallSkill.mutate(id);
     }
   };
@@ -60,10 +63,8 @@ export function SkillsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Skills</h1>
-          <p className="text-muted-foreground">
-            Discover and manage AI skills for your applications
-          </p>
+          <h1 className="text-2xl font-bold">{t('skills.title')}</h1>
+          <p className="text-muted-foreground">{t('skills.description')}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => refetch()}>
@@ -71,48 +72,38 @@ export function SkillsPage() {
           </Button>
           <Button variant="outline" onClick={() => openSkillsFolder.mutate()}>
             <FolderOpen className="h-4 w-4 mr-2" />
-            Open Folder
+            {t('skills.openFolder')}
           </Button>
           <Button onClick={() => setIsInstallDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            Install Skill
+            {t('skills.installSkill')}
           </Button>
         </div>
       </div>
 
-      {/* Quick Links */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* Quick Links - Compact horizontal style */}
+      <div className="flex flex-wrap items-center gap-3 p-3 rounded-lg border bg-muted/30">
+        <span className="text-sm text-muted-foreground">{t('skills.discover')}:</span>
         <a
           href="https://github.com/anthropics/skills"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-3 p-4 rounded-lg border hover:bg-accent transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
         >
-          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Sparkles className="h-5 w-5 text-primary" />
-          </div>
-          <div className="flex-1">
-            <p className="font-medium">Official Skills</p>
-            <p className="text-sm text-muted-foreground">
-              Browse Anthropic's official skill collection
-            </p>
-          </div>
-          <ExternalLink className="h-4 w-4 text-muted-foreground" />
+          <Sparkles className="h-3.5 w-3.5" />
+          {t('skills.officialSkills')}
+          <ExternalLink className="h-3 w-3" />
         </a>
+        <span className="text-muted-foreground">•</span>
         <a
           href="https://github.com/ComposioHQ/awesome-claude-skills"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-3 p-4 rounded-lg border hover:bg-accent transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
         >
-          <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
-            <Sparkles className="h-5 w-5" />
-          </div>
-          <div className="flex-1">
-            <p className="font-medium">Community Skills</p>
-            <p className="text-sm text-muted-foreground">Explore community-contributed skills</p>
-          </div>
-          <ExternalLink className="h-4 w-4 text-muted-foreground" />
+          <Sparkles className="h-3.5 w-3.5" />
+          {t('skills.communitySkills')}
+          <ExternalLink className="h-3 w-3" />
         </a>
       </div>
 
@@ -120,40 +111,37 @@ export function SkillsPage() {
       <div className="grid grid-cols-3 gap-4">
         <div className="p-4 rounded-lg border bg-card">
           <div className="text-2xl font-bold">{skills?.length || 0}</div>
-          <div className="text-sm text-muted-foreground">Installed Skills</div>
+          <div className="text-sm text-muted-foreground">{t('skills.installedSkills')}</div>
         </div>
         <div className="p-4 rounded-lg border bg-card">
           <div className="text-2xl font-bold">{totalEnabledCount}</div>
-          <div className="text-sm text-muted-foreground">Active Configurations</div>
+          <div className="text-sm text-muted-foreground">{t('skills.activeConfigs')}</div>
         </div>
         <div className="p-4 rounded-lg border bg-card">
           <div className="text-2xl font-bold">
             {skills?.filter((s) => Object.values(s.enabledApps).some(Boolean)).length || 0}
           </div>
-          <div className="text-sm text-muted-foreground">Enabled Skills</div>
+          <div className="text-sm text-muted-foreground">{t('skills.enabledSkills')}</div>
         </div>
       </div>
 
       {/* Skills List */}
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="text-muted-foreground">Loading skills...</div>
+          <div className="text-muted-foreground">{t('skills.loading')}</div>
         </div>
       ) : error ? (
         <div className="flex items-center justify-center h-64">
-          <div className="text-destructive">Error loading skills: {error.message}</div>
+          <div className="text-destructive">
+            {t('skills.errorLoading')}: {error.message}
+          </div>
         </div>
       ) : skills?.length === 0 ? (
         <EmptyState
           icon={<Wand2 className="h-8 w-8" />}
-          title="No Skills Installed Yet"
-          description="Skills are ready-to-use AI capabilities that extend what your assistant can do. They're like apps for your AI - from code review to documentation generation."
-          secondaryText="Browse our skill marketplace to find tools that match your workflow. Popular options include code review assistants, commit message generators, and documentation writers."
-          action={{
-            label: 'Install Your First Skill',
-            onClick: () => setIsInstallDialogOpen(true),
-            icon: <Plus className="h-4 w-4" />,
-          }}
+          title={t('skills.noSkills')}
+          description={t('skills.noSkillsDesc')}
+          secondaryText={t('skills.noSkillsSecondary')}
         />
       ) : (
         <div className="grid gap-4">

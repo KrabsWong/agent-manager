@@ -1,10 +1,11 @@
 /**
  * Edit MCP Server Dialog
- * 
+ *
  * Dialog for editing an existing MCP server
  */
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Check, Terminal, Globe, Radio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +23,7 @@ interface EditMcpDialogProps {
 type TransportType = 'stdio' | 'http' | 'sse';
 
 export function EditMcpDialog({ server, isOpen, onClose, onSave }: EditMcpDialogProps) {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [transport, setTransport] = useState<TransportType>('stdio');
   const [command, setCommand] = useState('');
@@ -48,7 +50,7 @@ export function EditMcpDialog({ server, isOpen, onClose, onSave }: EditMcpDialog
       transport,
       command: transport === 'stdio' ? command : undefined,
       args: args ? args.split(' ').filter(Boolean) : undefined,
-      url: (transport === 'http' || transport === 'sse') ? url : undefined,
+      url: transport === 'http' || transport === 'sse' ? url : undefined,
       description: description || undefined,
     };
     onSave(server.id, input);
@@ -76,27 +78,27 @@ export function EditMcpDialog({ server, isOpen, onClose, onSave }: EditMcpDialog
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
       <div className="bg-background rounded-lg shadow-lg w-full max-w-lg max-h-[85vh] overflow-auto">
         <div className="p-6">
-          <h2 className="text-xl font-semibold mb-4">Edit MCP Server</h2>
+          <h2 className="text-xl font-semibold mb-4">{t('mcp.editServer')}</h2>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-mcp-name">Server Name</Label>
+              <Label htmlFor="edit-mcp-name">{t('mcp.serverName')}</Label>
               <Input
                 id="edit-mcp-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Enter server name"
+                placeholder={t('mcp.enterServerName')}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-mcp-transport">Transport Type</Label>
+              <Label htmlFor="edit-mcp-transport">{t('mcp.transportType')}</Label>
               <div className="flex gap-2">
                 {(['stdio', 'http', 'sse'] as TransportType[]).map((t) => (
                   <button
                     key={t}
                     onClick={() => setTransport(t)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border transition-colors text-sm ${
                       transport === t
                         ? 'bg-primary text-primary-foreground border-primary'
                         : 'hover:bg-accent'
@@ -112,21 +114,21 @@ export function EditMcpDialog({ server, isOpen, onClose, onSave }: EditMcpDialog
             {transport === 'stdio' && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="edit-mcp-command">Command</Label>
+                  <Label htmlFor="edit-mcp-command">{t('mcp.command')}</Label>
                   <Input
                     id="edit-mcp-command"
                     value={command}
                     onChange={(e) => setCommand(e.target.value)}
-                    placeholder="npx or uvx command"
+                    placeholder={t('mcp.commandPlaceholder')}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="edit-mcp-args">Arguments (space-separated)</Label>
+                  <Label htmlFor="edit-mcp-args">{t('mcp.arguments')}</Label>
                   <Input
                     id="edit-mcp-args"
                     value={args}
                     onChange={(e) => setArgs(e.target.value)}
-                    placeholder="-y @modelcontextprotocol/server-filesystem"
+                    placeholder={t('mcp.argsPlaceholder')}
                   />
                 </div>
               </>
@@ -134,28 +136,28 @@ export function EditMcpDialog({ server, isOpen, onClose, onSave }: EditMcpDialog
 
             {(transport === 'http' || transport === 'sse') && (
               <div className="space-y-2">
-                <Label htmlFor="edit-mcp-url">URL</Label>
+                <Label htmlFor="edit-mcp-url">{t('mcp.url')}</Label>
                 <Input
                   id="edit-mcp-url"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://api.example.com/mcp"
+                  placeholder={t('mcp.urlPlaceholder')}
                 />
               </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="edit-mcp-description">Description (optional)</Label>
+              <Label htmlFor="edit-mcp-description">{t('mcp.descriptionOptional')}</Label>
               <Input
                 id="edit-mcp-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="What does this server do?"
+                placeholder={t('mcp.descriptionPlaceholder')}
               />
             </div>
 
             <div className="border-t pt-4 mt-4">
-              <h3 className="text-sm font-medium mb-3">Enabled Apps</h3>
+              <h3 className="text-sm font-medium mb-3">{t('mcp.enabledApps')}</h3>
               <div className="flex flex-wrap gap-2">
                 {(['claude', 'codex', 'gemini', 'opencode', 'openclaw'] as const).map((app) => (
                   <Badge
@@ -168,19 +170,17 @@ export function EditMcpDialog({ server, isOpen, onClose, onSave }: EditMcpDialog
                   </Badge>
                 ))}
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                Toggle apps from the main list view
-              </p>
+              <p className="text-xs text-muted-foreground mt-2">{t('mcp.toggleFromMainView')}</p>
             </div>
           </div>
 
           <div className="flex justify-end gap-2 mt-6">
             <Button variant="outline" onClick={handleClose}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             <Button onClick={handleSubmit}>
               <Check className="h-4 w-4 mr-2" />
-              Save Changes
+              {t('mcp.saveChanges')}
             </Button>
           </div>
         </div>

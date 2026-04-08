@@ -8,13 +8,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, RefreshCw, Zap, Bot, Sparkles, Terminal, Code2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { ProviderCard } from '@/components/providers/ProviderCard';
 import { AddProviderDialog } from '@/components/providers/AddProviderDialog';
 import { EditProviderDialog } from '@/components/providers/EditProviderDialog';
@@ -153,13 +147,8 @@ export function ProvidersPage() {
         <EmptyState
           icon={<Bot className="h-8 w-8" />}
           title={t('providers.noProviders')}
-          description="AI providers are the services that power your coding assistant. Think of them like choosing which AI brain to use for your coding tasks."
-          secondaryText="Popular options include Claude (for thoughtful coding), GPT-4 (for versatile tasks), or DeepSeek (for Chinese language support)."
-          action={{
-            label: t('providers.addFirstProvider'),
-            onClick: () => setIsAddDialogOpen(true),
-            icon: <Plus className="h-4 w-4" />,
-          }}
+          description={t('providers.noProvidersDesc')}
+          secondaryText={t('providers.noProvidersSecondary')}
         />
       ) : (
         <div className="grid gap-4">

@@ -5,6 +5,7 @@
  */
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, RefreshCw, Zap, Puzzle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { McpCard } from '@/components/mcp/McpCard';
@@ -22,6 +23,7 @@ import {
 import type { McpServer, AppType, CreateMcpServerInput } from '@/types';
 
 export function McpPage() {
+  const { t } = useTranslation();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingServer, setEditingServer] = useState<McpServer | null>(null);
 
@@ -56,7 +58,7 @@ export function McpPage() {
   };
 
   const handleDeleteServer = (id: string) => {
-    if (confirm('Are you sure you want to delete this MCP server?')) {
+    if (confirm(t('mcp.deleteConfirm'))) {
       deleteMcpServer.mutate(id);
     }
   };
@@ -80,10 +82,8 @@ export function McpPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">MCP Servers</h1>
-          <p className="text-muted-foreground">
-            Manage Model Context Protocol servers for your applications
-          </p>
+          <h1 className="text-2xl font-bold">{t('mcp.title')}</h1>
+          <p className="text-muted-foreground">{t('mcp.description')}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => refetch()}>
@@ -91,11 +91,11 @@ export function McpPage() {
           </Button>
           <Button variant="outline" onClick={handleSyncAll}>
             <Zap className="h-4 w-4 mr-2" />
-            Sync All
+            {t('mcp.syncAll')}
           </Button>
           <Button onClick={() => setIsAddDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            Add Server
+            {t('mcp.addServer')}
           </Button>
         </div>
       </div>
@@ -104,40 +104,37 @@ export function McpPage() {
       <div className="grid grid-cols-3 gap-4">
         <div className="p-4 rounded-lg border bg-card">
           <div className="text-2xl font-bold">{servers?.length || 0}</div>
-          <div className="text-sm text-muted-foreground">Total Servers</div>
+          <div className="text-sm text-muted-foreground">{t('mcp.totalServers')}</div>
         </div>
         <div className="p-4 rounded-lg border bg-card">
           <div className="text-2xl font-bold">{totalEnabledCount}</div>
-          <div className="text-sm text-muted-foreground">Active Configurations</div>
+          <div className="text-sm text-muted-foreground">{t('mcp.activeConfigurations')}</div>
         </div>
         <div className="p-4 rounded-lg border bg-card">
           <div className="text-2xl font-bold">
             {servers?.filter((s) => Object.values(s.enabledApps).some(Boolean)).length || 0}
           </div>
-          <div className="text-sm text-muted-foreground">Enabled Servers</div>
+          <div className="text-sm text-muted-foreground">{t('mcp.enabledServers')}</div>
         </div>
       </div>
 
       {/* Servers List */}
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <div className="text-muted-foreground">Loading MCP servers...</div>
+          <div className="text-muted-foreground">{t('mcp.loading')}</div>
         </div>
       ) : error ? (
         <div className="flex items-center justify-center h-64">
-          <div className="text-destructive">Error loading MCP servers: {error.message}</div>
+          <div className="text-destructive">
+            {t('mcp.errorLoading')}: {error.message}
+          </div>
         </div>
       ) : servers?.length === 0 ? (
         <EmptyState
           icon={<Puzzle className="h-8 w-8" />}
-          title="No MCP Servers Yet"
-          description="MCP (Model Context Protocol) servers give your AI assistant superpowers like reading files, searching the web, or accessing databases."
-          secondaryText="Think of them as plugins that extend what your AI can do. For example, add a filesystem server to let AI read and edit your code files directly."
-          action={{
-            label: 'Add Your First MCP Server',
-            onClick: () => setIsAddDialogOpen(true),
-            icon: <Plus className="h-4 w-4" />,
-          }}
+          title={t('mcp.noServers')}
+          description={t('mcp.noServersDesc')}
+          secondaryText={t('mcp.noServersSecondary')}
         />
       ) : (
         <div className="grid gap-4">

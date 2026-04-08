@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, FileText, Download, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -33,6 +34,7 @@ const APP_LABELS: Record<AppType, string> = {
 };
 
 export function PromptsPage() {
+  const { t } = useTranslation();
   const [selectedApp, setSelectedApp] = useState<AppType>('claude');
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
@@ -57,7 +59,7 @@ export function PromptsPage() {
   };
 
   const handleDelete = (prompt: Prompt) => {
-    if (window.confirm(`Are you sure you want to delete "${prompt.name}"?`)) {
+    if (window.confirm(t('prompts.deleteConfirm', { name: prompt.name }))) {
       deleteMutation.mutate({ id: prompt.id, appType: prompt.appType });
     }
   };
@@ -89,16 +91,14 @@ export function PromptsPage() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <FileText className="h-6 w-6" />
-            Prompts
+            {t('prompts.title')}
           </h1>
-          <p className="text-muted-foreground mt-1">
-            Manage system prompts and instructions for your AI assistants.
-          </p>
+          <p className="text-muted-foreground mt-1">{t('prompts.description')}</p>
         </div>
         <div className="flex items-center gap-2">
           <Select value={selectedApp} onValueChange={(value) => setSelectedApp(value as AppType)}>
             <SelectTrigger className="w-40">
-              <SelectValue placeholder="Select App" />
+              <SelectValue placeholder={t('prompts.selectApp')} />
             </SelectTrigger>
             <SelectContent>
               {APP_TYPES.map((app) => (
@@ -110,11 +110,11 @@ export function PromptsPage() {
           </Select>
           <Button variant="outline" onClick={handleImport} disabled={importMutation.isPending}>
             <Download className="h-4 w-4 mr-2" />
-            Import
+            {t('prompts.import')}
           </Button>
           <Button onClick={handleCreate}>
             <Plus className="h-4 w-4 mr-2" />
-            Create
+            {t('prompts.create')}
           </Button>
         </div>
       </div>
@@ -124,7 +124,7 @@ export function PromptsPage() {
         <Card className="border-primary">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-primary">
-              Currently Active Prompt
+              {t('prompts.currentlyActive')}
             </CardTitle>
             <CardDescription className="text-lg font-semibold text-foreground">
               {activePrompt.name}
@@ -137,14 +137,14 @@ export function PromptsPage() {
       {error && (
         <div className="flex items-center gap-2 p-4 border border-destructive rounded-md bg-destructive/10 text-destructive">
           <AlertCircle className="h-5 w-5" />
-          <span>{error instanceof Error ? error.message : 'Failed to load prompts'}</span>
+          <span>{error instanceof Error ? error.message : t('prompts.failedToLoad')}</span>
         </div>
       )}
 
       {/* Loading State */}
       {isLoading && (
         <div className="flex items-center justify-center h-64">
-          <div className="text-muted-foreground">Loading prompts...</div>
+          <div className="text-muted-foreground">{t('prompts.loading')}</div>
         </div>
       )}
 
@@ -152,14 +152,9 @@ export function PromptsPage() {
       {!isLoading && prompts.length === 0 && !error && (
         <EmptyState
           icon={<FileText className="h-8 w-8" />}
-          title={`No Prompts for ${APP_LABELS[selectedApp]} Yet`}
-          description="System prompts are like giving your AI assistant a personality and instructions. They guide how the AI responds to your coding questions and tasks."
-          secondaryText="For example, you can create a prompt that makes the AI focus on clean code, or one that helps with debugging. You can also import prompts you've already set up in the app."
-          action={{
-            label: 'Create Your First Prompt',
-            onClick: handleCreate,
-            icon: <Plus className="h-4 w-4" />,
-          }}
+          title={t('prompts.noPrompts', { app: APP_LABELS[selectedApp] })}
+          description={t('prompts.noPromptsDesc')}
+          secondaryText={t('prompts.noPromptsSecondary')}
         />
       )}
 

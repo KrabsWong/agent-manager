@@ -151,6 +151,9 @@ export interface AppSettings {
   webdavAutoSync: boolean;
   webdavSyncInterval: number;
 
+  // GitHub
+  githubToken?: string;
+
   // Backup
   autoBackup: boolean;
   backupRetention: number;
@@ -166,6 +169,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   proxyHost: '127.0.0.1',
   webdavAutoSync: false,
   webdavSyncInterval: 30,
+  githubToken: undefined,
   autoBackup: true,
   backupRetention: 10,
 };

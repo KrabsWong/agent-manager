@@ -1,10 +1,11 @@
 /**
  * Install Skill Dialog
- * 
+ *
  * Dialog for installing skills from GitHub repositories
  */
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Github, Search, Download, Star, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,14 +24,23 @@ type Step = 'select-repo' | 'select-skill' | 'custom-repo';
 
 const PRESET_REPOS = [
   { owner: 'anthropics', name: 'skills', description: 'Official Anthropic skills collection' },
-  { owner: 'ComposioHQ', name: 'awesome-claude-skills', description: 'Community-contributed skills' },
+  {
+    owner: 'ComposioHQ',
+    name: 'awesome-claude-skills',
+    description: 'Community-contributed skills',
+  },
 ];
 
-export function InstallSkillDialog({ isOpen, onClose, onInstall, isInstalling }: InstallSkillDialogProps) {
+export function InstallSkillDialog({
+  isOpen,
+  onClose,
+  onInstall,
+  isInstalling,
+}: InstallSkillDialogProps) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>('select-repo');
   const [customRepoInput, setCustomRepoInput] = useState('');
   const [selectedRepo, setSelectedRepo] = useState<{ owner: string; name: string } | null>(null);
-
 
   const { data: repoInfo } = useRepoInfo(
     selectedRepo?.owner || '',
@@ -92,16 +102,14 @@ export function InstallSkillDialog({ isOpen, onClose, onInstall, isInstalling }:
       <div className="bg-background rounded-lg shadow-lg w-full max-w-2xl max-h-[85vh] overflow-auto">
         <div className="p-6">
           <h2 className="text-xl font-semibold mb-4">
-            {step === 'select-repo' && 'Install Skill'}
-            {step === 'custom-repo' && 'Custom Repository'}
+            {step === 'select-repo' && t('skills.installDialogTitle')}
+            {step === 'custom-repo' && t('skills.customRepo')}
             {step === 'select-skill' && `Skills from ${selectedRepo?.owner}/${selectedRepo?.name}`}
           </h2>
 
           {step === 'select-repo' && (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Select a repository to browse available skills.
-              </p>
+              <p className="text-sm text-muted-foreground">{t('skills.selectRepo')}</p>
 
               <div className="space-y-2">
                 {PRESET_REPOS.map((repo) => (
@@ -115,12 +123,12 @@ export function InstallSkillDialog({ isOpen, onClose, onInstall, isInstalling }:
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{repo.owner}/{repo.name}</span>
+                        <span className="font-medium">
+                          {repo.owner}/{repo.name}
+                        </span>
                         <Badge variant="secondary">Official</Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {repo.description}
-                      </p>
+                      <p className="text-sm text-muted-foreground">{repo.description}</p>
                     </div>
                   </button>
                 ))}
@@ -133,10 +141,8 @@ export function InstallSkillDialog({ isOpen, onClose, onInstall, isInstalling }:
                     <Plus className="h-5 w-5" />
                   </div>
                   <div>
-                    <span className="font-medium">Custom Repository</span>
-                    <p className="text-sm text-muted-foreground">
-                      Install from any GitHub repository
-                    </p>
+                    <span className="font-medium">{t('skills.customRepo')}</span>
+                    <p className="text-sm text-muted-foreground">{t('skills.customRepoDesc')}</p>
                   </div>
                 </button>
               </div>
@@ -146,22 +152,20 @@ export function InstallSkillDialog({ isOpen, onClose, onInstall, isInstalling }:
           {step === 'custom-repo' && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="repo-url">GitHub Repository</Label>
+                <Label htmlFor="repo-url">{t('skills.githubRepository')}</Label>
                 <div className="flex gap-2">
                   <Input
                     id="repo-url"
                     value={customRepoInput}
                     onChange={(e) => setCustomRepoInput(e.target.value)}
-                    placeholder="owner/repo or https://github.com/owner/repo"
+                    placeholder={t('skills.repoPlaceholder')}
                     onKeyDown={(e) => e.key === 'Enter' && handleCustomRepoSubmit()}
                   />
                   <Button onClick={handleCustomRepoSubmit}>
                     <Search className="h-4 w-4" />
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Enter the repository in format: owner/repo
-                </p>
+                <p className="text-xs text-muted-foreground">{t('skills.repoFormatHint')}</p>
               </div>
             </div>
           )}
@@ -175,7 +179,9 @@ export function InstallSkillDialog({ isOpen, onClose, onInstall, isInstalling }:
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{repoInfo.owner}/{repoInfo.name}</span>
+                      <span className="font-medium">
+                        {repoInfo.owner}/{repoInfo.name}
+                      </span>
                       <Badge variant="outline" className="gap-1">
                         <Star className="h-3 w-3" />
                         {repoInfo.stars}
@@ -191,11 +197,11 @@ export function InstallSkillDialog({ isOpen, onClose, onInstall, isInstalling }:
               {isScanning ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  <span className="ml-2 text-muted-foreground">Scanning repository...</span>
+                  <span className="ml-2 text-muted-foreground">{t('skills.scanningRepo')}</span>
                 </div>
               ) : availableSkills && availableSkills.length > 0 ? (
                 <div className="space-y-2">
-                  <p className="text-sm font-medium">Available Skills</p>
+                  <p className="text-sm font-medium">{t('skills.availableSkills')}</p>
                   <div className="max-h-[300px] overflow-y-auto space-y-2">
                     {availableSkills.map((skill) => (
                       <div
@@ -207,9 +213,7 @@ export function InstallSkillDialog({ isOpen, onClose, onInstall, isInstalling }:
                             <span className="font-medium">{skill.name}</span>
                           </div>
                           {skill.description && (
-                            <p className="text-sm text-muted-foreground">
-                              {skill.description}
-                            </p>
+                            <p className="text-sm text-muted-foreground">{skill.description}</p>
                           )}
                         </div>
                         <Button
@@ -222,7 +226,7 @@ export function InstallSkillDialog({ isOpen, onClose, onInstall, isInstalling }:
                           ) : (
                             <>
                               <Download className="h-4 w-4 mr-1" />
-                              Install
+                              {t('skills.install')}
                             </>
                           )}
                         </Button>
@@ -232,19 +236,15 @@ export function InstallSkillDialog({ isOpen, onClose, onInstall, isInstalling }:
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  <p>No individual skills found in this repository.</p>
-                  <p className="text-sm">You can install the entire repository as a skill.</p>
-                  <Button
-                    className="mt-4"
-                    onClick={handleInstallFullRepo}
-                    disabled={isInstalling}
-                  >
+                  <p>{t('skills.noSkillsFound')}</p>
+                  <p className="text-sm">{t('skills.installFullRepo')}</p>
+                  <Button className="mt-4" onClick={handleInstallFullRepo} disabled={isInstalling}>
                     {isInstalling ? (
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
                     ) : (
                       <Download className="h-4 w-4 mr-2" />
                     )}
-                    Install Full Repository
+                    {t('skills.installFullRepoBtn')}
                   </Button>
                 </div>
               )}
@@ -253,11 +253,11 @@ export function InstallSkillDialog({ isOpen, onClose, onInstall, isInstalling }:
 
           <div className="flex justify-between mt-6">
             <Button variant="outline" onClick={handleClose}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             {step === 'select-skill' && (
               <Button variant="ghost" onClick={() => setStep('select-repo')}>
-                Back
+                {t('skills.back')}
               </Button>
             )}
           </div>

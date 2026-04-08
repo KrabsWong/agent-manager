@@ -1,10 +1,11 @@
 /**
  * Add MCP Server Dialog
- * 
+ *
  * Dialog for adding a new MCP server (preset or custom)
  */
 
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Check, Terminal, Globe, Radio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,7 @@ type Step = 'select' | 'configure';
 type TransportType = 'stdio' | 'http' | 'sse';
 
 export function AddMcpDialog({ isOpen, onClose, onAdd }: AddMcpDialogProps) {
+  const { t } = useTranslation();
   const [step, setStep] = useState<Step>('select');
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [isCustom, setIsCustom] = useState(false);
@@ -38,9 +40,10 @@ export function AddMcpDialog({ isOpen, onClose, onAdd }: AddMcpDialogProps) {
 
   if (!isOpen) return null;
 
-  const filteredPresets = activeCategory === 'all' 
-    ? MCP_PRESETS 
-    : MCP_PRESETS.filter(p => p.category === activeCategory);
+  const filteredPresets =
+    activeCategory === 'all'
+      ? MCP_PRESETS
+      : MCP_PRESETS.filter((p) => p.category === activeCategory);
 
   const handleSelectPreset = (presetId: string) => {
     setSelectedPreset(presetId);
@@ -61,7 +64,7 @@ export function AddMcpDialog({ isOpen, onClose, onAdd }: AddMcpDialogProps) {
         transport: customTransport,
         command: customTransport === 'stdio' ? customCommand : undefined,
         args: customArgs ? customArgs.split(' ').filter(Boolean) : undefined,
-        url: (customTransport === 'http' || customTransport === 'sse') ? customUrl : undefined,
+        url: customTransport === 'http' || customTransport === 'sse' ? customUrl : undefined,
         description: customDescription || undefined,
       };
       onAdd(input);
@@ -106,14 +109,12 @@ export function AddMcpDialog({ isOpen, onClose, onAdd }: AddMcpDialogProps) {
       <div className="bg-background rounded-lg shadow-lg w-full max-w-2xl max-h-[85vh] overflow-auto">
         <div className="p-6">
           <h2 className="text-xl font-semibold mb-4">
-            {step === 'select' ? 'Add MCP Server' : 'Configure MCP Server'}
+            {step === 'select' ? t('mcp.addDialogTitle') : t('mcp.configureDialogTitle')}
           </h2>
 
           {step === 'select' ? (
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Select from preset servers or create a custom configuration.
-              </p>
+              <p className="text-sm text-muted-foreground">{t('mcp.selectOrCustom')}</p>
 
               {/* Category filters */}
               <div className="flex flex-wrap gap-2">
@@ -125,7 +126,7 @@ export function AddMcpDialog({ isOpen, onClose, onAdd }: AddMcpDialogProps) {
                       : 'hover:bg-accent'
                   }`}
                 >
-                  All
+                  {t('mcp.all')}
                 </button>
                 {MCP_CATEGORIES.map((cat) => (
                   <button
@@ -157,9 +158,7 @@ export function AddMcpDialog({ isOpen, onClose, onAdd }: AddMcpDialogProps) {
                         <span className="font-medium">{preset.name}</span>
                         <Badge variant="outline">{preset.category}</Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground truncate">
-                        {preset.description}
-                      </p>
+                      <p className="text-sm text-muted-foreground truncate">{preset.description}</p>
                       <p className="text-xs font-mono text-muted-foreground mt-1">
                         {preset.config.command} {preset.config.args?.slice(0, 3).join(' ')}
                         {preset.config.args && preset.config.args.length > 3 ? ' ...' : ''}
@@ -176,10 +175,8 @@ export function AddMcpDialog({ isOpen, onClose, onAdd }: AddMcpDialogProps) {
                     <Plus className="h-4 w-4" />
                   </div>
                   <div>
-                    <span className="font-medium">Custom Server</span>
-                    <p className="text-sm text-muted-foreground">
-                      Configure your own MCP server
-                    </p>
+                    <span className="font-medium">{t('mcp.customServer')}</span>
+                    <p className="text-sm text-muted-foreground">{t('mcp.customServerDesc')}</p>
                   </div>
                 </button>
               </div>
@@ -189,23 +186,23 @@ export function AddMcpDialog({ isOpen, onClose, onAdd }: AddMcpDialogProps) {
               {isCustom ? (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="mcp-name">Server Name</Label>
+                    <Label htmlFor="mcp-name">{t('mcp.serverName')}</Label>
                     <Input
                       id="mcp-name"
                       value={customName}
                       onChange={(e) => setCustomName(e.target.value)}
-                      placeholder="Enter server name"
+                      placeholder={t('mcp.enterServerName')}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="mcp-transport">Transport Type</Label>
+                    <Label htmlFor="mcp-transport">{t('mcp.transportType')}</Label>
                     <div className="flex gap-2">
                       {(['stdio', 'http', 'sse'] as TransportType[]).map((t) => (
                         <button
                           key={t}
                           onClick={() => setCustomTransport(t)}
-                          className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
+                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border transition-colors text-sm ${
                             customTransport === t
                               ? 'bg-primary text-primary-foreground border-primary'
                               : 'hover:bg-accent'
@@ -221,21 +218,21 @@ export function AddMcpDialog({ isOpen, onClose, onAdd }: AddMcpDialogProps) {
                   {customTransport === 'stdio' && (
                     <>
                       <div className="space-y-2">
-                        <Label htmlFor="mcp-command">Command</Label>
+                        <Label htmlFor="mcp-command">{t('mcp.command')}</Label>
                         <Input
                           id="mcp-command"
                           value={customCommand}
                           onChange={(e) => setCustomCommand(e.target.value)}
-                          placeholder="npx or uvx command"
+                          placeholder={t('mcp.commandPlaceholder')}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="mcp-args">Arguments (space-separated)</Label>
+                        <Label htmlFor="mcp-args">{t('mcp.arguments')}</Label>
                         <Input
                           id="mcp-args"
                           value={customArgs}
                           onChange={(e) => setCustomArgs(e.target.value)}
-                          placeholder="-y @modelcontextprotocol/server-filesystem"
+                          placeholder={t('mcp.argsPlaceholder')}
                         />
                       </div>
                     </>
@@ -243,23 +240,23 @@ export function AddMcpDialog({ isOpen, onClose, onAdd }: AddMcpDialogProps) {
 
                   {(customTransport === 'http' || customTransport === 'sse') && (
                     <div className="space-y-2">
-                      <Label htmlFor="mcp-url">URL</Label>
+                      <Label htmlFor="mcp-url">{t('mcp.url')}</Label>
                       <Input
                         id="mcp-url"
                         value={customUrl}
                         onChange={(e) => setCustomUrl(e.target.value)}
-                        placeholder="https://api.example.com/mcp"
+                        placeholder={t('mcp.urlPlaceholder')}
                       />
                     </div>
                   )}
 
                   <div className="space-y-2">
-                    <Label htmlFor="mcp-description">Description (optional)</Label>
+                    <Label htmlFor="mcp-description">{t('mcp.descriptionOptional')}</Label>
                     <Input
                       id="mcp-description"
                       value={customDescription}
                       onChange={(e) => setCustomDescription(e.target.value)}
-                      placeholder="What does this server do?"
+                      placeholder={t('mcp.descriptionPlaceholder')}
                     />
                   </div>
                 </>
@@ -269,7 +266,8 @@ export function AddMcpDialog({ isOpen, onClose, onAdd }: AddMcpDialogProps) {
                     <>
                       <div className="w-10 h-10 rounded flex items-center justify-center bg-secondary">
                         {getTransportIcon(
-                          MCP_PRESETS.find((p) => p.id === selectedPreset)?.config.transport || 'stdio'
+                          MCP_PRESETS.find((p) => p.id === selectedPreset)?.config.transport ||
+                            'stdio'
                         )}
                       </div>
                       <div>
@@ -285,20 +283,18 @@ export function AddMcpDialog({ isOpen, onClose, onAdd }: AddMcpDialogProps) {
                 </div>
               )}
 
-              <p className="text-sm text-muted-foreground">
-                You can enable this server for specific apps after adding it.
-              </p>
+              <p className="text-sm text-muted-foreground">{t('mcp.enableAfterAdding')}</p>
             </div>
           )}
 
           <div className="flex justify-between mt-6">
             <Button variant="outline" onClick={handleClose}>
-              Cancel
+              {t('common.cancel')}
             </Button>
             {step === 'configure' && (
               <Button onClick={handleSubmit}>
                 <Check className="h-4 w-4 mr-2" />
-                Add Server
+                {t('mcp.addServer')}
               </Button>
             )}
           </div>

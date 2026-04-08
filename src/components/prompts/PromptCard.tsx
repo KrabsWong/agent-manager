@@ -1,8 +1,21 @@
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useTranslation } from 'react-i18next';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Pencil, Trash2, Check, FileText, MoreHorizontal } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import type { Prompt } from '@/types';
 
 interface PromptCardProps {
@@ -14,6 +27,8 @@ interface PromptCardProps {
 }
 
 export function PromptCard({ prompt, onEdit, onDelete, onSetActive, isActive }: PromptCardProps) {
+  const { t } = useTranslation();
+
   const truncateContent = (content: string, maxLength: number = 150): string => {
     if (content.length <= maxLength) return content;
     return content.substring(0, maxLength) + '...';
@@ -43,7 +58,7 @@ export function PromptCard({ prompt, onEdit, onDelete, onSetActive, isActive }: 
           <div className="flex items-center gap-2">
             {isActive && (
               <Badge variant="default" className="bg-primary">
-                Active
+                {t('prompts.activeBadge')}
               </Badge>
             )}
             <DropdownMenu>
@@ -55,21 +70,18 @@ export function PromptCard({ prompt, onEdit, onDelete, onSetActive, isActive }: 
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => onEdit(prompt)}>
                   <Pencil className="mr-2 h-4 w-4" />
-                  Edit
+                  {t('common.edit')}
                 </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => onSetActive(prompt)}
-                  disabled={isActive}
-                >
+                <DropdownMenuItem onClick={() => onSetActive(prompt)} disabled={isActive}>
                   <Check className="mr-2 h-4 w-4" />
-                  Set as Active
+                  {t('prompts.setAsActive')}
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => onDelete(prompt)}
                   className="text-destructive focus:text-destructive"
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
+                  {t('common.delete')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -86,7 +98,7 @@ export function PromptCard({ prompt, onEdit, onDelete, onSetActive, isActive }: 
       </CardContent>
       <CardFooter className="pt-3">
         <p className="text-xs text-muted-foreground">
-          Last updated: {formatDate(prompt.updatedAt)}
+          {t('prompts.lastUpdated', { date: formatDate(prompt.updatedAt) })}
         </p>
       </CardFooter>
     </Card>
