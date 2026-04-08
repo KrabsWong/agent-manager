@@ -47,6 +47,19 @@ const enTranslations = {
     language: 'Language',
     selectLanguage: 'Select language',
   },
+  proxy: {
+    title: 'Proxy',
+    description: 'Manage proxy service for API calls',
+    start: 'Start Proxy',
+    stop: 'Stop Proxy',
+    status: {
+      running: 'Running',
+      stopped: 'Stopped',
+    },
+    circuitBreaker: 'Circuit Breaker',
+    requests: 'Requests',
+    cost: 'Cost',
+  },
 };
 
 // Chinese translations
@@ -94,6 +107,19 @@ const zhTranslations = {
     description: '配置应用程序设置',
     language: '语言',
     selectLanguage: '选择语言',
+  },
+  proxy: {
+    title: '代理',
+    description: '管理 API 调用的代理服务',
+    start: '启动代理',
+    stop: '停止代理',
+    status: {
+      running: '运行中',
+      stopped: '已停止',
+    },
+    circuitBreaker: '熔断器',
+    requests: '请求数',
+    cost: '成本',
   },
 };
 
