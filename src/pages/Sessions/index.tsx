@@ -6,10 +6,20 @@
 
 import { useState, createContext, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
-import { History, AlertCircle, Copy, Check, ChevronDown, ChevronRight, Play } from 'lucide-react';
+import {
+  History,
+  AlertCircle,
+  Copy,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Play,
+  AlertTriangle,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   useSessions,
   useSessionDetail,
@@ -171,8 +181,8 @@ export function SessionsPage() {
             {isSupported && sessions && sessions.length > 0 && (
               <ExpandCollapseControls sessions={sessions} t={t} />
             )}
-            <ScrollArea className="flex-1">
-              <div className="p-4 space-y-2">
+            <ScrollArea className="flex-1 min-w-0">
+              <div className="p-4 space-y-2 min-w-0">
                 {isLoading ? (
                   <div className="flex items-center justify-center h-64">
                     <div className="text-muted-foreground">
@@ -284,30 +294,46 @@ export function SessionsPage() {
                   )}
                 </div>
                 {/* Resume Button */}
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    resumeMutation.mutate({
-                      sessionId: selectedSession.id,
-                      appType: selectedApp,
-                      workingDir: selectedSession.directory,
-                    });
-                  }}
-                  disabled={resumeMutation.isPending || !selectedSession.directory}
-                  className="flex items-center gap-1.5"
-                  title={
-                    !selectedSession.directory
-                      ? t('sessions.noWorkingDir') || 'Cannot resume: working directory not found'
-                      : terminalInfo?.ghosttyInstalled
-                        ? 'Open in Ghostty'
-                        : 'Open in Terminal'
-                  }
-                >
-                  <Play className="h-3.5 w-3.5" />
-                  {resumeMutation.isPending
-                    ? t('sessions.resuming') || 'Opening...'
-                    : t('sessions.resume') || 'Resume'}
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-block">
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            if (!selectedSession.directory) return;
+                            resumeMutation.mutate({
+                              sessionId: selectedSession.id,
+                              appType: selectedApp,
+                              workingDir: selectedSession.directory,
+                            });
+                          }}
+                          disabled={resumeMutation.isPending || !selectedSession.directory}
+                          className="flex items-center gap-1.5"
+                        >
+                          {!selectedSession.directory ? (
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                          ) : (
+                            <Play className="h-3.5 w-3.5" />
+                          )}
+                          {resumeMutation.isPending
+                            ? t('sessions.resuming') || 'Opening...'
+                            : t('sessions.resume') || 'Resume'}
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        {!selectedSession.directory
+                          ? t('sessions.noWorkingDir') ||
+                            'Cannot resume: working directory not found'
+                          : terminalInfo?.ghosttyInstalled
+                            ? 'Open in Ghostty'
+                            : 'Open in Terminal'}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
 
               {/* Conversation */}
