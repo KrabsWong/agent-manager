@@ -517,6 +517,27 @@ export const sessionsApi = {
     )) as ApiResponse<{ supported: boolean; status: string }>;
     return extractData(response);
   },
+
+  resume: async (sessionId: string, appType: AppType, workingDir?: string): Promise<void> => {
+    const response = (await window.electronAPI.invoke(
+      'sessions:resume',
+      sessionId,
+      appType,
+      workingDir
+    )) as ApiResponse<void>;
+    return extractData(response);
+  },
+
+  getTerminalInfo: async (): Promise<{
+    preferred: 'ghostty' | 'terminal';
+    ghosttyInstalled: boolean;
+  }> => {
+    const response = (await window.electronAPI.invoke('sessions:getTerminalInfo')) as ApiResponse<{
+      preferred: 'ghostty' | 'terminal';
+      ghosttyInstalled: boolean;
+    }>;
+    return extractData(response);
+  },
 };
 
 /**

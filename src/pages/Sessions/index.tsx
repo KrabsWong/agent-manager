@@ -6,17 +6,17 @@
 
 import { useState, createContext, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
-import { History, AlertCircle, Copy, Check, ChevronDown, ChevronRight } from 'lucide-react';
+import { History, AlertCircle, Copy, Check, ChevronDown, ChevronRight, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
-
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   useSessions,
   useSessionDetail,
   useSessionStats,
   useSessionSupportStatus,
+  useResumeSession,
+  useTerminalInfo,
 } from '@/hooks/useSessions';
 import { ConversationView } from '@/components/sessions/ConversationView';
 import { APP_TYPES, APP_LABELS, getAppIcon, APP_COLORS } from '@/components/AppIcons';
@@ -46,6 +46,8 @@ export function SessionsPage() {
     selectedSession?.id || '',
     selectedApp
   );
+  const { data: terminalInfo } = useTerminalInfo();
+  const resumeMutation = useResumeSession();
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleString();
@@ -281,10 +283,25 @@ export function SessionsPage() {
                     </div>
                   )}
                 </div>
-                <Badge variant="outline" className="flex items-center gap-1.5">
-                  <span className={APP_COLORS[selectedApp]}>{getAppIcon(selectedApp)}</span>
-                  <span>{APP_LABELS[selectedApp]}</span>
-                </Badge>
+                {/* Resume Button */}
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    resumeMutation.mutate({
+                      sessionId: selectedSession.id,
+                      appType: selectedApp,
+                      workingDir: selectedSession.directory,
+                    });
+                  }}
+                  disabled={resumeMutation.isPending}
+                  className="flex items-center gap-1.5"
+                  title={terminalInfo?.ghosttyInstalled ? 'Open in Ghostty' : 'Open in Terminal'}
+                >
+                  <Play className="h-3.5 w-3.5" />
+                  {resumeMutation.isPending
+                    ? t('sessions.resuming') || 'Opening...'
+                    : t('sessions.resume') || 'Resume'}
+                </Button>
               </div>
 
               {/* Conversation */}

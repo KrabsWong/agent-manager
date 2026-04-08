@@ -223,6 +223,8 @@ export type IpcChannel =
   | 'sessions:getDetail'
   | 'sessions:getStats'
   | 'sessions:getSupportStatus'
+  | 'sessions:resume'
+  | 'sessions:getTerminalInfo'
   // Proxy
   | 'proxy:getStatus'
   | 'proxy:start'

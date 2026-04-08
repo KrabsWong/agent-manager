@@ -4,7 +4,7 @@
  * TanStack Query hooks for session management
  */
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { sessionsApi } from '@/lib/api';
 import type { AppType } from '@/types';
 
@@ -17,6 +17,7 @@ export const sessionsKeys = {
   detail: (sessionId: string) => [...sessionsKeys.details(), sessionId] as const,
   stats: (appType: AppType) => [...sessionsKeys.all, 'stats', appType] as const,
   support: (appType: AppType) => [...sessionsKeys.all, 'support', appType] as const,
+  terminalInfo: () => [...sessionsKeys.all, 'terminalInfo'] as const,
 };
 
 /**
@@ -60,5 +61,32 @@ export function useSessionSupportStatus(appType: AppType) {
     queryKey: sessionsKeys.support(appType),
     queryFn: () => sessionsApi.getSupportStatus(appType),
     enabled: !!appType,
+  });
+}
+
+/**
+ * Hook to resume a session in terminal
+ */
+export function useResumeSession() {
+  return useMutation({
+    mutationFn: ({
+      sessionId,
+      appType,
+      workingDir,
+    }: {
+      sessionId: string;
+      appType: AppType;
+      workingDir?: string;
+    }) => sessionsApi.resume(sessionId, appType, workingDir),
+  });
+}
+
+/**
+ * Hook to get terminal info (for UI display)
+ */
+export function useTerminalInfo() {
+  return useQuery({
+    queryKey: sessionsKeys.terminalInfo(),
+    queryFn: () => sessionsApi.getTerminalInfo(),
   });
 }

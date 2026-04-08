@@ -7,6 +7,7 @@
 import { ipcRegistry } from '../ipc/registry';
 import { claudeSessionService } from '../services/session/claude';
 import { opencodeSessionService } from '../services/session/opencode';
+import { resumeSessionInTerminal, getTerminalInfo } from '../services/terminal/launcher';
 import type { AppType } from '../../src/types';
 import log from 'electron-log';
 
@@ -87,6 +88,24 @@ export function registerSessionsHandlers(): void {
     };
 
     return supportMap[appType] || { supported: false, status: 'not_supported' };
+  });
+
+  // Resume session in terminal
+  ipcRegistry.register('sessions:resume', async (_event, ...args: unknown[]) => {
+    const [sessionId, appType, workingDir] = args as [string, AppType, string | undefined];
+
+    try {
+      await resumeSessionInTerminal(appType, sessionId, workingDir);
+      return { success: true };
+    } catch (error) {
+      log.error('Failed to resume session:', error);
+      throw error;
+    }
+  });
+
+  // Get terminal info (for UI display)
+  ipcRegistry.register('sessions:getTerminalInfo', async () => {
+    return getTerminalInfo();
   });
 
   log.info('Sessions IPC handlers registered');

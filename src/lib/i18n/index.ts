@@ -322,6 +322,8 @@ const enTranslations = {
     yesterday: 'Yesterday',
     expandAll: 'Expand All',
     collapseAll: 'Collapse All',
+    resume: 'Resume Session',
+    resuming: 'Opening...',
   },
 };
 
@@ -642,6 +644,8 @@ const zhTranslations = {
     yesterday: '昨天',
     expandAll: '全部展开',
     collapseAll: '全部收起',
+    resume: '回放会话',
+    resuming: '正在打开...',
   },
 };
 
