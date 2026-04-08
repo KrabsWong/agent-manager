@@ -1,10 +1,8 @@
 import { Outlet } from 'react-router-dom';
 import '@/lib/i18n';
-import { useTranslation } from 'react-i18next';
 import { Sidebar } from './Sidebar';
 
 export function Layout() {
-  const { t } = useTranslation();
   return (
     <div className="flex h-screen bg-background">
       <Sidebar />

@@ -252,3 +252,24 @@
     }
   }
 }
+,
+  "help": {
+    "title": "Help",
+    "description": "Quick guide to using CC Switch",
+    "gettingStarted": {
+      "title": "Getting Started",
+      "content": "CC Switch helps you manage AI CLI tools in one place. Start by adding providers in the Providers page."
+    },
+    "providers": {
+      "title": "Managing Providers",
+      "content": "Add different AI service providers (OpenAI, Anthropic, etc.) and switch between them easily."
+    },
+    "mcp": {
+      "title": "MCP Servers",
+      "content": "MCP (Model Context Protocol) servers extend AI capabilities with tools like file system access."
+    },
+    "proxy": {
+      "title": "Proxy Service",
+      "content": "The proxy service intercepts API calls for monitoring, circuit breaking, and failover."
+    }
+  }
