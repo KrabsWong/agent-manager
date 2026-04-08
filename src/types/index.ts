@@ -215,6 +215,7 @@ export type IpcChannel =
   | 'skills:scanRepo'
   | 'skills:getRepoInfo'
   | 'skills:openFolder'
+  | 'skills:selectFolder'
   | 'skills:syncAll'
   // Proxy
   | 'proxy:getStatus'

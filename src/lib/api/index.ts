@@ -447,6 +447,13 @@ export const skillsApi = {
     return extractData(response);
   },
 
+  selectFolder: async (): Promise<string | null> => {
+    const response = (await window.electronAPI.invoke('skills:selectFolder')) as ApiResponse<
+      string | null
+    >;
+    return extractData(response);
+  },
+
   syncAll: async (): Promise<void> => {
     const response = (await window.electronAPI.invoke('skills:syncAll')) as ApiResponse<void>;
     return extractData(response);

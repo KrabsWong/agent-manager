@@ -6,10 +6,11 @@
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Folder, Plus, AlertCircle } from 'lucide-react';
+import { Folder, Plus, AlertCircle, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { skillsApi } from '@/lib/api';
 
 interface AddLocalSkillDialogProps {
   isOpen: boolean;
@@ -28,8 +29,30 @@ export function AddLocalSkillDialog({
   const [skillPath, setSkillPath] = useState('');
   const [skillName, setSkillName] = useState('');
   const [error, setError] = useState('');
+  const [isSelecting, setIsSelecting] = useState(false);
 
   if (!isOpen) return null;
+
+  const handleSelectFolder = async () => {
+    setIsSelecting(true);
+    try {
+      const selectedPath = await skillsApi.selectFolder();
+      if (selectedPath) {
+        setSkillPath(selectedPath);
+        // Auto-fill name from folder name if empty
+        if (!skillName) {
+          const folderName = selectedPath.split('/').pop() || selectedPath.split('\\').pop();
+          if (folderName) {
+            setSkillName(folderName);
+          }
+        }
+      }
+    } catch (err) {
+      setError(t('skills.localSkill.selectError') || 'Failed to select folder');
+    } finally {
+      setIsSelecting(false);
+    }
+  };
 
   const handleSubmit = () => {
     setError('');
@@ -76,12 +99,24 @@ export function AddLocalSkillDialog({
                 {t('skills.localSkill.pathLabel') || 'Skill Folder Path'}{' '}
                 <span className="text-destructive">*</span>
               </Label>
-              <Input
-                id="skill-path"
-                value={skillPath}
-                onChange={(e) => setSkillPath(e.target.value)}
-                placeholder="/path/to/your/skill-folder"
-              />
+              <div className="flex gap-2">
+                <Input
+                  id="skill-path"
+                  value={skillPath}
+                  onChange={(e) => setSkillPath(e.target.value)}
+                  placeholder="/path/to/your/skill-folder"
+                  className="flex-1"
+                />
+                <Button
+                  variant="outline"
+                  onClick={handleSelectFolder}
+                  disabled={isSelecting}
+                  type="button"
+                >
+                  <FolderOpen className="h-4 w-4 mr-2" />
+                  {t('skills.localSkill.selectFolder') || 'Browse...'}
+                </Button>
+              </div>
               <p className="text-xs text-muted-foreground">
                 {t('skills.localSkill.pathHint') ||
                   'Enter the full path to the skill folder on your computer'}

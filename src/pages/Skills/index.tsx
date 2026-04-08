@@ -85,7 +85,7 @@ export function SkillsPage() {
           </Button>
           <Button variant="outline" onClick={() => setIsLocalDialogOpen(true)}>
             <FolderPlus className="h-4 w-4 mr-2" />
-            Add Local
+            {t('skills.addLocal')}
           </Button>
           <Button onClick={() => setIsInstallDialogOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />

@@ -181,6 +181,21 @@ export function registerSkillsHandlers(): void {
     skillsConfigAdapter.openSkillsFolder();
   });
 
+  // Select local skill folder
+  ipcRegistry.register('skills:selectFolder', async () => {
+    const { dialog } = require('electron');
+    const result = await dialog.showOpenDialog({
+      properties: ['openDirectory'],
+      title: 'Select Skill Folder',
+      buttonLabel: 'Select Folder',
+    });
+
+    if (!result.canceled && result.filePaths.length > 0) {
+      return result.filePaths[0];
+    }
+    return null;
+  });
+
   // Sync all skills to all apps
   ipcRegistry.register('skills:syncAll', async () => {
     const allSkills = service.getAll();
