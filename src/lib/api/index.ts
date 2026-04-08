@@ -134,6 +134,11 @@ export const promptsApi = {
     return extractData(response);
   },
 
+  getById: async (id: string, appType: AppType): Promise<Prompt | null> => {
+    const response = await window.electronAPI.invoke('prompts:getById', id, appType) as ApiResponse<Prompt | null>;
+    return extractData(response);
+  },
+
   create: async (input: CreatePromptInput): Promise<Prompt> => {
     const response = await window.electronAPI.invoke('prompts:create', input) as ApiResponse<Prompt>;
     return extractData(response);
@@ -155,6 +160,26 @@ export const promptsApi = {
 
   setActive: async (id: string, appType: AppType): Promise<void> => {
     const response = await window.electronAPI.invoke('prompts:setActive', id, appType) as ApiResponse<void>;
+    return extractData(response);
+  },
+
+  getActive: async (appType: AppType): Promise<Prompt | null> => {
+    const response = await window.electronAPI.invoke('prompts:getActive', appType) as ApiResponse<Prompt | null>;
+    return extractData(response);
+  },
+
+  importFromApp: async (appType: AppType, name?: string): Promise<Prompt | null> => {
+    const response = await window.electronAPI.invoke('prompts:importFromApp', appType, name) as ApiResponse<Prompt | null>;
+    return extractData(response);
+  },
+
+  syncAll: async (): Promise<void> => {
+    const response = await window.electronAPI.invoke('prompts:syncAll') as ApiResponse<void>;
+    return extractData(response);
+  },
+
+  openConfigFolder: async (appType: AppType): Promise<void> => {
+    const response = await window.electronAPI.invoke('prompts:openConfigFolder', appType) as ApiResponse<void>;
     return extractData(response);
   },
 };
