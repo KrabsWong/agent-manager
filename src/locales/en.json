@@ -178,7 +178,9 @@
   },
   "settings": {
     "title": "Settings",
-    "description": "Configure application settings and preferences"
+    "description": "Configure application settings and preferences",
+    "language": "Language",
+    "selectLanguage": "Select a language"
   },
   "common": {
     "buttons": {
