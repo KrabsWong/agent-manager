@@ -151,18 +151,24 @@ export function SessionsPage() {
       {isSupported && stats && (
         <div className="flex items-center justify-end gap-8 py-6 text-base shrink-0">
           <div className="flex items-center gap-1">
-            <span className="text-muted-foreground">会话总数：</span>
+            <span className="text-muted-foreground">
+              {t('sessions.totalSessions') || 'Total Sessions'}:
+            </span>
             <span className="font-semibold text-foreground">{stats.totalSessions}</span>
           </div>
           <div className="w-px h-6 bg-border" />
           <div className="flex items-center gap-1">
-            <span className="text-muted-foreground">消息总数：</span>
+            <span className="text-muted-foreground">
+              {t('sessions.totalMessages') || 'Total Messages'}:
+            </span>
             <span className="font-semibold text-foreground">{stats.totalMessages}</span>
           </div>
           <div className="w-px h-6 bg-border" />
           {stats.lastSessionDate && (
             <div className="flex items-center gap-1">
-              <span className="text-muted-foreground">最后活跃时间：</span>
+              <span className="text-muted-foreground">
+                {t('sessions.lastActivity') || 'Last Activity'}:
+              </span>
               <span className="font-semibold text-foreground">
                 {new Date(stats.lastSessionDate).toLocaleDateString()}
               </span>
