@@ -1,5 +1,6 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import log from 'electron-log';
 import { dbManager } from './database';
 import { configStore } from './utils/config-store';
@@ -7,6 +8,10 @@ import { ipcRegistry } from './ipc/registry';
 import { registerProviderHandlers } from './handlers/providers';
 import { registerMcpHandlers } from './handlers/mcp';
 import { registerSkillsHandlers } from './handlers/skills';
+import { registerPromptHandlers } from './handlers/prompts';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 log.initialize();
 
@@ -101,6 +106,7 @@ const initializeApp = () => {
     registerProviderHandlers();
     registerMcpHandlers();
     registerSkillsHandlers();
+    registerPromptHandlers();
     registerAppHandlers();
     
     log.info('IPC handlers registered');

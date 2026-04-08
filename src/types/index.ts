@@ -197,6 +197,10 @@ export type IpcChannel =
   | 'prompts:update'
   | 'prompts:delete'
   | 'prompts:setActive'
+  | 'prompts:getActive'
+  | 'prompts:importFromApp'
+  | 'prompts:syncAll'
+  | 'prompts:openConfigFolder'
   // Skills
   | 'skills:getAll'
   | 'skills:getInstalled'
