@@ -9,6 +9,7 @@ const enTranslations = {
     skills: 'Skills',
     prompts: 'Prompts',
     proxy: 'Proxy',
+    sessions: 'Sessions',
     settings: 'Settings',
   },
   providers: {
@@ -126,9 +127,10 @@ const enTranslations = {
     title: 'Skills',
     description: 'Discover and manage AI skills for your applications',
     discover: 'Discover',
-    installedSkills: 'Installed Skills',
+    installedSkills: 'Installed',
     activeConfigs: 'Active Configurations',
-    enabledSkills: 'Enabled Skills',
+    enabledSkills: 'Enabled',
+    activeSkills: 'Active',
     loading: 'Loading skills...',
     errorLoading: 'Error loading skills',
     deleteConfirm: 'Are you sure you want to uninstall this skill?',
@@ -212,6 +214,17 @@ const enTranslations = {
     setAsActive: 'Set as Active',
     activeBadge: 'Active',
   },
+  sessions: {
+    title: 'Sessions',
+    description: 'View conversation history from your AI applications',
+    selectApp: 'Select Application',
+    loading: 'Loading sessions...',
+    error: 'Failed to load sessions',
+    noSessions: 'No Sessions Found',
+    noSessionsDesc: 'No conversation history found for this application.',
+    comingSoon: 'Coming Soon',
+    unsupportedApp: 'Session viewing is not yet supported for this application.',
+  },
 };
 
 // Chinese translations
@@ -222,6 +235,7 @@ const zhTranslations = {
     skills: '技能',
     prompts: '提示词',
     proxy: '代理',
+    sessions: '会话记录',
     settings: '设置',
   },
   providers: {
@@ -335,9 +349,10 @@ const zhTranslations = {
     title: '技能',
     description: '发现和管理您的应用程序的 AI 技能',
     discover: '发现',
-    installedSkills: '已安装技能',
+    installedSkills: '已安装',
     activeConfigs: '活跃配置',
-    enabledSkills: '已启用技能',
+    enabledSkills: '已启用',
+    activeSkills: '已激活',
     loading: '正在加载技能...',
     errorLoading: '加载技能失败',
     deleteConfirm: '确定要卸载此技能吗？',
@@ -420,6 +435,17 @@ const zhTranslations = {
     lastUpdated: '最后更新：{{date}}',
     setAsActive: '设为活跃',
     activeBadge: '活跃',
+  },
+  sessions: {
+    title: '会话记录',
+    description: '查看您的 AI 应用程序的对话历史',
+    selectApp: '选择应用',
+    loading: '正在加载会话...',
+    error: '加载会话失败',
+    noSessions: '未找到会话',
+    noSessionsDesc: '未找到此应用程序的对话历史。',
+    comingSoon: '即将推出',
+    unsupportedApp: '此应用程序暂不支持查看会话记录。',
   },
 };
 

@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Plug, Puzzle, Palette, FileText, Globe, Settings } from 'lucide-react';
+import { Plug, Puzzle, Palette, FileText, Globe, History, Settings } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
@@ -9,6 +9,7 @@ const navigation = [
   { name: 'nav.skills', href: '/skills', icon: Palette },
   { name: 'nav.prompts', href: '/prompts', icon: FileText },
   { name: 'nav.proxy', href: '/proxy', icon: Globe },
+  { name: 'nav.sessions', href: '/sessions', icon: History },
   { name: 'nav.settings', href: '/settings', icon: Settings },
 ];
 

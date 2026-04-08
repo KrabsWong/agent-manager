@@ -4,9 +4,9 @@
  * Main page for managing and discovering skills
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, RefreshCw, FolderPlus, Wand2 } from 'lucide-react';
+import { Plus, RefreshCw, FolderPlus, Wand2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SkillCard } from '@/components/skills/SkillCard';
 import { InstallSkillDialog } from '@/components/skills/InstallSkillDialog';
@@ -19,6 +19,7 @@ import {
   useUninstallSkill,
   useToggleSkillApp,
 } from '@/hooks/useSkills';
+import { api } from '@/lib/api';
 import type { AppType } from '@/types';
 
 export function SkillsPage() {
@@ -31,6 +32,18 @@ export function SkillsPage() {
   const installLocalSkill = useInstallLocalSkill();
   const uninstallSkill = useUninstallSkill();
   const toggleSkillApp = useToggleSkillApp();
+
+  // Calculate simple stats
+  const stats = useMemo(() => {
+    if (!skills) return null;
+    const totalSkills = skills.length;
+    const enabledSkills = skills.filter((s) => Object.values(s.enabledApps).some(Boolean)).length;
+    return { totalSkills, enabledSkills };
+  }, [skills]);
+
+  const handleOpenExternal = async (url: string) => {
+    await api.shell.openExternal(url);
+  };
 
   const handleInstallSkill = (repoUrl: string, directory?: string) => {
     installSkill.mutate(
@@ -55,7 +68,7 @@ export function SkillsPage() {
   };
 
   const handleUninstallSkill = (id: string) => {
-    if (uninstallSkill.isPending) return; // Prevent double submission
+    if (uninstallSkill.isPending) return;
     if (confirm(t('skills.deleteConfirm'))) {
       uninstallSkill.mutate(id);
     }
@@ -65,19 +78,32 @@ export function SkillsPage() {
     toggleSkillApp.mutate({ id: skillId, appType, enabled });
   };
 
-  const totalEnabledCount =
-    skills?.reduce(
-      (total, skill) => total + Object.values(skill.enabledApps).filter(Boolean).length,
-      0
-    ) || 0;
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">{t('skills.title')}</h1>
-          <p className="text-muted-foreground">{t('skills.description')}</p>
+          <p className="text-muted-foreground">
+            {t('skills.description')}{' '}
+            <button
+              onClick={() => handleOpenExternal('https://github.com/anthropics/skills')}
+              className="inline-flex items-center gap-0.5 text-primary hover:underline"
+            >
+              {t('skills.officialSkills')}
+              <ExternalLink className="h-3 w-3" />
+            </button>
+            {' · '}
+            <button
+              onClick={() =>
+                handleOpenExternal('https://github.com/ComposioHQ/awesome-claude-skills')
+              }
+              className="inline-flex items-center gap-0.5 text-primary hover:underline"
+            >
+              {t('skills.communitySkills')}
+              <ExternalLink className="h-3 w-3" />
+            </button>
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="icon" onClick={() => refetch()}>
@@ -94,43 +120,18 @@ export function SkillsPage() {
         </div>
       </div>
 
-      {/* Quick Links - Simple text links */}
-      <div className="flex items-center gap-4 text-sm">
-        <a
-          href="https://github.com/anthropics/skills"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-medium text-primary hover:underline"
-        >
-          {t('skills.officialSkills')}
-        </a>
-        <a
-          href="https://github.com/ComposioHQ/awesome-claude-skills"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="font-medium text-primary hover:underline"
-        >
-          {t('skills.communitySkills')}
-        </a>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="p-4 rounded-lg border bg-card">
-          <div className="text-2xl font-bold">{skills?.length || 0}</div>
-          <div className="text-sm text-muted-foreground">{t('skills.installedSkills')}</div>
+      {/* Simple Stats */}
+      {stats && (
+        <div className="flex items-center gap-4 text-sm">
+          <span className="text-muted-foreground">
+            {stats.totalSkills} {t('skills.installedSkills')}
+          </span>
+          <span className="text-muted-foreground">·</span>
+          <span className="text-emerald-600 font-medium">
+            {stats.enabledSkills} {t('skills.activeSkills')}
+          </span>
         </div>
-        <div className="p-4 rounded-lg border bg-card">
-          <div className="text-2xl font-bold">{totalEnabledCount}</div>
-          <div className="text-sm text-muted-foreground">{t('skills.activeConfigs')}</div>
-        </div>
-        <div className="p-4 rounded-lg border bg-card">
-          <div className="text-2xl font-bold">
-            {skills?.filter((s) => Object.values(s.enabledApps).some(Boolean)).length || 0}
-          </div>
-          <div className="text-sm text-muted-foreground">{t('skills.enabledSkills')}</div>
-        </div>
-      </div>
+      )}
 
       {/* Skills List */}
       {isLoading ? (

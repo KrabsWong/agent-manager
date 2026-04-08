@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import log from 'electron-log';
@@ -198,11 +198,9 @@ app.on('activate', () => {
   }
 });
 
-// Handle app quit
-app.on('before-quit', () => {
-  log.info('Application quitting...');
-  dbManager.close();
-  ipcRegistry.clear();
+// Register shell handler for opening external links
+ipcMain.handle('shell:openExternal', async (_event, url: string) => {
+  await shell.openExternal(url);
 });
 
 // Security: Prevent new window creation, but allow external links
@@ -210,7 +208,6 @@ app.on('web-contents-created', (_event, contents) => {
   contents.setWindowOpenHandler(({ url }) => {
     // Allow external links to open in system browser
     if (url.startsWith('http://') || url.startsWith('https://')) {
-      const { shell } = require('electron');
       shell.openExternal(url);
       return { action: 'deny' };
     }
@@ -219,4 +216,11 @@ app.on('web-contents-created', (_event, contents) => {
     log.warn(`Prevented new window creation: ${url}`);
     return { action: 'deny' };
   });
+});
+
+// Handle app quit
+app.on('before-quit', () => {
+  log.info('Application quitting...');
+  dbManager.close();
+  ipcRegistry.clear();
 });

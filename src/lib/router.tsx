@@ -14,6 +14,9 @@ const ProxyPage = lazy(() => import('@/pages/Proxy').then((m) => ({ default: m.P
 const SettingsPage = lazy(() =>
   import('@/pages/Settings').then((m) => ({ default: m.SettingsPage }))
 );
+const SessionsPage = lazy(() =>
+  import('@/pages/Sessions').then((m) => ({ default: m.SessionsPage }))
+);
 
 // Loading fallback component
 function PageLoader() {
@@ -44,6 +47,7 @@ export const router = createBrowserRouter([
       { path: '/skills', element: withSuspense(SkillsPage) },
       { path: '/prompts', element: withSuspense(PromptsPage) },
       { path: '/proxy', element: withSuspense(ProxyPage) },
+      { path: '/sessions', element: withSuspense(SessionsPage) },
       { path: '/settings', element: withSuspense(SettingsPage) },
     ],
   },

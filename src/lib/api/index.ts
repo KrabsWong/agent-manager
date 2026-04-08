@@ -560,6 +560,15 @@ export const configApi = {
   },
 };
 
+/**
+ * Shell API
+ */
+export const shellApi = {
+  openExternal: async (url: string): Promise<void> => {
+    await window.electronAPI.invoke('shell:openExternal', url);
+  },
+};
+
 // Export all APIs
 export const api = {
   providers: providersApi,
@@ -570,4 +579,5 @@ export const api = {
   settings: settingsApi,
   app: appApi,
   config: configApi,
+  shell: shellApi,
 };

@@ -6,7 +6,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { skillsApi } from '@/lib/api';
-import type { AppType } from '@/types';
+import type { AppType, Skill } from '@/types';
 
 // Query keys
 export const skillsKeys = {
@@ -82,19 +82,39 @@ export function useInstallLocalSkill() {
 }
 
 /**
- * Hook to uninstall a skill
+ * Hook to uninstall a skill with optimistic update
  */
 export function useUninstallSkill() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (id: string) => skillsApi.uninstall(id),
-    onSuccess: async () => {
-      // Remove from cache immediately and refetch
-      queryClient.removeQueries({
-        queryKey: skillsKeys.list(),
+    // Optimistic update - immediately remove from UI
+    onMutate: async (id: string) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: skillsKeys.list() });
+
+      // Snapshot the previous value
+      const previousSkills = queryClient.getQueryData<Skill[]>(skillsKeys.list());
+
+      // Optimistically update to the new value
+      queryClient.setQueryData<Skill[]>(skillsKeys.list(), (old) => {
+        if (!old) return [];
+        return old.filter((skill) => skill.id !== id);
       });
-      await queryClient.refetchQueries({
+
+      // Return a context object with the snapshotted value
+      return { previousSkills };
+    },
+    // If the mutation fails, use the context returned from onMutate to roll back
+    onError: (_err, _id, context) => {
+      if (context?.previousSkills) {
+        queryClient.setQueryData(skillsKeys.list(), context.previousSkills);
+      }
+    },
+    // Always refetch after error or success
+    onSettled: () => {
+      queryClient.invalidateQueries({
         queryKey: skillsKeys.list(),
       });
     },
@@ -102,7 +122,7 @@ export function useUninstallSkill() {
 }
 
 /**
- * Hook to toggle skill for an app
+ * Hook to toggle skill for an app with optimistic update
  */
 export function useToggleSkillApp() {
   const queryClient = useQueryClient();
@@ -110,9 +130,51 @@ export function useToggleSkillApp() {
   return useMutation({
     mutationFn: ({ id, appType, enabled }: { id: string; appType: AppType; enabled: boolean }) =>
       skillsApi.toggleApp(id, appType, enabled),
-    onSuccess: async () => {
-      // Immediately refetch to show updated state
-      await queryClient.refetchQueries({
+    // Optimistic update - immediately update UI
+    onMutate: async ({
+      id,
+      appType,
+      enabled,
+    }: {
+      id: string;
+      appType: AppType;
+      enabled: boolean;
+    }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: skillsKeys.list() });
+
+      // Snapshot the previous value
+      const previousSkills = queryClient.getQueryData<Skill[]>(skillsKeys.list());
+
+      // Optimistically update to the new value
+      queryClient.setQueryData<Skill[]>(skillsKeys.list(), (old) => {
+        if (!old) return [];
+        return old.map((skill) => {
+          if (skill.id === id) {
+            return {
+              ...skill,
+              enabledApps: {
+                ...skill.enabledApps,
+                [appType]: enabled,
+              },
+            };
+          }
+          return skill;
+        });
+      });
+
+      // Return a context object with the snapshotted value
+      return { previousSkills };
+    },
+    // If the mutation fails, use the context returned from onMutate to roll back
+    onError: (_err, _variables, context) => {
+      if (context?.previousSkills) {
+        queryClient.setQueryData(skillsKeys.list(), context.previousSkills);
+      }
+    },
+    // Always refetch after error or success
+    onSettled: () => {
+      queryClient.invalidateQueries({
         queryKey: skillsKeys.list(),
       });
     },

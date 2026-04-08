@@ -18,31 +18,26 @@ interface SkillCardProps {
   isToggling?: boolean;
 }
 
-const APP_CONFIG: Record<AppType, { label: string; icon: React.ReactNode; color: string }> = {
+const APP_CONFIG: Record<AppType, { label: string; icon: React.ReactNode }> = {
   claude: {
     label: 'Claude',
     icon: <Bot className="h-3.5 w-3.5" />,
-    color: 'bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-emerald-200',
   },
   codex: {
     label: 'Codex',
     icon: <Terminal className="h-3.5 w-3.5" />,
-    color: 'bg-teal-100 text-teal-700 border-teal-200 hover:bg-teal-200',
   },
   gemini: {
     label: 'Gemini',
     icon: <Sparkles className="h-3.5 w-3.5" />,
-    color: 'bg-green-100 text-green-700 border-green-200 hover:bg-green-200',
   },
   opencode: {
     label: 'OpenCode',
     icon: <Code2 className="h-3.5 w-3.5" />,
-    color: 'bg-lime-100 text-lime-700 border-lime-200 hover:bg-lime-200',
   },
   openclaw: {
     label: 'OpenClaw',
     icon: <Zap className="h-3.5 w-3.5" />,
-    color: 'bg-emerald-100 text-emerald-800 border-emerald-200 hover:bg-emerald-200',
   },
 };
 
@@ -85,7 +80,7 @@ export function SkillCard({ skill, onDelete, onToggleApp, isToggling }: SkillCar
       </CardHeader>
       <CardContent className="pt-0">
         <div className="space-y-3">
-          {/* App toggles - Modern chip style with clear visual feedback */}
+          {/* App toggles - Consistent style for all apps */}
           <div className="flex flex-wrap gap-2">
             {APP_ORDER.map((app) => {
               const isEnabled = skill.enabledApps[app];
@@ -99,11 +94,11 @@ export function SkillCard({ skill, onDelete, onToggleApp, isToggling }: SkillCar
                   className={`
                     inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium
                     border transition-all duration-150
-                    ${isToggling ? 'opacity-50 cursor-not-allowed' : ''}
+                    ${isToggling ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
                     ${
                       isEnabled
-                        ? `${config.color} shadow-sm border-current`
-                        : 'bg-white text-muted-foreground border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                        : 'bg-background text-muted-foreground border-border hover:border-muted-foreground/50 hover:bg-muted/50'
                     }
                   `}
                 >
@@ -114,15 +109,13 @@ export function SkillCard({ skill, onDelete, onToggleApp, isToggling }: SkillCar
             })}
           </div>
 
-          {/* Footer info - show full path */}
-          <div className="space-y-2 text-xs text-muted-foreground pt-3 border-t">
-            <div className="flex items-start gap-2">
-              <Folder className="h-3 w-3 mt-0.5 shrink-0" />
-              <span className="font-mono break-all">{skill.directory}</span>
+          {/* Footer info - compact layout */}
+          <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground pt-3 border-t">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Folder className="h-3 w-3 shrink-0" />
+              <span className="font-mono truncate">{skill.directory}</span>
             </div>
-            <div className="text-right">
-              <span>Installed {formatDate(skill.installedAt)}</span>
-            </div>
+            <span className="shrink-0 whitespace-nowrap">{formatDate(skill.installedAt)}</span>
           </div>
         </div>
       </CardContent>
