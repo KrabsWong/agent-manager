@@ -1,5 +1,5 @@
 /**
- * CC Switch - Shared Types
+ * Yes, Sessions - Shared Types
  * 这些类型在前后端共享，确保类型一致性
  */
 

@@ -41,7 +41,7 @@ export const router = createBrowserRouter([
     path: '/',
     element: <Layout />,
     children: [
-      { path: '/', element: withSuspense(ProvidersPage) },
+      { path: '/', element: withSuspense(SessionsPage) },
       { path: '/providers', element: withSuspense(ProvidersPage) },
       { path: '/mcp', element: withSuspense(McpPage) },
       { path: '/skills', element: withSuspense(SkillsPage) },

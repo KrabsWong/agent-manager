@@ -1,27 +1,32 @@
 import { NavLink } from 'react-router-dom';
-import { Plug, Puzzle, Palette, FileText, Globe, History, Settings } from 'lucide-react';
+import { Puzzle, Palette, History, Settings, MessagesSquare } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
-const navigation = [
-  { name: 'nav.providers', href: '/providers', icon: Plug },
+// 主菜单项（显示在导航栏中）
+const mainNavigation = [
+  { name: 'nav.sessions', href: '/sessions', icon: History },
   { name: 'nav.mcpServers', href: '/mcp', icon: Puzzle },
   { name: 'nav.skills', href: '/skills', icon: Palette },
-  { name: 'nav.prompts', href: '/prompts', icon: FileText },
-  { name: 'nav.proxy', href: '/proxy', icon: Globe },
-  { name: 'nav.sessions', href: '/sessions', icon: History },
-  { name: 'nav.settings', href: '/settings', icon: Settings },
 ];
 
 export function Sidebar() {
   const { t } = useTranslation();
   return (
     <div className="flex w-64 flex-col border-r bg-card">
-      <div className="flex h-16 items-center border-b px-6">
-        <h1 className="text-lg font-semibold">CC Switch</h1>
+      <div className="pt-8">
+        <div className="flex items-center gap-3 px-6 pb-4">
+          <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 via-purple-500 to-pink-500 shadow-lg shadow-purple-500/20">
+            <MessagesSquare className="h-4 w-4 text-white" />
+          </div>
+          <h1 className="text-lg font-semibold">Yes, Sessions</h1>
+        </div>
+        <div className="border-b mx-6" />
       </div>
+
+      {/* 主菜单导航 */}
       <nav className="flex-1 space-y-1 p-4">
-        {navigation.map((item) => (
+        {mainNavigation.map((item) => (
           <NavLink
             key={item.name}
             to={item.href}
@@ -39,6 +44,24 @@ export function Sidebar() {
           </NavLink>
         ))}
       </nav>
+
+      {/* 底部设置图标 */}
+      <div className="p-4 border-t">
+        <NavLink
+          to="/settings"
+          className={({ isActive }) =>
+            cn(
+              'flex items-center justify-center w-10 h-10 rounded-lg transition-colors',
+              isActive
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+            )
+          }
+          title={t('nav.settings')}
+        >
+          <Settings className="h-5 w-5" />
+        </NavLink>
+      </div>
     </div>
   );
 }

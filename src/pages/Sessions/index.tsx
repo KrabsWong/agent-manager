@@ -99,7 +99,7 @@ export function SessionsPage() {
   const allCollapsed = collapsedDates.size === allDates.length;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between shrink-0">
         <div>

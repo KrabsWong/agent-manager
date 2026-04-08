@@ -1,12 +1,15 @@
 {
-  "name": "cc-switch-electron",
+  "name": "yes-sessions",
   "version": "4.0.0",
-  "description": "All-in-One AI CLI configuration manager - Electron Edition",
+  "description": "AI Session Manager - Browse and resume your AI conversations",
   "main": "dist-electron/main.js",
-  "author": "CC Switch Team",
+  "author": "Yes, Sessions Team",
   "license": "MIT",
   "private": true,
   "type": "module",
+  "build": {
+    "productName": "Yes, Sessions"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build && electron-builder",
