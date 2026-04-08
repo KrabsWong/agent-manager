@@ -9,6 +9,7 @@ import { registerProviderHandlers } from './handlers/providers';
 import { registerMcpHandlers } from './handlers/mcp';
 import { registerSkillsHandlers } from './handlers/skills';
 import { registerPromptHandlers } from './handlers/prompts';
+import { initializePromptService } from './services/prompt/crud';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -97,6 +98,13 @@ const initializeApp = () => {
     // Initialize database
     dbManager.initialize();
     log.info('Database initialized');
+
+    // Initialize prompt service with database
+    const db = dbManager.getDatabase();
+    if (db) {
+      initializePromptService(db);
+      log.info('Prompt service initialized');
+    }
 
     // Log database stats
     const stats = dbManager.getStats();
