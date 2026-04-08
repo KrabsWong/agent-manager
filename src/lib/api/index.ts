@@ -481,10 +481,11 @@ export const sessionsApi = {
     return extractData(response);
   },
 
-  getDetail: async (sessionId: string): Promise<SessionDetail | null> => {
+  getDetail: async (sessionId: string, appType: AppType): Promise<SessionDetail | null> => {
     const response = (await window.electronAPI.invoke(
       'sessions:getDetail',
-      sessionId
+      sessionId,
+      appType
     )) as ApiResponse<SessionDetail | null>;
     return extractData(response);
   },

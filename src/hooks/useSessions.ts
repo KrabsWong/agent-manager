@@ -33,11 +33,11 @@ export function useSessions(appType: AppType) {
 /**
  * Hook to fetch session detail
  */
-export function useSessionDetail(sessionId: string) {
+export function useSessionDetail(sessionId: string, appType: AppType) {
   return useQuery({
     queryKey: sessionsKeys.detail(sessionId),
-    queryFn: () => sessionsApi.getDetail(sessionId),
-    enabled: !!sessionId,
+    queryFn: () => sessionsApi.getDetail(sessionId, appType),
+    enabled: !!sessionId && !!appType,
   });
 }
 

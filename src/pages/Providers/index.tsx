@@ -6,7 +6,8 @@
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, RefreshCw, Zap, Bot, Sparkles, Terminal, Code2 } from 'lucide-react';
+import { Plus, RefreshCw, Bot } from 'lucide-react';
+import { APP_COLORS, APP_TYPES, getAppIcon } from '@/components/AppIcons';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { ProviderCard } from '@/components/providers/ProviderCard';
@@ -23,24 +24,6 @@ import {
   useDeactivateProvider,
 } from '@/hooks/useProviders';
 import type { AppType, Provider, CreateProviderInput } from '@/types';
-
-const APP_TYPES: AppType[] = ['claude', 'codex', 'gemini', 'opencode', 'openclaw'];
-
-const APP_ICONS: Record<AppType, React.ReactNode> = {
-  claude: <Bot className="h-4 w-4" />,
-  codex: <Terminal className="h-4 w-4" />,
-  gemini: <Sparkles className="h-4 w-4" />,
-  opencode: <Code2 className="h-4 w-4" />,
-  openclaw: <Zap className="h-4 w-4" />,
-};
-
-const APP_COLORS: Record<AppType, string> = {
-  claude: 'text-emerald-600',
-  codex: 'text-teal-600',
-  gemini: 'text-green-600',
-  opencode: 'text-lime-600',
-  openclaw: 'text-emerald-700',
-};
 
 export function ProvidersPage() {
   const { t } = useTranslation();
@@ -130,7 +113,7 @@ export function ProvidersPage() {
         <Select value={selectedApp} onValueChange={(value) => setSelectedApp(value as AppType)}>
           <SelectTrigger className="w-48">
             <div className="flex items-center gap-2">
-              <span className={APP_COLORS[selectedApp]}>{APP_ICONS[selectedApp]}</span>
+              <span className={APP_COLORS[selectedApp]}>{getAppIcon(selectedApp)}</span>
               <span>{t(`common.apps.${selectedApp}`)}</span>
             </div>
           </SelectTrigger>
@@ -138,7 +121,7 @@ export function ProvidersPage() {
             {APP_TYPES.map((app) => (
               <SelectItem key={app} value={app}>
                 <div className="flex items-center gap-2">
-                  <span className={APP_COLORS[app]}>{APP_ICONS[app]}</span>
+                  <span className={APP_COLORS[app]}>{getAppIcon(app)}</span>
                   <span>{t(`common.apps.${app}`)}</span>
                 </div>
               </SelectItem>

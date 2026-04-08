@@ -130,6 +130,7 @@ const enTranslations = {
     loading: 'Loading...',
     error: 'Error',
     success: 'Success',
+    copy: 'Copy',
     apps: {
       claude: 'Claude Code',
       codex: 'Codex CLI',
@@ -317,6 +318,10 @@ const enTranslations = {
     loadingConversation: 'Loading conversation...',
     noMessages: 'No messages found',
     messages: 'messages',
+    today: 'Today',
+    yesterday: 'Yesterday',
+    expandAll: 'Expand All',
+    collapseAll: 'Collapse All',
   },
 };
 
@@ -445,6 +450,7 @@ const zhTranslations = {
     loading: '加载中...',
     error: '错误',
     success: '成功',
+    copy: '复制',
     apps: {
       claude: 'Claude Code',
       codex: 'Codex CLI',
@@ -632,6 +638,10 @@ const zhTranslations = {
     loadingConversation: '正在加载对话...',
     noMessages: '未找到消息',
     messages: '条消息',
+    today: '今天',
+    yesterday: '昨天',
+    expandAll: '全部展开',
+    collapseAll: '全部收起',
   },
 };
 

@@ -1,7 +1,9 @@
 /**
  * Claude Code Session Service
  *
- * Reads and parses Claude Code conversation transcripts
+ * Reads and parses Claude Code conversation sessions from both:
+ * - New format: ~/.claude/projects/ (with UUID)
+ * - Old format: ~/.claude/transcripts/ (ses_*.jsonl)
  */
 
 import fs from 'fs';
@@ -10,14 +12,150 @@ import os from 'os';
 import log from 'electron-log';
 import type { Session, SessionDetail, SessionMessage } from '../../../src/types/session';
 
+const CLAUDE_PROJECTS_PATH = path.join(os.homedir(), '.claude', 'projects');
+const CLAUDE_HISTORY_PATH = path.join(os.homedir(), '.claude', 'history.jsonl');
 const CLAUDE_TRANSCRIPTS_PATH = path.join(os.homedir(), '.claude', 'transcripts');
+
+interface HistoryEntry {
+  display?: string;
+  timestamp: number;
+  project?: string;
+  sessionId: string;
+  pastedContents?: Record<string, unknown>;
+}
+
+interface ProjectMessage {
+  type: string;
+  uuid?: string;
+  timestamp?: string;
+  sessionId?: string;
+  message?: {
+    role?: string;
+    content?: string | Array<{ type: string; text?: string }>;
+    tool_use?: Array<{
+      id: string;
+      name: string;
+      input: Record<string, unknown>;
+    }>;
+  };
+  parentUuid?: string | null;
+  promptId?: string;
+  toolUseResult?: string;
+  sourceToolAssistantUUID?: string;
+}
 
 export class ClaudeSessionService {
   /**
-   * Check if Claude Code transcripts exist
+   * Check if Claude Code data exists
    */
   isAvailable(): boolean {
-    return fs.existsSync(CLAUDE_TRANSCRIPTS_PATH);
+    return fs.existsSync(CLAUDE_PROJECTS_PATH) || fs.existsSync(CLAUDE_TRANSCRIPTS_PATH);
+  }
+
+  /**
+   * Load history entries from history.jsonl
+   */
+  private loadHistory(): HistoryEntry[] {
+    const entries: HistoryEntry[] = [];
+    try {
+      if (!fs.existsSync(CLAUDE_HISTORY_PATH)) {
+        return entries;
+      }
+      const content = fs.readFileSync(CLAUDE_HISTORY_PATH, 'utf-8');
+      const lines = content.split('\n').filter((line) => line.trim());
+
+      for (const line of lines) {
+        try {
+          const entry = JSON.parse(line) as HistoryEntry;
+          if (entry.sessionId && entry.timestamp) {
+            entries.push(entry);
+          }
+        } catch {
+          // Skip invalid lines
+        }
+      }
+    } catch (error) {
+      log.warn('Failed to load history:', error);
+    }
+    return entries;
+  }
+
+  /**
+   * Escape project path for directory name
+   */
+  private escapeProjectPath(projectPath: string): string {
+    return projectPath.replace(/\//g, '-');
+  }
+
+  /**
+   * Get all sessions from new format (projects/)
+   */
+  private getNewFormatSessions(): Session[] {
+    const sessions: Session[] = [];
+
+    if (!fs.existsSync(CLAUDE_PROJECTS_PATH) || !fs.existsSync(CLAUDE_HISTORY_PATH)) {
+      return sessions;
+    }
+
+    const historyEntries = this.loadHistory();
+    const seenSessionIds = new Set<string>();
+
+    // Process history entries in reverse to get latest first
+    for (const entry of historyEntries.reverse()) {
+      // Skip duplicates
+      if (seenSessionIds.has(entry.sessionId)) {
+        continue;
+      }
+      seenSessionIds.add(entry.sessionId);
+
+      if (!entry.project) continue;
+
+      const projectDir = this.escapeProjectPath(entry.project);
+      const sessionFile = path.join(CLAUDE_PROJECTS_PATH, projectDir, `${entry.sessionId}.jsonl`);
+
+      if (!fs.existsSync(sessionFile)) {
+        continue;
+      }
+
+      try {
+        const session = this.parseNewSessionFile(sessionFile, entry);
+        if (session) {
+          sessions.push(session);
+        }
+      } catch (error) {
+        log.warn(`Failed to parse new session file ${sessionFile}:`, error);
+      }
+    }
+
+    return sessions;
+  }
+
+  /**
+   * Get all sessions from old format (transcripts/)
+   */
+  private getOldFormatSessions(): Session[] {
+    const sessions: Session[] = [];
+
+    if (!fs.existsSync(CLAUDE_TRANSCRIPTS_PATH)) {
+      return sessions;
+    }
+
+    const files = fs.readdirSync(CLAUDE_TRANSCRIPTS_PATH);
+
+    for (const file of files) {
+      if (file.endsWith('.jsonl') && file.startsWith('ses_')) {
+        try {
+          const session = this.parseOldSessionFile(file);
+          if (session) {
+            sessions.push(session);
+          }
+        } catch (error) {
+          log.warn(`Failed to parse old session file ${file}:`, error);
+        }
+      }
+    }
+
+    return sessions;
   }
 
   /**
@@ -25,28 +163,12 @@ export class ClaudeSessionService {
    */
   getAllSessions(): Session[] {
     try {
-      if (!this.isAvailable()) {
-        return [];
-      }
+      const newSessions = this.getNewFormatSessions();
+      const oldSessions = this.getOldFormatSessions();
 
-      const files = fs.readdirSync(CLAUDE_TRANSCRIPTS_PATH);
-      const sessions: Session[] = [];
-
-      for (const file of files) {
-        if (file.endsWith('.jsonl') && file.startsWith('ses_')) {
-          try {
-            const session = this.parseSessionFile(file);
-            if (session) {
-              sessions.push(session);
-            }
-          } catch (error) {
-            log.warn(`Failed to parse session file ${file}:`, error);
-          }
-        }
-      }
-
-      // Sort by updatedAt descending (newest first)
-      return sessions.sort((a, b) => b.updatedAt - a.updatedAt);
+      // Combine and sort by updatedAt descending (newest first)
+      const allSessions = [...newSessions, ...oldSessions];
+      return allSessions.sort((a, b) => b.updatedAt - a.updatedAt);
     } catch (error) {
       log.error('Failed to get sessions:', error);
       return [];
@@ -54,16 +176,60 @@ export class ClaudeSessionService {
   }
 
   /**
-   * Parse a single session file
+   * Parse a new format session file (projects/)
    */
-  private parseSessionFile(fileName: string): Session | null {
+  private parseNewSessionFile(filePath: string, historyEntry: HistoryEntry): Session | null {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const lines = content.split('\n').filter((line) => line.trim());
+
+    if (lines.length === 0) {
+      return null;
+    }
+
+    let firstMessage = '';
+    let lastMessage = '';
+    let messageCount = 0;
+
+    for (const line of lines) {
+      try {
+        const msg = JSON.parse(line) as ProjectMessage;
+        if (msg.type === 'user' || msg.type === 'assistant') {
+          messageCount++;
+          if (!firstMessage) {
+            firstMessage = this.extractNewMessagePreview(msg);
+          }
+          lastMessage = this.extractNewMessagePreview(msg);
+        }
+      } catch {
+        // Ignore parse errors
+      }
+    }
+
+    return {
+      id: historyEntry.sessionId,
+      appType: 'claude',
+      fileName: `${historyEntry.sessionId}.jsonl`,
+      filePath,
+      directory: historyEntry.project,
+      createdAt: historyEntry.timestamp,
+      updatedAt: historyEntry.timestamp,
+      messageCount,
+      firstMessage: firstMessage || historyEntry.display || '',
+      lastMessage,
+    };
+  }
+
+  /**
+   * Parse an old format session file (transcripts/)
+   */
+  private parseOldSessionFile(fileName: string): Session | null {
     const filePath = path.join(CLAUDE_TRANSCRIPTS_PATH, fileName);
     const stats = fs.statSync(filePath);
 
-    // Extract session ID from filename (ses_<id>.jsonl)
-    const id = fileName.replace('ses_', '').replace('.jsonl', '');
+    // Extract session ID from filename (ses_<id>.jsonl) - keep ses_ prefix
+    const id = fileName.replace('.jsonl', '');
 
-    // Read first and last few lines to get message info
+    // Read file content
     const content = fs.readFileSync(filePath, 'utf-8');
     const lines = content.split('\n').filter((line) => line.trim());
 
@@ -76,14 +242,14 @@ export class ClaudeSessionService {
 
     try {
       const firstLine = JSON.parse(lines[0]) as SessionMessage;
-      firstMessage = this.extractMessagePreview(firstLine);
+      firstMessage = this.extractOldMessagePreview(firstLine);
     } catch {
       // Ignore parse errors
     }
 
     try {
       const lastLine = JSON.parse(lines[lines.length - 1]) as SessionMessage;
-      lastMessage = this.extractMessagePreview(lastLine);
+      lastMessage = this.extractOldMessagePreview(lastLine);
     } catch {
       // Ignore parse errors
     }
@@ -93,6 +259,7 @@ export class ClaudeSessionService {
       appType: 'claude',
       fileName,
       filePath,
+      directory: undefined, // Old format doesn't have directory info
       createdAt: stats.birthtime.getTime(),
       updatedAt: stats.mtime.getTime(),
       messageCount: lines.length,
@@ -102,9 +269,31 @@ export class ClaudeSessionService {
   }
 
   /**
-   * Extract a preview from a message
+   * Extract preview from new format message
    */
-  private extractMessagePreview(message: SessionMessage): string {
+  private extractNewMessagePreview(message: ProjectMessage): string {
+    if (typeof message.message?.content === 'string') {
+      const content = message.message.content;
+      return content.substring(0, 100) + (content.length > 100 ? '...' : '');
+    }
+    if (Array.isArray(message.message?.content)) {
+      const textParts = message.message.content
+        .filter((item) => item.type === 'text' && item.text)
+        .map((item) => item.text)
+        .join(' ');
+      return textParts.substring(0, 100) + (textParts.length > 100 ? '...' : '');
+    }
+    if (message.type === 'last-prompt') {
+      const lastPrompt = (message as unknown as { lastPrompt?: string }).lastPrompt;
+      return lastPrompt || '';
+    }
+    return '';
+  }
+
+  /**
+   * Extract preview from old format message
+   */
+  private extractOldMessagePreview(message: SessionMessage): string {
     if (message.content) {
       return message.content.substring(0, 100) + (message.content.length > 100 ? '...' : '');
     }
@@ -118,8 +307,75 @@ export class ClaudeSessionService {
    * Get detailed session with all messages
    */
   getSessionDetail(sessionId: string): SessionDetail | null {
+    // Check if it's a new format session (UUID format)
+    if (sessionId.includes('-')) {
+      return this.getNewSessionDetail(sessionId);
+    }
+
+    // Otherwise it's an old format session (ses_xxx)
+    return this.getOldSessionDetail(sessionId);
+  }
+
+  /**
+   * Get new format session detail
+   */
+  private getNewSessionDetail(sessionId: string): SessionDetail | null {
     try {
-      const fileName = `ses_${sessionId}.jsonl`;
+      const historyEntries = this.loadHistory();
+      const historyEntry = historyEntries.find((e) => e.sessionId === sessionId);
+
+      if (!historyEntry || !historyEntry.project) {
+        return null;
+      }
+
+      const projectDir = this.escapeProjectPath(historyEntry.project);
+      const filePath = path.join(CLAUDE_PROJECTS_PATH, projectDir, `${sessionId}.jsonl`);
+
+      if (!fs.existsSync(filePath)) {
+        return null;
+      }
+
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const lines = content.split('\n').filter((line) => line.trim());
+
+      const messages: SessionMessage[] = [];
+      for (const line of lines) {
+        try {
+          const msg = JSON.parse(line) as ProjectMessage;
+          const parsedMsg = this.parseNewProjectMessage(msg);
+          if (parsedMsg) {
+            messages.push(parsedMsg);
+          }
+        } catch (error) {
+          log.warn('Failed to parse message:', error);
+        }
+      }
+
+      return {
+        id: sessionId,
+        appType: 'claude',
+        fileName: `${sessionId}.jsonl`,
+        filePath,
+        directory: historyEntry.project,
+        createdAt: historyEntry.timestamp,
+        updatedAt: historyEntry.timestamp,
+        messageCount: messages.length,
+        firstMessage: messages[0]?.content?.substring(0, 100) || '',
+        lastMessage: messages[messages.length - 1]?.content?.substring(0, 100) || '',
+        messages,
+      };
+    } catch (error) {
+      log.error(`Failed to get new session detail ${sessionId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get old format session detail
+   */
+  private getOldSessionDetail(sessionId: string): SessionDetail | null {
+    try {
+      const fileName = `${sessionId}.jsonl`;
       const filePath = path.join(CLAUDE_TRANSCRIPTS_PATH, fileName);
 
       if (!fs.existsSync(filePath)) {
@@ -147,6 +403,7 @@ export class ClaudeSessionService {
         appType: 'claude',
         fileName,
         filePath,
+        directory: undefined,
         createdAt: stats.birthtime.getTime(),
         updatedAt: stats.mtime.getTime(),
         messageCount: messages.length,
@@ -155,9 +412,81 @@ export class ClaudeSessionService {
         messages,
       };
     } catch (error) {
-      log.error(`Failed to get session detail ${sessionId}:`, error);
+      log.error(`Failed to get old session detail ${sessionId}:`, error);
       return null;
     }
+  }
+
+  /**
+   * Parse new format project message
+   */
+  private parseNewProjectMessage(msg: ProjectMessage): SessionMessage | null {
+    if (!msg.type) return null;
+
+    const timestamp = msg.timestamp || new Date().toISOString();
+
+    if (msg.type === 'user') {
+      let content = '';
+      if (msg.message?.content && typeof msg.message.content === 'string') {
+        content = msg.message.content;
+      } else if (msg.message?.content && Array.isArray(msg.message.content)) {
+        content = msg.message.content
+          .filter((item: { type: string; text?: string }) => item.type === 'text')
+          .map((item: { text?: string }) => item.text || '')
+          .join('\n');
+      } else if (msg.toolUseResult) {
+        content = `[${msg.toolUseResult}]`;
+      }
+
+      return {
+        type: 'user',
+        timestamp,
+        content,
+      };
+    }
+
+    if (msg.type === 'assistant') {
+      let content = '';
+      const toolCalls: Array<{
+        id: string;
+        name: string;
+        input: Record<string, unknown>;
+      }> = [];
+
+      if (typeof msg.message?.content === 'string') {
+        content = msg.message.content;
+      } else if (Array.isArray(msg.message?.content)) {
+        for (const item of msg.message.content) {
+          if (item.type === 'text' && item.text) {
+            content += item.text + '\n';
+          } else if (item.type === 'tool_use') {
+            toolCalls.push({
+              id: (item as unknown as { id: string }).id || 'unknown',
+              name: (item as unknown as { name: string }).name || 'unknown',
+              input: (item as unknown as { input: Record<string, unknown> }).input || {},
+            });
+          }
+        }
+      }
+
+      if (toolCalls.length > 0) {
+        return {
+          type: 'tool_use',
+          timestamp,
+          tool_name: toolCalls[0].name,
+          tool_input: toolCalls[0].input,
+          content,
+        };
+      }
+
+      return {
+        type: 'assistant',
+        timestamp,
+        content,
+      };
+    }
+
+    return null;
   }
 
   /**

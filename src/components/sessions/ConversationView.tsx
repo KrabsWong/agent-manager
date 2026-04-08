@@ -10,13 +10,16 @@
  */
 
 import { useMemo } from 'react';
-import { User, Bot, Wrench, Terminal, Puzzle, Sparkles } from 'lucide-react';
+import { User, Wrench, Terminal, Puzzle, Bot } from 'lucide-react';
+import { getAppIcon } from '@/components/AppIcons';
 import { cn } from '@/lib/utils';
+import type { AppType } from '@/types';
 import type { SessionMessage } from '@/types/session';
 
 interface ConversationViewProps {
   messages: SessionMessage[];
   className?: string;
+  appType?: string;
 }
 
 /**
@@ -56,18 +59,49 @@ function groupMessagesIntoTurns(messages: SessionMessage[]): MessageTurn[] {
 
       case 'tool_result':
         // Match with pending tool_use
-        if (currentTurn && pendingToolCalls.length > 0) {
-          const pendingIndex = pendingToolCalls.findIndex(
-            (tc) => tc.tool_name === message.tool_name
-          );
-          if (pendingIndex >= 0) {
-            currentTurn.toolCalls[pendingIndex].toolResult = message;
-            pendingToolCalls.splice(pendingIndex, 1);
-          } else {
-            // Fallback: match by position
-            const firstPending = currentTurn.toolCalls.find((tc) => !tc.toolResult);
-            if (firstPending) {
-              firstPending.toolResult = message;
+        if (currentTurn) {
+          if (pendingToolCalls.length > 0) {
+            const pendingIndex = pendingToolCalls.findIndex(
+              (tc) => tc.tool_name === message.tool_name
+            );
+            if (pendingIndex >= 0) {
+              currentTurn.toolCalls[pendingIndex].toolResult = message;
+              pendingToolCalls.splice(pendingIndex, 1);
+            } else {
+              // Fallback: match by position
+              const firstPending = currentTurn.toolCalls.find((tc) => !tc.toolResult);
+              if (firstPending) {
+                firstPending.toolResult = message;
+              }
+            }
+          }
+
+          // For Claude Code: every tool_result with output is an assistant response
+          // We'll collect all tool_result contents as the assistant message
+          if (message.tool_output) {
+            const output = message.tool_output;
+            let content = '';
+
+            if (typeof output.output === 'string') {
+              content = output.output;
+            } else if (output.content && Array.isArray(output.content)) {
+              content = output.content
+                .filter((item: { type: string; text?: string }) => item.type === 'text')
+                .map((item: { text?: string }) => item.text || '')
+                .join('\n');
+            }
+
+            if (content) {
+              // Append to existing assistant message or create new one
+              if (currentTurn.assistantMessage) {
+                currentTurn.assistantMessage.content += '\n\n' + content;
+              } else {
+                currentTurn.assistantMessage = {
+                  type: 'assistant',
+                  timestamp: message.timestamp,
+                  content: content,
+                };
+              }
             }
           }
         }
@@ -98,13 +132,17 @@ interface MessageTurn {
   assistantMessage: SessionMessage | null;
 }
 
-export function ConversationView({ messages, className }: ConversationViewProps) {
+export function ConversationView({
+  messages,
+  className,
+  appType = 'claude',
+}: ConversationViewProps) {
   const turns = useMemo(() => groupMessagesIntoTurns(messages), [messages]);
 
   return (
     <div className={cn('space-y-6', className)}>
       {turns.map((turn, index) => (
-        <ConversationTurn key={index} turn={turn} />
+        <ConversationTurn key={index} turn={turn} appType={appType} />
       ))}
     </div>
   );
@@ -112,9 +150,10 @@ export function ConversationView({ messages, className }: ConversationViewProps)
 
 interface ConversationTurnProps {
   turn: MessageTurn;
+  appType: string;
 }
 
-function ConversationTurn({ turn }: ConversationTurnProps) {
+function ConversationTurn({ turn, appType }: ConversationTurnProps) {
   return (
     <div className="space-y-3">
       {/* User Message */}
@@ -140,6 +179,7 @@ function ConversationTurn({ turn }: ConversationTurnProps) {
         <AssistantMessage
           content={turn.assistantMessage.content}
           timestamp={turn.assistantMessage.timestamp}
+          appType={appType}
         />
       )}
     </div>
@@ -173,17 +213,29 @@ function UserMessage({ content, timestamp }: UserMessageProps) {
 interface AssistantMessageProps {
   content: string;
   timestamp: string;
+  appType?: string;
 }
 
-function AssistantMessage({ content, timestamp }: AssistantMessageProps) {
+function AssistantMessage({ content, timestamp, appType = 'claude' }: AssistantMessageProps) {
+  const assistantName =
+    appType === 'opencode'
+      ? 'OpenCode'
+      : appType === 'gemini'
+        ? 'Gemini'
+        : appType === 'codex'
+          ? 'Codex'
+          : appType === 'openclaw'
+            ? 'OpenClaw'
+            : 'Claude';
+
   return (
     <div className="flex gap-3">
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center">
-        <Sparkles className="h-4 w-4 text-purple-500" />
+      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+        {getAppIcon(appType as AppType, 18)}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <span className="font-medium text-sm">Claude</span>
+          <span className="font-medium text-sm">{assistantName}</span>
           <span className="text-xs text-muted-foreground">{formatTimestamp(timestamp)}</span>
         </div>
         <div className="text-sm leading-relaxed">
@@ -371,68 +423,7 @@ function formatValue(value: unknown): string {
 }
 
 function MessageContent({ content }: { content: string }) {
-  // Simple markdown-like rendering
-  const lines = content.split('\n');
-
-  return (
-    <div className="space-y-2">
-      {lines.map((line, index) => {
-        // Code blocks
-        if (line.startsWith('```')) {
-          return null; // Handle multi-line code blocks separately if needed
-        }
-
-        // Headers
-        if (line.startsWith('### ')) {
-          return (
-            <h3 key={index} className="font-semibold text-base mt-4">
-              {line.substring(4)}
-            </h3>
-          );
-        }
-        if (line.startsWith('## ')) {
-          return (
-            <h2 key={index} className="font-semibold text-lg mt-4">
-              {line.substring(3)}
-            </h2>
-          );
-        }
-        if (line.startsWith('# ')) {
-          return (
-            <h1 key={index} className="font-bold text-xl mt-4">
-              {line.substring(2)}
-            </h1>
-          );
-        }
-
-        // Lists
-        if (line.match(/^\s*[-*]\s/)) {
-          return (
-            <li key={index} className="ml-4">
-              {line.replace(/^\s*[-*]\s/, '')}
-            </li>
-          );
-        }
-
-        // Numbered lists
-        if (line.match(/^\s*\d+\.\s/)) {
-          return (
-            <li key={index} className="ml-4">
-              {line.replace(/^\s*\d+\.\s/, '')}
-            </li>
-          );
-        }
-
-        // Empty lines
-        if (!line.trim()) {
-          return <div key={index} className="h-2" />;
-        }
-
-        // Regular text
-        return <p key={index}>{line}</p>;
-      })}
-    </div>
-  );
+  return <div className="whitespace-pre-wrap font-mono text-sm">{content}</div>;
 }
 
 function formatTimestamp(timestamp: string): string {

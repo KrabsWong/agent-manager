@@ -9,7 +9,7 @@ import { Settings, Trash2, Terminal, Globe, Radio } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Bot, Code2, Sparkles, Zap } from 'lucide-react';
+import { APP_LABELS, getAppIcon, APP_COLORS } from '@/components/AppIcons';
 import type { McpServer, AppType } from '@/types';
 
 interface McpCardProps {
@@ -19,29 +19,6 @@ interface McpCardProps {
   onToggleApp: (appType: AppType, enabled: boolean) => void;
   isToggling?: boolean;
 }
-
-const APP_CONFIG: Record<AppType, { label: string; icon: React.ReactNode }> = {
-  claude: {
-    label: 'Claude',
-    icon: <Bot className="h-3.5 w-3.5" />,
-  },
-  codex: {
-    label: 'Codex',
-    icon: <Terminal className="h-3.5 w-3.5" />,
-  },
-  gemini: {
-    label: 'Gemini',
-    icon: <Sparkles className="h-3.5 w-3.5" />,
-  },
-  opencode: {
-    label: 'OpenCode',
-    icon: <Code2 className="h-3.5 w-3.5" />,
-  },
-  openclaw: {
-    label: 'OpenClaw',
-    icon: <Zap className="h-3.5 w-3.5" />,
-  },
-};
 
 const APP_ORDER: AppType[] = ['claude', 'codex', 'gemini', 'opencode', 'openclaw'];
 
@@ -118,7 +95,6 @@ export function McpCard({ server, onEdit, onDelete, onToggleApp, isToggling }: M
           <div className="flex flex-wrap gap-2">
             {APP_ORDER.map((app) => {
               const isEnabled = server.enabledApps[app];
-              const config = APP_CONFIG[app];
 
               return (
                 <button
@@ -136,8 +112,12 @@ export function McpCard({ server, onEdit, onDelete, onToggleApp, isToggling }: M
                     }
                   `}
                 >
-                  {config.icon}
-                  <span>{config.label}</span>
+                  <span
+                    className={`flex items-center justify-center ${isEnabled ? '[&_img]:brightness-0 [&_img]:invert' : APP_COLORS[app]}`}
+                  >
+                    {getAppIcon(app, 14)}
+                  </span>
+                  <span>{APP_LABELS[app]}</span>
                 </button>
               );
             })}

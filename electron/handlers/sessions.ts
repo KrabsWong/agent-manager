@@ -6,6 +6,7 @@
 
 import { ipcRegistry } from '../ipc/registry';
 import { claudeSessionService } from '../services/session/claude';
+import { opencodeSessionService } from '../services/session/opencode';
 import type { AppType } from '../../src/types';
 import log from 'electron-log';
 
@@ -17,13 +18,15 @@ export function registerSessionsHandlers(): void {
   ipcRegistry.register('sessions:getAll', async (_event, ...args: unknown[]) => {
     const [appType] = args as [AppType];
 
-    if (appType !== 'claude') {
+    try {
+      if (appType === 'claude') {
+        return claudeSessionService.getAllSessions();
+      }
+      if (appType === 'opencode') {
+        return await opencodeSessionService.getAllSessions();
+      }
       // Return empty array for unsupported apps
       return [];
-    }
-
-    try {
-      return claudeSessionService.getAllSessions();
     } catch (error) {
       log.error('Failed to get sessions:', error);
       throw error;
@@ -32,10 +35,21 @@ export function registerSessionsHandlers(): void {
 
   // Get session detail
   ipcRegistry.register('sessions:getDetail', async (_event, ...args: unknown[]) => {
-    const [sessionId] = args as [string];
+    const [sessionId, appType] = args as [string, AppType];
 
     try {
-      return claudeSessionService.getSessionDetail(sessionId);
+      if (appType === 'claude') {
+        return claudeSessionService.getSessionDetail(sessionId);
+      }
+      if (appType === 'opencode') {
+        return await opencodeSessionService.getSessionDetail(sessionId);
+      }
+      // Try to infer from sessionId format or try both services
+      const claudeSession = claudeSessionService.getSessionDetail(sessionId);
+      if (claudeSession) {
+        return claudeSession;
+      }
+      return await opencodeSessionService.getSessionDetail(sessionId);
     } catch (error) {
       log.error('Failed to get session detail:', error);
       throw error;
@@ -46,12 +60,14 @@ export function registerSessionsHandlers(): void {
   ipcRegistry.register('sessions:getStats', async (_event, ...args: unknown[]) => {
     const [appType] = args as [AppType];
 
-    if (appType !== 'claude') {
-      return { totalSessions: 0, totalMessages: 0 };
-    }
-
     try {
-      return claudeSessionService.getStats();
+      if (appType === 'claude') {
+        return claudeSessionService.getStats();
+      }
+      if (appType === 'opencode') {
+        return await opencodeSessionService.getStats();
+      }
+      return { totalSessions: 0, totalMessages: 0 };
     } catch (error) {
       log.error('Failed to get session stats:', error);
       throw error;
@@ -66,7 +82,7 @@ export function registerSessionsHandlers(): void {
       claude: { supported: true, status: 'full' },
       codex: { supported: false, status: 'coming_soon' },
       gemini: { supported: false, status: 'coming_soon' },
-      opencode: { supported: false, status: 'coming_soon' },
+      opencode: { supported: opencodeSessionService.isAvailable(), status: 'full' },
       openclaw: { supported: false, status: 'coming_soon' },
     };
 

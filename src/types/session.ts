@@ -29,6 +29,8 @@ export interface Session {
   messageCount: number;
   firstMessage?: string;
   lastMessage?: string;
+  directory?: string;
+  uuid?: string;
 }
 
 export interface SessionDetail extends Session {
