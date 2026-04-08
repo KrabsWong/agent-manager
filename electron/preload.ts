@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+const { contextBridge, ipcRenderer } = require('electron');
 
 export interface IElectronAPI {
   invoke: (channel: string, ...args: unknown[]) => Promise<unknown>;
@@ -16,7 +16,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   invoke: (channel: string, ...args: unknown[]) =>
     ipcRenderer.invoke(channel, ...args),
   on: (channel: string, callback: (...args: unknown[]) => void) =>
-    ipcRenderer.on(channel, (_event, ...args) => callback(...args)),
+    ipcRenderer.on(channel, (_event: unknown, ...args: unknown[]) => callback(...args)),
   removeAllListeners: (channel: string) =>
     ipcRenderer.removeAllListeners(channel),
 });
