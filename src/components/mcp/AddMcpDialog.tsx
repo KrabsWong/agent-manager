@@ -138,7 +138,7 @@ export function AddMcpDialog({ isOpen, onClose, onAdd }: AddMcpDialogProps) {
                         : 'hover:bg-accent'
                     }`}
                   >
-                    {cat}
+                    {t(`mcp.categories.${cat.toLowerCase()}`)}
                   </button>
                 ))}
               </div>
@@ -156,7 +156,9 @@ export function AddMcpDialog({ isOpen, onClose, onAdd }: AddMcpDialogProps) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{preset.name}</span>
-                        <Badge variant="outline">{preset.category}</Badge>
+                        <Badge variant="outline">
+                          {t(`mcp.categories.${preset.category.toLowerCase()}`)}
+                        </Badge>
                       </div>
                       <p className="text-sm text-muted-foreground truncate">{preset.description}</p>
                       <p className="text-xs font-mono text-muted-foreground mt-1">

@@ -20,6 +20,7 @@ import {
   useUpdateProvider,
   useDeleteProvider,
   useSwitchProvider,
+  useDeactivateProvider,
 } from '@/hooks/useProviders';
 import type { AppType, Provider, CreateProviderInput } from '@/types';
 
@@ -54,6 +55,7 @@ export function ProvidersPage() {
   const updateProvider = useUpdateProvider();
   const deleteProvider = useDeleteProvider();
   const switchProvider = useSwitchProvider();
+  const deactivateProvider = useDeactivateProvider();
 
   const handleAddProvider = (input: CreateProviderInput) => {
     createProvider.mutate(input, {
@@ -67,12 +69,12 @@ export function ProvidersPage() {
     setEditingProvider(provider);
   };
 
-  const handleSaveEdit = (id: string, appType: AppType, settings: Record<string, unknown>) => {
+  const handleSaveEdit = (id: string, appType: AppType, input: Partial<Provider>) => {
     updateProvider.mutate(
       {
         id,
         appType,
-        input: { settingsConfig: settings },
+        input,
       },
       {
         onSuccess: () => {
@@ -97,6 +99,10 @@ export function ProvidersPage() {
 
   const handleSwitchProvider = (id: string, appType: AppType) => {
     switchProvider.mutate({ id, appType });
+  };
+
+  const handleDeactivateProvider = (appType: AppType) => {
+    deactivateProvider.mutate({ appType });
   };
 
   return (
@@ -125,7 +131,7 @@ export function ProvidersPage() {
           <SelectTrigger className="w-48">
             <div className="flex items-center gap-2">
               <span className={APP_COLORS[selectedApp]}>{APP_ICONS[selectedApp]}</span>
-              <span>{selectedApp.charAt(0).toUpperCase() + selectedApp.slice(1)}</span>
+              <span>{t(`common.apps.${selectedApp}`)}</span>
             </div>
           </SelectTrigger>
           <SelectContent>
@@ -133,7 +139,7 @@ export function ProvidersPage() {
               <SelectItem key={app} value={app}>
                 <div className="flex items-center gap-2">
                   <span className={APP_COLORS[app]}>{APP_ICONS[app]}</span>
-                  <span>{app.charAt(0).toUpperCase() + app.slice(1)}</span>
+                  <span>{t(`common.apps.${app}`)}</span>
                 </div>
               </SelectItem>
             ))}
@@ -166,6 +172,7 @@ export function ProvidersPage() {
               key={provider.id}
               provider={provider}
               onSwitch={() => handleSwitchProvider(provider.id, provider.appType)}
+              onDeactivate={() => handleDeactivateProvider(provider.appType)}
               onEdit={() => handleEditProvider(provider)}
               onDelete={() => handleDeleteClick(provider)}
             />
@@ -192,7 +199,7 @@ export function ProvidersPage() {
         isOpen={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
         onConfirm={handleConfirmDelete}
-        title={t('common.delete')}
+        title={t('common.buttons.delete')}
         description={t('providers.deleteConfirm')}
         confirmText={t('common.delete')}
         cancelText={t('common.cancel')}

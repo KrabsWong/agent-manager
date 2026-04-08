@@ -1,52 +1,58 @@
 /**
  * Edit Provider Dialog
  *
- * Dialog for editing provider settings
+ * Complete provider editing with app-specific forms
  */
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Save } from 'lucide-react';
+import { Save, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { ClaudeProviderForm } from './forms/ClaudeProviderForm';
+import { CodexProviderForm } from './forms/CodexProviderForm';
+import { GeminiProviderForm } from './forms/GeminiProviderForm';
+import { OpenCodeProviderForm } from './forms/OpenCodeProviderForm';
+import { OpenClawProviderForm } from './forms/OpenClawProviderForm';
 import type { Provider, AppType } from '@/types';
 
 interface EditProviderDialogProps {
   provider: Provider | null;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (id: string, appType: AppType, settings: Record<string, unknown>) => void;
+  onSave: (id: string, appType: AppType, input: Partial<Provider>) => void;
 }
 
 export function EditProviderDialog({ provider, isOpen, onClose, onSave }: EditProviderDialogProps) {
   const { t } = useTranslation();
   const [name, setName] = useState('');
-  const [apiKey, setApiKey] = useState('');
-  const [baseUrl, setBaseUrl] = useState('');
-  const [model, setModel] = useState('');
+  const [websiteUrl, setWebsiteUrl] = useState('');
+  const [settingsConfig, setSettingsConfig] = useState<Record<string, unknown>>({});
 
   useEffect(() => {
     if (provider) {
       setName(provider.name);
-      setApiKey((provider.settingsConfig.apiKey as string) || '');
-      setBaseUrl((provider.settingsConfig.baseUrl as string) || '');
-      setModel((provider.settingsConfig.model as string) || '');
+      setWebsiteUrl(provider.websiteUrl || '');
+      setSettingsConfig(provider.settingsConfig || {});
     }
   }, [provider]);
 
-  if (!isOpen || !provider) return null;
+  if (!provider) return null;
 
   const handleSubmit = () => {
-    const updatedSettings = {
-      ...provider.settingsConfig,
+    onSave(provider.id, provider.appType, {
       name,
-      apiKey: apiKey || provider.settingsConfig.apiKey,
-      baseUrl: baseUrl || provider.settingsConfig.baseUrl,
-      model: model || provider.settingsConfig.model,
-    };
-
-    onSave(provider.id, provider.appType, updatedSettings);
+      websiteUrl,
+      settingsConfig,
+    });
     handleClose();
   };
 
@@ -54,17 +60,45 @@ export function EditProviderDialog({ provider, isOpen, onClose, onSave }: EditPr
     onClose();
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-      <div className="bg-background rounded-lg shadow-lg w-full max-w-lg max-h-[80vh] overflow-auto">
-        <div className="p-6">
-          <h2 className="text-xl font-semibold mb-4">{t('providers.editProvider')}</h2>
+  const renderProviderForm = () => {
+    switch (provider.appType) {
+      case 'claude':
+        return <ClaudeProviderForm initialConfig={settingsConfig} onChange={setSettingsConfig} />;
+      case 'codex':
+        return <CodexProviderForm initialConfig={settingsConfig} onChange={setSettingsConfig} />;
+      case 'gemini':
+        return <GeminiProviderForm initialConfig={settingsConfig} onChange={setSettingsConfig} />;
+      case 'opencode':
+        return <OpenCodeProviderForm initialConfig={settingsConfig} onChange={setSettingsConfig} />;
+      case 'openclaw':
+        return <OpenClawProviderForm initialConfig={settingsConfig} onChange={setSettingsConfig} />;
+      default:
+        return null;
+    }
+  };
 
+  const getAppTitle = (appType: AppType) => {
+    return t(`common.apps.${appType}`);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto top-32 translate-y-0 data-[state=open]:slide-in-from-top-32 data-[state=closed]:slide-out-to-top-32">
+        <DialogHeader>
+          <DialogTitle>
+            {t('providers.editTitle', { app: getAppTitle(provider.appType) })}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-6 py-2">
+          {/* Basic Info - No Card Wrapper */}
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-name">{t('providers.providerName')}</Label>
+              <Label htmlFor="provider-name" className="text-sm font-medium">
+                {t('providers.providerName')}
+              </Label>
               <Input
-                id="edit-name"
+                id="provider-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder={t('providers.providerNamePlaceholder')}
@@ -72,49 +106,36 @@ export function EditProviderDialog({ provider, isOpen, onClose, onSave }: EditPr
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-api-key">{t('providers.apiKey')}</Label>
+              <Label htmlFor="provider-website" className="text-sm font-medium">
+                {t('providers.websiteUrl')}
+              </Label>
               <Input
-                id="edit-api-key"
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder={t('providers.enterApiKey')}
+                id="provider-website"
+                value={websiteUrl}
+                onChange={(e) => setWebsiteUrl(e.target.value)}
+                placeholder={t('providers.websiteUrlPlaceholder')}
               />
-              <p className="text-xs text-muted-foreground">{t('providers.leaveEmptyKeepKey')}</p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-base-url">{t('providers.baseUrl')}</Label>
-              <Input
-                id="edit-base-url"
-                value={baseUrl}
-                onChange={(e) => setBaseUrl(e.target.value)}
-                placeholder={t('providers.baseUrlPlaceholder')}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-model">{t('providers.model')}</Label>
-              <Input
-                id="edit-model"
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                placeholder={t('providers.modelPlaceholder')}
-              />
+              <p className="text-xs text-muted-foreground">
+                {t('providers.websiteUrlDescription')}
+              </p>
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 mt-6">
-            <Button variant="outline" onClick={handleClose}>
-              {t('common.cancel')}
-            </Button>
-            <Button onClick={handleSubmit}>
-              <Save className="h-4 w-4 mr-2" />
-              {t('common.save')}
-            </Button>
-          </div>
+          {/* App-specific Configuration */}
+          {renderProviderForm()}
         </div>
-      </div>
-    </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose}>
+            <X className="h-4 w-4 mr-2" />
+            {t('common.buttons.cancel')}
+          </Button>
+          <Button onClick={handleSubmit}>
+            <Save className="h-4 w-4 mr-2" />
+            {t('common.buttons.save')}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

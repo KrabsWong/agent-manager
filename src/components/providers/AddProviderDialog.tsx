@@ -85,6 +85,18 @@ export function AddProviderDialog({ appType, isOpen, onClose, onAdd }: AddProvid
     return colors[category || 'custom'];
   };
 
+  const getCategoryTranslationKey = (category?: string): string => {
+    const mapping: Record<string, string> = {
+      official: 'official',
+      cn_official: 'cnOfficial',
+      aggregator: 'aggregator',
+      third_party: 'thirdParty',
+      cloud_provider: 'cloud',
+      custom: 'custom',
+    };
+    return mapping[category || 'custom'] || category || 'custom';
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
       <div className="bg-background rounded-lg shadow-lg w-full max-w-lg max-h-[80vh] overflow-auto">
@@ -112,12 +124,20 @@ export function AddProviderDialog({ appType, isOpen, onClose, onAdd }: AddProvid
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium">{preset.name}</span>
+                        <span className="font-medium">
+                          {t(`providers.presets.${preset.name}.name`, {
+                            defaultValue: preset.name,
+                          })}
+                        </span>
                         <Badge variant="outline" className={getCategoryColor(preset.category)}>
-                          {preset.category}
+                          {t(`providers.categories.${getCategoryTranslationKey(preset.category)}`)}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground truncate">{preset.description}</p>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {t(`providers.presets.${preset.name}.description`, {
+                          defaultValue: preset.description,
+                        })}
+                      </p>
                     </div>
                   </button>
                 ))}
@@ -164,9 +184,18 @@ export function AddProviderDialog({ appType, isOpen, onClose, onAdd }: AddProvid
                         {selectedPreset.charAt(0)}
                       </div>
                       <div>
-                        <p className="font-medium">{selectedPreset}</p>
+                        <p className="font-medium">
+                          {selectedPreset &&
+                            t(`providers.presets.${selectedPreset}.name`, {
+                              defaultValue: selectedPreset,
+                            })}
+                        </p>
                         <p className="text-sm text-muted-foreground">
-                          {providerPresets.find((p) => p.name === selectedPreset)?.description}
+                          {selectedPreset &&
+                            t(`providers.presets.${selectedPreset}.description`, {
+                              defaultValue: providerPresets.find((p) => p.name === selectedPreset)
+                                ?.description,
+                            })}
                         </p>
                       </div>
                     </>
@@ -181,9 +210,7 @@ export function AddProviderDialog({ appType, isOpen, onClose, onAdd }: AddProvid
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={appType}>
-                      {appType.charAt(0).toUpperCase() + appType.slice(1)}
-                    </SelectItem>
+                    <SelectItem value={appType}>{t(`common.apps.${appType}`)}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -194,12 +221,12 @@ export function AddProviderDialog({ appType, isOpen, onClose, onAdd }: AddProvid
 
           <div className="flex justify-end gap-2 mt-6">
             <Button variant="outline" onClick={handleClose}>
-              {t('common.cancel')}
+              {t('common.buttons.cancel')}
             </Button>
             {step === 'configure' && (
               <Button onClick={handleSubmit}>
                 <Check className="h-4 w-4 mr-2" />
-                {t('common.create')}
+                {t('common.buttons.create')}
               </Button>
             )}
           </div>

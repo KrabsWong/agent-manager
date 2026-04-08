@@ -1,16 +1,12 @@
 /**
  * MCP Server Service
- * 
+ *
  * CRUD operations for MCP servers
  * Handles database operations and cross-app configuration sync
  */
 
 import type { Database } from 'better-sqlite3';
-import type {
-  McpServer,
-  CreateMcpServerInput,
-  AppType,
-} from '../../../src/types';
+import type { McpServer, CreateMcpServerInput, AppType } from '../../../src/types';
 import { errors } from '../../utils/errors';
 import log from 'electron-log';
 
@@ -26,11 +22,11 @@ export class McpService {
         s.id, s.name, s.transport, s.command, s.args, s.env, s.url, s.description,
         s.created_at as createdAt, s.updated_at as updatedAt
       FROM mcp_servers s
-      ORDER BY s.name ASC
+      ORDER BY s.created_at DESC
     `);
 
     const rows = stmt.all() as Array<Record<string, unknown>>;
-    return rows.map(row => this.mapRowToMcpServer(row));
+    return rows.map((row) => this.mapRowToMcpServer(row));
   }
 
   /**
@@ -60,11 +56,11 @@ export class McpService {
       FROM mcp_servers s
       INNER JOIN mcp_server_apps a ON s.id = a.server_id
       WHERE a.app_type = ? AND a.enabled = 1
-      ORDER BY s.name ASC
+      ORDER BY s.created_at DESC
     `);
 
     const rows = stmt.all(appType) as Array<Record<string, unknown>>;
-    return rows.map(row => this.mapRowToMcpServer(row));
+    return rows.map((row) => this.mapRowToMcpServer(row));
   }
 
   /**
@@ -214,7 +210,7 @@ export class McpService {
     }
 
     const stmt = this.db.prepare('DELETE FROM mcp_servers WHERE id = ?');
-    
+
     try {
       stmt.run(id);
       log.info(`MCP server deleted: ${id}`);
@@ -257,7 +253,7 @@ export class McpService {
     `);
 
     const rows = stmt.all(serverId) as Array<{ app_type: string; enabled: number }>;
-    
+
     const result: Record<string, boolean> = {
       claude: false,
       codex: false,

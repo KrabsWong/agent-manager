@@ -101,6 +101,14 @@ export const providersApi = {
     )) as ApiResponse<void>;
     return extractData(response);
   },
+
+  deactivate: async (appType: AppType): Promise<SwitchProviderResult> => {
+    const response = (await window.electronAPI.invoke(
+      'providers:deactivate',
+      appType
+    )) as ApiResponse<SwitchProviderResult>;
+    return extractData(response);
+  },
 };
 
 /**

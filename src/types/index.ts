@@ -184,6 +184,7 @@ export type IpcChannel =
   | 'providers:delete'
   | 'providers:switch'
   | 'providers:reorder'
+  | 'providers:deactivate'
   // MCP
   | 'mcp:getAll'
   | 'mcp:getById'

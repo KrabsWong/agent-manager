@@ -1,6 +1,6 @@
 /**
  * Provider Hooks
- * 
+ *
  * TanStack Query hooks for provider management
  */
 
@@ -90,7 +90,32 @@ export function useDeleteProvider() {
   return useMutation({
     mutationFn: ({ id, appType }: { id: string; appType: AppType }) =>
       providersApi.delete(id, appType),
-    onSuccess: (_, variables) => {
+    onMutate: async ({ id, appType }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({
+        queryKey: providerKeys.byApp(appType),
+      });
+
+      // Snapshot the previous value
+      const previousProviders = queryClient.getQueryData(providerKeys.byApp(appType));
+
+      // Optimistically update to the new value
+      queryClient.setQueryData(
+        providerKeys.byApp(appType),
+        (old: any) => old?.filter((p: any) => p.id !== id) ?? []
+      );
+
+      // Return a context object with the snapshotted value
+      return { previousProviders, appType };
+    },
+    onError: (_err, _variables, context) => {
+      // If the mutation fails, use the context returned from onMutate to roll back
+      if (context?.previousProviders) {
+        queryClient.setQueryData(providerKeys.byApp(context.appType), context.previousProviders);
+      }
+    },
+    onSettled: (_data, _error, variables) => {
+      // Always refetch after error or success
       queryClient.invalidateQueries({
         queryKey: providerKeys.byApp(variables.appType),
       });
@@ -107,6 +132,23 @@ export function useSwitchProvider() {
   return useMutation({
     mutationFn: ({ id, appType }: { id: string; appType: AppType }) =>
       providersApi.switch(id, appType),
+    onSuccess: (_, variables) => {
+      // Invalidate all providers for the app to refresh current state
+      queryClient.invalidateQueries({
+        queryKey: providerKeys.byApp(variables.appType),
+      });
+    },
+  });
+}
+
+/**
+ * Hook to deactivate provider
+ */
+export function useDeactivateProvider() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ appType }: { appType: AppType }) => providersApi.deactivate(appType),
     onSuccess: (_, variables) => {
       // Invalidate all providers for the app to refresh current state
       queryClient.invalidateQueries({

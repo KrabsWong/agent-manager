@@ -1,6 +1,6 @@
 /**
  * Provider Service
- * 
+ *
  * CRUD operations for AI providers
  * Handles database operations and live config synchronization
  */
@@ -14,6 +14,7 @@ import type {
 } from '../../../src/types';
 import { errors } from '../../utils/errors';
 import log from 'electron-log';
+import { syncProviderToApp, removeProviderFromApp } from './config-adapter';
 
 export class ProviderService {
   constructor(private db: Database) {}
@@ -34,7 +35,7 @@ export class ProviderService {
     `);
 
     const rows = stmt.all(appType) as Array<Record<string, unknown>>;
-    return rows.map(row => this.mapRowToProvider(row));
+    return rows.map((row) => this.mapRowToProvider(row));
   }
 
   /**
@@ -111,7 +112,7 @@ export class ProviderService {
 
       log.info(`Provider created: ${id} for ${input.appType}`);
 
-      return {
+      const provider: Provider = {
         id,
         appType: input.appType,
         name: input.name,
@@ -126,6 +127,11 @@ export class ProviderService {
         icon: input.icon,
         iconColor: input.iconColor,
       };
+
+      // Sync to app config
+      syncProviderToApp(provider);
+
+      return provider;
     } catch (error) {
       log.error('Failed to create provider:', error);
       throw errors.databaseError('insert', error);
@@ -196,6 +202,10 @@ export class ProviderService {
       if (!updated) {
         throw errors.databaseError('update', 'Provider not found after update');
       }
+
+      // Sync to app config
+      syncProviderToApp(updated);
+
       return updated;
     } catch (error) {
       log.error('Failed to update provider:', error);
@@ -213,8 +223,11 @@ export class ProviderService {
     }
 
     const stmt = this.db.prepare('DELETE FROM providers WHERE id = ? AND app_type = ?');
-    
+
     try {
+      // Remove from app config first
+      removeProviderFromApp(existing);
+
       stmt.run(id, appType);
       log.info(`Provider deleted: ${id}`);
     } catch (error) {
@@ -255,6 +268,12 @@ export class ProviderService {
       transaction();
       log.info(`Provider switched for ${appType}: ${current?.id || 'none'} -> ${id}`);
 
+      // Sync the activated provider to app config
+      const target = this.getById(id, appType);
+      if (target) {
+        syncProviderToApp(target);
+      }
+
       return {
         success: true,
         providerId: id,
@@ -263,6 +282,39 @@ export class ProviderService {
     } catch (error) {
       log.error('Failed to switch provider:', error);
       throw errors.databaseError('transaction', error);
+    }
+  }
+
+  /**
+   * Deactivate current provider
+   */
+  deactivate(appType: AppType): SwitchProviderResult {
+    const current = this.getCurrent(appType);
+
+    if (!current) {
+      return {
+        success: true,
+        providerId: '',
+        previousProviderId: undefined,
+      };
+    }
+
+    const stmt = this.db.prepare(`
+      UPDATE providers SET is_current = 0 WHERE id = ? AND app_type = ?
+    `);
+
+    try {
+      stmt.run(current.id, appType);
+      log.info(`Provider deactivated for ${appType}: ${current.id}`);
+
+      return {
+        success: true,
+        providerId: '',
+        previousProviderId: current.id,
+      };
+    } catch (error) {
+      log.error('Failed to deactivate provider:', error);
+      throw errors.databaseError('update', error);
     }
   }
 
