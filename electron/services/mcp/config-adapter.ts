@@ -1,6 +1,6 @@
 /**
  * MCP Config Adapter
- * 
+ *
  * Handles syncing MCP server configurations to app-specific config files
  * Each app has its own MCP configuration format
  */
@@ -27,35 +27,36 @@ export class McpConfigAdapter {
 
     switch (appType) {
       case 'claude':
+        // Claude Code uses ~/.claude.json for MCP server configuration
         return {
-          path: path.join(home, 'Library', 'Application Support', 'Claude'),
-          filename: 'settings.json',
+          path: home,
+          filename: '.claude.json',
         };
-      
+
       case 'codex':
         return {
           path: path.join(home, '.codex'),
-          filename: 'config.json',
+          filename: 'mcp.json',
         };
-      
+
       case 'gemini':
         return {
           path: path.join(home, '.gemini'),
-          filename: 'config.json',
+          filename: 'mcp.json',
         };
-      
+
       case 'opencode':
         return {
           path: path.join(home, '.opencode'),
-          filename: 'config.json',
+          filename: 'mcp.json',
         };
-      
+
       case 'openclaw':
         return {
           path: path.join(home, '.openclaw'),
-          filename: 'config.json',
+          filename: 'mcp.json',
         };
-      
+
       default:
         throw errors.invalidInput('appType', `Unknown app type: ${appType}`);
     }
@@ -66,7 +67,7 @@ export class McpConfigAdapter {
    */
   private readConfig(location: ConfigLocation): Record<string, unknown> {
     const fullPath = path.join(location.path, location.filename);
-    
+
     try {
       if (!fs.existsSync(fullPath)) {
         return {};
@@ -84,7 +85,7 @@ export class McpConfigAdapter {
    */
   private writeConfig(location: ConfigLocation, config: Record<string, unknown>): void {
     const fullPath = path.join(location.path, location.filename);
-    
+
     try {
       // Ensure directory exists
       if (!fs.existsSync(location.path)) {
@@ -106,19 +107,19 @@ export class McpConfigAdapter {
     switch (appType) {
       case 'claude':
         return this.convertForClaude(server);
-      
+
       case 'codex':
         return this.convertForCodex(server);
-      
+
       case 'gemini':
         return this.convertForGemini(server);
-      
+
       case 'opencode':
         return this.convertForOpenCode(server);
-      
+
       case 'openclaw':
         return this.convertForOpenClaw(server);
-      
+
       default:
         throw errors.invalidInput('appType', `Unknown app type: ${appType}`);
     }
@@ -222,7 +223,7 @@ export class McpConfigAdapter {
     const location = this.getConfigLocation(appType);
     const existingConfig = this.readConfig(location);
 
-    // Convert servers to app format
+    // Convert enabled servers to app format
     const mcpServers: Record<string, unknown> = {};
     for (const server of servers) {
       if (server.enabledApps[appType]) {
@@ -230,14 +231,15 @@ export class McpConfigAdapter {
       }
     }
 
-    // Merge with existing config
-    const newConfig = {
-      ...existingConfig,
-      mcpServers,
-    };
+    // Build new config - only include mcpServers if there are enabled servers
+    // or if there were existing mcpServers (to allow clearing)
+    const newConfig: Record<string, unknown> = { ...existingConfig };
+
+    // Always update mcpServers to reflect current state (including empty)
+    newConfig.mcpServers = mcpServers;
 
     this.writeConfig(location, newConfig);
-    log.info(`Synced ${servers.length} MCP servers to ${appType}`);
+    log.info(`Synced ${Object.keys(mcpServers).length} MCP servers to ${appType}`);
   }
 
   /**
@@ -245,9 +247,9 @@ export class McpConfigAdapter {
    */
   syncToAllApps(servers: McpServer[]): void {
     const apps: AppType[] = ['claude', 'codex', 'gemini', 'opencode', 'openclaw'];
-    
+
     for (const app of apps) {
-      const appServers = servers.filter(s => s.enabledApps[app]);
+      const appServers = servers.filter((s) => s.enabledApps[app]);
       if (appServers.length > 0) {
         try {
           this.syncToApp(app, servers);
@@ -263,7 +265,7 @@ export class McpConfigAdapter {
    */
   openConfigFolder(appType: AppType): void {
     const location = this.getConfigLocation(appType);
-    
+
     try {
       shell.openPath(location.path);
     } catch (error) {

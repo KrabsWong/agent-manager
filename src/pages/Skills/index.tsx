@@ -12,6 +12,7 @@ import { SkillCard } from '@/components/skills/SkillCard';
 import { InstallSkillDialog } from '@/components/skills/InstallSkillDialog';
 import { AddLocalSkillDialog } from '@/components/skills/AddLocalSkillDialog';
 import { EmptyState } from '@/components/EmptyState';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import {
   useSkills,
   useInstallSkill,
@@ -20,12 +21,14 @@ import {
   useToggleSkillApp,
 } from '@/hooks/useSkills';
 import { api } from '@/lib/api';
-import type { AppType } from '@/types';
+import type { AppType, Skill } from '@/types';
 
 export function SkillsPage() {
   const { t } = useTranslation();
   const [isInstallDialogOpen, setIsInstallDialogOpen] = useState(false);
   const [isLocalDialogOpen, setIsLocalDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [skillToDelete, setSkillToDelete] = useState<Skill | null>(null);
 
   const { data: skills, isLoading, error, refetch } = useSkills();
   const installSkill = useInstallSkill();
@@ -67,11 +70,16 @@ export function SkillsPage() {
     );
   };
 
-  const handleUninstallSkill = (id: string) => {
-    if (uninstallSkill.isPending) return;
-    if (confirm(t('skills.deleteConfirm'))) {
-      uninstallSkill.mutate(id);
+  const handleDeleteClick = (skill: Skill) => {
+    setSkillToDelete(skill);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (skillToDelete) {
+      uninstallSkill.mutate(skillToDelete.id);
     }
+    setSkillToDelete(null);
   };
 
   const handleToggleApp = (skillId: string, appType: AppType, enabled: boolean) => {
@@ -157,7 +165,7 @@ export function SkillsPage() {
             <SkillCard
               key={skill.id}
               skill={skill}
-              onDelete={() => handleUninstallSkill(skill.id)}
+              onDelete={() => handleDeleteClick(skill)}
               onToggleApp={(appType, enabled) => handleToggleApp(skill.id, appType, enabled)}
               isToggling={toggleSkillApp.isPending}
             />
@@ -178,6 +186,17 @@ export function SkillsPage() {
         onClose={() => setIsLocalDialogOpen(false)}
         onAdd={handleInstallLocalSkill}
         isAdding={installLocalSkill.isPending}
+      />
+
+      <ConfirmDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title={t('common.delete')}
+        description={t('skills.deleteConfirm')}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
+        variant="destructive"
       />
     </div>
   );

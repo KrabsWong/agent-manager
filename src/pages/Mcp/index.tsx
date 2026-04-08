@@ -4,7 +4,7 @@
  * Main page for managing MCP servers
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Plus, RefreshCw, Zap, Puzzle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -33,6 +33,14 @@ export function McpPage() {
   const deleteMcpServer = useDeleteMcpServer();
   const toggleMcpApp = useToggleMcpApp();
   const syncMcpServers = useSyncMcpServers();
+
+  // Calculate simple stats
+  const stats = useMemo(() => {
+    if (!servers) return null;
+    const totalServers = servers.length;
+    const enabledServers = servers.filter((s) => Object.values(s.enabledApps).some(Boolean)).length;
+    return { totalServers, enabledServers };
+  }, [servers]);
 
   const handleAddServer = (input: CreateMcpServerInput) => {
     createMcpServer.mutate(input, {
@@ -71,12 +79,6 @@ export function McpPage() {
     syncMcpServers.mutate();
   };
 
-  const totalEnabledCount =
-    servers?.reduce(
-      (total, server) => total + Object.values(server.enabledApps).filter(Boolean).length,
-      0
-    ) || 0;
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -100,23 +102,18 @@ export function McpPage() {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="p-4 rounded-lg border bg-card">
-          <div className="text-2xl font-bold">{servers?.length || 0}</div>
-          <div className="text-sm text-muted-foreground">{t('mcp.totalServers')}</div>
+      {/* Simple Stats */}
+      {stats && (
+        <div className="flex items-center gap-4 text-sm">
+          <span className="text-muted-foreground">
+            {stats.totalServers} {t('mcp.totalServers')}
+          </span>
+          <span className="text-muted-foreground">·</span>
+          <span className="text-emerald-600 font-medium">
+            {stats.enabledServers} {t('mcp.activeConfigurations')}
+          </span>
         </div>
-        <div className="p-4 rounded-lg border bg-card">
-          <div className="text-2xl font-bold">{totalEnabledCount}</div>
-          <div className="text-sm text-muted-foreground">{t('mcp.activeConfigurations')}</div>
-        </div>
-        <div className="p-4 rounded-lg border bg-card">
-          <div className="text-2xl font-bold">
-            {servers?.filter((s) => Object.values(s.enabledApps).some(Boolean)).length || 0}
-          </div>
-          <div className="text-sm text-muted-foreground">{t('mcp.enabledServers')}</div>
-        </div>
-      </div>
+      )}
 
       {/* Servers List */}
       {isLoading ? (
@@ -145,6 +142,7 @@ export function McpPage() {
               onEdit={() => handleEditServer(server)}
               onDelete={() => handleDeleteServer(server.id)}
               onToggleApp={(appType, enabled) => handleToggleApp(server.id, appType, enabled)}
+              isToggling={toggleMcpApp.isPending}
             />
           ))}
         </div>

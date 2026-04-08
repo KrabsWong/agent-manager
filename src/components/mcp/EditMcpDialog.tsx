@@ -10,7 +10,6 @@ import { Check, Terminal, Globe, Radio } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import type { McpServer, CreateMcpServerInput } from '@/types';
 
 interface EditMcpDialogProps {
@@ -154,23 +153,6 @@ export function EditMcpDialog({ server, isOpen, onClose, onSave }: EditMcpDialog
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder={t('mcp.descriptionPlaceholder')}
               />
-            </div>
-
-            <div className="border-t pt-4 mt-4">
-              <h3 className="text-sm font-medium mb-3">{t('mcp.enabledApps')}</h3>
-              <div className="flex flex-wrap gap-2">
-                {(['claude', 'codex', 'gemini', 'opencode', 'openclaw'] as const).map((app) => (
-                  <Badge
-                    key={app}
-                    variant={server.enabledApps[app] ? 'default' : 'outline'}
-                    className="capitalize"
-                  >
-                    {app}
-                    {server.enabledApps[app] ? ' ✓' : ' ✗'}
-                  </Badge>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">{t('mcp.toggleFromMainView')}</p>
             </div>
           </div>
 

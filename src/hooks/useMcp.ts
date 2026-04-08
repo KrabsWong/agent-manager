@@ -1,12 +1,12 @@
 /**
  * MCP Hooks
- * 
+ *
  * TanStack Query hooks for MCP server management
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mcpApi } from '@/lib/api';
-import type { AppType, CreateMcpServerInput } from '@/types';
+import type { AppType, CreateMcpServerInput, McpServer } from '@/types';
 
 // Query keys
 export const mcpKeys = {
@@ -72,13 +72,8 @@ export function useUpdateMcpServer() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      id,
-      input,
-    }: {
-      id: string;
-      input: Partial<CreateMcpServerInput>;
-    }) => mcpApi.update(id, input),
+    mutationFn: ({ id, input }: { id: string; input: Partial<CreateMcpServerInput> }) =>
+      mcpApi.update(id, input),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
         queryKey: mcpKeys.detail(variables.id),
@@ -91,14 +86,38 @@ export function useUpdateMcpServer() {
 }
 
 /**
- * Hook to delete an MCP server
+ * Hook to delete an MCP server with optimistic update
  */
 export function useDeleteMcpServer() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (id: string) => mcpApi.delete(id),
-    onSuccess: () => {
+    // Optimistic update - immediately remove from UI
+    onMutate: async (id: string) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: mcpKeys.list() });
+
+      // Snapshot the previous value
+      const previousServers = queryClient.getQueryData<McpServer[]>(mcpKeys.list());
+
+      // Optimistically update to the new value
+      queryClient.setQueryData<McpServer[]>(mcpKeys.list(), (old) => {
+        if (!old) return [];
+        return old.filter((server) => server.id !== id);
+      });
+
+      // Return a context object with the snapshotted value
+      return { previousServers };
+    },
+    // If the mutation fails, use the context returned from onMutate to roll back
+    onError: (_err, _id, context) => {
+      if (context?.previousServers) {
+        queryClient.setQueryData(mcpKeys.list(), context.previousServers);
+      }
+    },
+    // Always refetch after error or success
+    onSettled: () => {
       queryClient.invalidateQueries({
         queryKey: mcpKeys.list(),
       });
@@ -107,13 +126,16 @@ export function useDeleteMcpServer() {
 }
 
 /**
- * Hook to toggle MCP server for an app
+ * Hook to toggle MCP server for an app with optimistic update
  */
 export function useToggleMcpApp() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
+    mutationFn: ({ id, appType, enabled }: { id: string; appType: AppType; enabled: boolean }) =>
+      mcpApi.toggleApp(id, appType, enabled),
+    // Optimistic update - immediately update UI
+    onMutate: async ({
       id,
       appType,
       enabled,
@@ -121,8 +143,41 @@ export function useToggleMcpApp() {
       id: string;
       appType: AppType;
       enabled: boolean;
-    }) => mcpApi.toggleApp(id, appType, enabled),
-    onSuccess: () => {
+    }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: mcpKeys.list() });
+
+      // Snapshot the previous value
+      const previousServers = queryClient.getQueryData<McpServer[]>(mcpKeys.list());
+
+      // Optimistically update to the new value
+      queryClient.setQueryData<McpServer[]>(mcpKeys.list(), (old) => {
+        if (!old) return [];
+        return old.map((server) => {
+          if (server.id === id) {
+            return {
+              ...server,
+              enabledApps: {
+                ...server.enabledApps,
+                [appType]: enabled,
+              },
+            };
+          }
+          return server;
+        });
+      });
+
+      // Return a context object with the snapshotted value
+      return { previousServers };
+    },
+    // If the mutation fails, use the context returned from onMutate to roll back
+    onError: (_err, _variables, context) => {
+      if (context?.previousServers) {
+        queryClient.setQueryData(mcpKeys.list(), context.previousServers);
+      }
+    },
+    // Always refetch after error or success
+    onSettled: () => {
       queryClient.invalidateQueries({
         queryKey: mcpKeys.list(),
       });
