@@ -45,8 +45,8 @@ export function UsageChart({ data, type }: UsageChartProps) {
             />
             <YAxis tickFormatter={formatValue} className="text-xs text-muted-foreground" />
             <Tooltip
-              formatter={(value: number) => [
-                formatValue(value),
+              formatter={(value) => [
+                formatValue(Number(value)),
                 type === 'requests' ? '请求数' : '成本',
               ]}
               labelFormatter={(label) => formatDate(label as string)}
