@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { EmptyState } from '@/components/EmptyState';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { PromptListItem } from '@/components/prompts/PromptListItem';
 import { PromptEditor } from '@/components/prompts/PromptEditor';
 import {
@@ -38,6 +39,8 @@ export function PromptsPage() {
   const [selectedApp, setSelectedApp] = useState<AppType>('claude');
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [promptToDelete, setPromptToDelete] = useState<Prompt | null>(null);
 
   const { data: prompts = [], isLoading, error } = usePrompts(selectedApp);
   const { data: activePrompt } = useActivePrompt(selectedApp);
@@ -58,10 +61,16 @@ export function PromptsPage() {
     setIsEditorOpen(true);
   };
 
-  const handleDelete = (prompt: Prompt) => {
-    if (window.confirm(t('prompts.deleteConfirm', { name: prompt.name }))) {
-      deleteMutation.mutate({ id: prompt.id, appType: prompt.appType });
+  const handleDeleteClick = (prompt: Prompt) => {
+    setPromptToDelete(prompt);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (promptToDelete) {
+      deleteMutation.mutate({ id: promptToDelete.id, appType: promptToDelete.appType });
     }
+    setPromptToDelete(null);
   };
 
   const handleSetActive = (prompt: Prompt) => {
@@ -153,7 +162,7 @@ export function PromptsPage() {
               prompt={prompt}
               isActive={activePrompt?.id === prompt.id}
               onEdit={handleEdit}
-              onDelete={handleDelete}
+              onDelete={handleDeleteClick}
               onSetActive={handleSetActive}
             />
           ))}
@@ -167,6 +176,20 @@ export function PromptsPage() {
         onSave={handleSave}
         prompt={editingPrompt}
         appType={selectedApp}
+      />
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title={t('common.delete')}
+        description={
+          promptToDelete ? t('prompts.deleteConfirm', { name: promptToDelete.name }) : ''
+        }
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
+        variant="destructive"
       />
     </div>
   );

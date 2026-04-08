@@ -13,6 +13,7 @@ import { ProviderCard } from '@/components/providers/ProviderCard';
 import { AddProviderDialog } from '@/components/providers/AddProviderDialog';
 import { EditProviderDialog } from '@/components/providers/EditProviderDialog';
 import { EmptyState } from '@/components/EmptyState';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import {
   useProviders,
   useCreateProvider,
@@ -45,6 +46,8 @@ export function ProvidersPage() {
   const [selectedApp, setSelectedApp] = useState<AppType>('claude');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingProvider, setEditingProvider] = useState<Provider | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [providerToDelete, setProviderToDelete] = useState<Provider | null>(null);
 
   const { data: providers, isLoading, error, refetch } = useProviders(selectedApp);
   const createProvider = useCreateProvider();
@@ -79,11 +82,17 @@ export function ProvidersPage() {
     );
   };
 
-  const handleDeleteProvider = (id: string, appType: AppType) => {
+  const handleDeleteClick = (provider: Provider) => {
     if (deleteProvider.isPending) return; // Prevent double submission
-    if (confirm(t('providers.deleteConfirm'))) {
-      deleteProvider.mutate({ id, appType });
+    setProviderToDelete(provider);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (providerToDelete) {
+      deleteProvider.mutate({ id: providerToDelete.id, appType: providerToDelete.appType });
     }
+    setProviderToDelete(null);
   };
 
   const handleSwitchProvider = (id: string, appType: AppType) => {
@@ -158,7 +167,7 @@ export function ProvidersPage() {
               provider={provider}
               onSwitch={() => handleSwitchProvider(provider.id, provider.appType)}
               onEdit={() => handleEditProvider(provider)}
-              onDelete={() => handleDeleteProvider(provider.id, provider.appType)}
+              onDelete={() => handleDeleteClick(provider)}
             />
           ))}
         </div>
@@ -177,6 +186,17 @@ export function ProvidersPage() {
         isOpen={!!editingProvider}
         onClose={() => setEditingProvider(null)}
         onSave={handleSaveEdit}
+      />
+
+      <ConfirmDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title={t('common.delete')}
+        description={t('providers.deleteConfirm')}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
+        variant="destructive"
       />
     </div>
   );

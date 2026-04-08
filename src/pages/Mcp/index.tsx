@@ -12,6 +12,7 @@ import { McpCard } from '@/components/mcp/McpCard';
 import { AddMcpDialog } from '@/components/mcp/AddMcpDialog';
 import { EditMcpDialog } from '@/components/mcp/EditMcpDialog';
 import { EmptyState } from '@/components/EmptyState';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import {
   useMcpServers,
   useCreateMcpServer,
@@ -26,6 +27,8 @@ export function McpPage() {
   const { t } = useTranslation();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editingServer, setEditingServer] = useState<McpServer | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [serverToDelete, setServerToDelete] = useState<McpServer | null>(null);
 
   const { data: servers, isLoading, error, refetch } = useMcpServers();
   const createMcpServer = useCreateMcpServer();
@@ -65,10 +68,16 @@ export function McpPage() {
     );
   };
 
-  const handleDeleteServer = (id: string) => {
-    if (confirm(t('mcp.deleteConfirm'))) {
-      deleteMcpServer.mutate(id);
+  const handleDeleteClick = (server: McpServer) => {
+    setServerToDelete(server);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (serverToDelete) {
+      deleteMcpServer.mutate(serverToDelete.id);
     }
+    setServerToDelete(null);
   };
 
   const handleToggleApp = (serverId: string, appType: AppType, enabled: boolean) => {
@@ -140,7 +149,7 @@ export function McpPage() {
               key={server.id}
               server={server}
               onEdit={() => handleEditServer(server)}
-              onDelete={() => handleDeleteServer(server.id)}
+              onDelete={() => handleDeleteClick(server)}
               onToggleApp={(appType, enabled) => handleToggleApp(server.id, appType, enabled)}
               isToggling={toggleMcpApp.isPending}
             />
@@ -160,6 +169,17 @@ export function McpPage() {
         isOpen={!!editingServer}
         onClose={() => setEditingServer(null)}
         onSave={handleSaveEdit}
+      />
+
+      <ConfirmDialog
+        isOpen={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title={t('common.delete')}
+        description={t('mcp.deleteConfirm')}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
+        variant="destructive"
       />
     </div>
   );
