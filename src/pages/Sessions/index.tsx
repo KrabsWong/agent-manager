@@ -562,7 +562,7 @@ function SessionCard({ session, isSelected, onClick }: SessionCardProps) {
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left py-2 px-2 rounded-md transition-all duration-150 border-b border-border/50 last:border-b-0 relative group ${
+      className={`w-full text-left py-2 px-2 rounded-md transition-all duration-150 border-b border-border/50 last:border-b-0 relative group min-w-0 ${
         isSelected
           ? 'bg-primary/5 text-primary border-primary/10'
           : 'hover:bg-accent/50 text-foreground hover:border-border'
@@ -575,19 +575,18 @@ function SessionCard({ session, isSelected, onClick }: SessionCardProps) {
 
       {/* Title: First Message Preview */}
       <p
-        className={`text-xs truncate ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}
-        title={session.firstMessage || session.fileName || 'Untitled Session'}
+        className={`text-xs truncate block ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}
       >
         {session.firstMessage || session.fileName || 'Untitled Session'}
       </p>
 
       {/* Metadata - more compact */}
       <div
-        className={`flex items-center gap-2 text-[10px] mt-1 ${isSelected ? 'text-primary/70' : 'text-muted-foreground/70'}`}
+        className={`flex items-center gap-2 text-[10px] mt-1 min-w-0 ${isSelected ? 'text-primary/70' : 'text-muted-foreground/70'}`}
       >
-        <span>{formatTime(session.updatedAt)}</span>
+        <span className="truncate">{formatTime(session.updatedAt)}</span>
         <span>·</span>
-        <span>
+        <span className="truncate">
           {session.messageCount} {t('sessions.messages') || 'messages'}
         </span>
       </div>
