@@ -29,7 +29,7 @@ import {
   useTerminalInfo,
 } from '@/hooks/useSessions';
 import { ConversationView } from '@/components/sessions/ConversationView';
-import { APP_TYPES, APP_LABELS, getAppIcon, APP_COLORS } from '@/components/AppIcons';
+import { APP_LABELS, getAppIcon, APP_COLORS } from '@/components/AppIcons';
 import type { AppType, Session } from '@/types';
 
 /**
@@ -134,15 +134,28 @@ export function SessionsPage() {
               <span>{APP_LABELS[selectedApp]}</span>
             </div>
           </SelectTrigger>
-          <SelectContent>
-            {APP_TYPES.map((app) => (
-              <SelectItem key={app} value={app}>
-                <div className="flex items-center gap-2">
-                  <span className={APP_COLORS[app]}>{getAppIcon(app)}</span>
-                  <span>{APP_LABELS[app]}</span>
-                </div>
-              </SelectItem>
-            ))}
+          <SelectContent className="min-w-[12rem]">
+            {(['claude', 'opencode', 'codex', 'gemini', 'openclaw'] as AppType[]).map((app) => {
+              const isSupported = app === 'claude' || app === 'opencode';
+              return (
+                <SelectItem
+                  key={app}
+                  value={app}
+                  disabled={!isSupported}
+                  className={!isSupported ? 'opacity-50 cursor-not-allowed' : ''}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={APP_COLORS[app]}>{getAppIcon(app)}</span>
+                    <span>{APP_LABELS[app]}</span>
+                    {!isSupported && (
+                      <span className="text-xs text-muted-foreground ml-2">
+                        ({t('sessions.comingSoon')})
+                      </span>
+                    )}
+                  </div>
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
       </div>

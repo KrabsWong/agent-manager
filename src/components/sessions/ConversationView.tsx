@@ -23,7 +23,74 @@ import {
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import type { CSSProperties } from 'react';
+
+// Tokyo Night 主题配色
+const tokyoNightTheme: { [key: string]: CSSProperties } = {
+  'code[class*="language-"]': {
+    color: '#a9b1d6',
+    background: 'transparent',
+    fontFamily:
+      "'JetBrains Mono', 'Fira Code', Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace",
+    fontSize: '0.875rem',
+    textAlign: 'left',
+    whiteSpace: 'pre',
+    wordSpacing: 'normal',
+    wordBreak: 'normal',
+    wordWrap: 'normal',
+    lineHeight: '1.5',
+    tabSize: 2,
+  },
+  'pre[class*="language-"]': {
+    color: '#a9b1d6',
+    background: '#1a1b26',
+    fontFamily:
+      "'JetBrains Mono', 'Fira Code', Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace",
+    fontSize: '0.875rem',
+    textAlign: 'left',
+    whiteSpace: 'pre',
+    wordSpacing: 'normal',
+    wordBreak: 'normal',
+    wordWrap: 'normal',
+    lineHeight: '1.5',
+    tabSize: 2,
+    padding: '1rem',
+    margin: 0,
+    overflow: 'auto',
+    borderRadius: '0.375rem',
+  },
+  comment: { color: '#565f89', fontStyle: 'italic' },
+  prolog: { color: '#565f89' },
+  doctype: { color: '#565f89' },
+  cdata: { color: '#565f89' },
+  punctuation: { color: '#7aa2f7' },
+  property: { color: '#73daca' },
+  tag: { color: '#f7768e' },
+  boolean: { color: '#ff9e64' },
+  number: { color: '#ff9e64' },
+  constant: { color: '#ff9e64' },
+  symbol: { color: '#ff9e64' },
+  deleted: { color: '#f7768e' },
+  selector: { color: '#9ece6a' },
+  'attr-name': { color: '#e0af68' },
+  string: { color: '#9ece6a' },
+  char: { color: '#9ece6a' },
+  builtin: { color: '#bb9af7' },
+  inserted: { color: '#9ece6a' },
+  operator: { color: '#bb9af7' },
+  entity: { color: '#7aa2f7', cursor: 'help' },
+  url: { color: '#73daca' },
+  variable: { color: '#f7768e' },
+  atrule: { color: '#e0af68' },
+  'attr-value': { color: '#9ece6a' },
+  function: { color: '#7aa2f7' },
+  'class-name': { color: '#e0af68' },
+  keyword: { color: '#bb9af7' },
+  regex: { color: '#e0af68' },
+  important: { color: '#f7768e', fontWeight: 'bold' },
+  bold: { fontWeight: 'bold' },
+  italic: { fontStyle: 'italic' },
+};
 import { getAppIcon } from '@/components/AppIcons';
 import { cn } from '@/lib/utils';
 import { parseMessageContent, hasSpecialParser, type ParsedContent } from './parsers';
@@ -49,16 +116,7 @@ const markdownComponents = {
     }
 
     return (
-      <SyntaxHighlighter
-        language={language}
-        style={vscDarkPlus}
-        className="rounded-md text-sm !bg-[#1e1e1e]"
-        customStyle={{
-          margin: 0,
-          padding: '1rem',
-          fontSize: '0.875rem',
-        }}
-      >
+      <SyntaxHighlighter language={language} style={tokyoNightTheme} className="rounded-md text-sm">
         {content.replace(/\n$/, '')}
       </SyntaxHighlighter>
     );

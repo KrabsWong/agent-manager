@@ -15,3 +15,7 @@ coverage
 out/
 build/
 *.tsbuildinfo
+
+# Development screenshots
+detail.png
+sidebar.png

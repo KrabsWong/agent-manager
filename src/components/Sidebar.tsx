@@ -27,20 +27,20 @@ export function Sidebar() {
     <div
       className={cn(
         'flex flex-col border-r bg-card transition-all duration-300 ease-in-out',
-        isCollapsed ? 'w-[72px]' : 'w-64'
+        isCollapsed ? 'w-16' : 'w-52'
       )}
     >
       {/* Header: Logo + Title */}
       <div className="pt-8">
-        <div className={cn('flex items-center pb-4', isCollapsed ? 'justify-center px-2' : 'px-6')}>
-          <div className="flex items-center gap-3">
+        <div className={cn('flex items-center justify-center pb-4', isCollapsed ? 'px-0' : 'px-6')}>
+          <div className={cn('flex items-center', isCollapsed ? 'gap-0' : 'gap-3')}>
             <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 via-purple-500 to-pink-500 shadow-lg shadow-purple-500/20 flex-shrink-0">
               <MessagesSquare className="h-4 w-4 text-white" />
             </div>
             <span
               className={cn(
                 'text-lg font-semibold whitespace-nowrap overflow-hidden transition-all duration-300 ease-out',
-                isCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'
+                isCollapsed ? 'w-0 opacity-0 hidden' : 'w-auto opacity-100'
               )}
             >
               Yes, Sessions
