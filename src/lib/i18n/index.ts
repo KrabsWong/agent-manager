@@ -12,6 +12,10 @@ const enTranslations = {
     sessions: 'Sessions',
     settings: 'Settings',
   },
+  sidebar: {
+    collapse: 'Collapse Sidebar',
+    expand: 'Expand Sidebar',
+  },
   providers: {
     title: 'AI Providers',
     description: 'Choose which AI service powers your coding assistant',
@@ -338,6 +342,10 @@ const zhTranslations = {
     proxy: '代理',
     sessions: '会话记录',
     settings: '设置',
+  },
+  sidebar: {
+    collapse: '收起侧边栏',
+    expand: '展开侧边栏',
   },
   providers: {
     title: '供应商',
