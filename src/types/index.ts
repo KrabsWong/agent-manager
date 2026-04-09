@@ -246,10 +246,6 @@ export type IpcChannel =
   | 'app:checkForUpdates'
   | 'app:quit'
   | 'app:minimize'
-  | 'app:maximize'
-  | 'app:restore'
-  | 'app:close'
-  | 'app:isMaximized'
   // Config Import/Export
   | 'config:export'
   | 'config:import'
