@@ -40,8 +40,7 @@ const createWindow = () => {
       contextIsolation: true,
       nodeIntegration: false,
     },
-    titleBarStyle: 'hidden',
-    trafficLightPosition: { x: 12, y: 12 },
+    titleBarStyle: 'customButtonsOnHover',
     show: false, // Don't show until ready
   });
 
