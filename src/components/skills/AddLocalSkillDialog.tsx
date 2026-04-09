@@ -5,6 +5,7 @@
  */
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Folder, Plus, AlertCircle, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -77,8 +78,8 @@ export function AddLocalSkillDialog({
     onClose();
   };
 
-  return (
-    <div className="fixed top-0 right-0 bottom-0 left-0 z-[100] bg-black/50 flex items-center justify-center">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center app-no-drag">
       <div className="bg-background rounded-lg shadow-lg w-full max-w-lg">
         <div className="p-6">
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
@@ -167,6 +168,7 @@ export function AddLocalSkillDialog({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
