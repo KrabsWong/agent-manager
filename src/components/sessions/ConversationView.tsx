@@ -91,7 +91,7 @@ const tokyoNightTheme: { [key: string]: CSSProperties } = {
   bold: { fontWeight: 'bold' },
   italic: { fontStyle: 'italic' },
 };
-import { getAppIcon } from '@/components/AppIcons';
+import { getAppIcon, APP_LABELS } from '@/components/AppIcons';
 import { cn } from '@/lib/utils';
 import { parseMessageContent, hasSpecialParser, type ParsedContent } from './parsers';
 import type { AppType } from '@/types';
@@ -407,16 +407,7 @@ interface AssistantMessageProps {
 }
 
 function AssistantMessage({ content, timestamp, appType = 'claude' }: AssistantMessageProps) {
-  const assistantName =
-    appType === 'opencode'
-      ? 'OpenCode'
-      : appType === 'gemini'
-        ? 'Gemini'
-        : appType === 'codex'
-          ? 'Codex'
-          : appType === 'openclaw'
-            ? 'OpenClaw'
-            : 'Claude';
+  const assistantName = APP_LABELS[appType as AppType] || APP_LABELS.claude;
 
   return (
     <div className="flex gap-3">

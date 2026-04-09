@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 export function SettingsPage() {
@@ -14,8 +15,11 @@ export function SettingsPage() {
           <CardTitle>{t('settings.generalTitle')}</CardTitle>
           <CardDescription>{t('settings.generalDescription')}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           <LanguageSwitcher />
+          <div className="border-t pt-6">
+            <ThemeSwitcher />
+          </div>
         </CardContent>
       </Card>
     </div>

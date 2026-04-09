@@ -18,10 +18,10 @@ const themeIcons = {
   system: Monitor,
 };
 
-const themeLabels = {
-  light: 'Light',
-  dark: 'Dark',
-  system: 'System',
+const themeLabelKeys = {
+  light: 'settings.themeLight',
+  dark: 'settings.themeDark',
+  system: 'settings.themeSystem',
 };
 
 export function ThemeSwitcher() {
@@ -43,19 +43,19 @@ export function ThemeSwitcher() {
         <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm" className="gap-2">
             <Icon className="h-4 w-4" />
-            <span>{t(`settings.theme${themeLabels[theme]}`) || themeLabels[theme]}</span>
+            <span>{t(themeLabelKeys[theme])}</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          {(Object.keys(themeIcons) as Theme[]).map((t) => {
-            const ThemeIcon = themeIcons[t];
+          {(Object.keys(themeIcons) as Theme[]).map((themeKey) => {
+            const ThemeIcon = themeIcons[themeKey];
             return (
-              <DropdownMenuItem key={t} onClick={() => setTheme(t)} className="gap-2">
+              <DropdownMenuItem key={themeKey} onClick={() => setTheme(themeKey)} className="gap-2">
                 <ThemeIcon className="h-4 w-4" />
-                <span>{themeLabels[t]}</span>
-                {theme === t && (
+                <span>{t(themeLabelKeys[themeKey])}</span>
+                {theme === themeKey && (
                   <span className="ml-auto text-xs text-muted-foreground">
-                    {resolvedTheme === 'dark' ? 'Dark' : 'Light'}
+                    {resolvedTheme === 'dark' ? t('settings.themeDark') : t('settings.themeLight')}
                   </span>
                 )}
               </DropdownMenuItem>

@@ -150,6 +150,11 @@ const enTranslations = {
     selectLanguage: 'Select language',
     generalTitle: 'General Settings',
     generalDescription: 'Configure general application preferences',
+    theme: 'Theme',
+    themeDescription: 'Choose your preferred color scheme',
+    themeLight: 'Light',
+    themeDark: 'Dark',
+    themeSystem: 'System',
   },
   proxy: {
     title: 'Proxy',
@@ -477,6 +482,11 @@ const zhTranslations = {
     selectLanguage: '选择语言',
     generalTitle: '通用设置',
     generalDescription: '配置通用应用程序偏好设置',
+    theme: '主题',
+    themeDescription: '选择您喜欢的配色方案',
+    themeLight: '浅色',
+    themeDark: '深色',
+    themeSystem: '跟随系统',
   },
   proxy: {
     title: '代理',
