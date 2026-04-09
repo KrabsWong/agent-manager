@@ -251,7 +251,7 @@ function ParsedContentBlock({ item }: ParsedContentBlockProps) {
   }
 
   return (
-    <div className="prose prose-sm dark:prose-invert max-w-none">
+    <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:break-words [&_pre]:whitespace-pre-wrap">
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.content}</ReactMarkdown>
     </div>
   );

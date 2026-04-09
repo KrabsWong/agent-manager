@@ -252,10 +252,8 @@ export class OpenCodeSessionService {
           }
           break;
         case 'step-start':
-          contents.push('▶️ Step started');
-          break;
         case 'step-finish':
-          contents.push('✅ Step finished');
+          // Skip step markers - they're not useful for end users
           break;
       }
     }
