@@ -89,7 +89,15 @@ const createWindow = () => {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL);
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
+    // Use app.getAppPath() for correct path resolution in asar
+    mainWindow.loadFile(path.join(app.getAppPath(), 'dist', 'index.html'));
+  }
+
+  // Disable dev tools in production
+  if (!process.env.VITE_DEV_SERVER_URL) {
+    mainWindow.webContents.on('devtools-opened', () => {
+      mainWindow?.webContents.closeDevTools();
+    });
   }
 
   log.info('Main window created');

@@ -2,8 +2,8 @@
  * Skills Config Adapter
  *
  * Handles syncing skills to app-specific directories (NOT config files)
- * Based on old CC Switch implementation:
- * - SSOT: ~/.cc-switch/skills/ (single source of truth)
+ * Based on old Yes Sessions implementation:
+ * - SSOT: ~/.yes-sessions/skills/ (single source of truth)
  * - Sync: Copy or symlink to app directories like ~/.claude/skills/
  */
 
@@ -27,7 +27,7 @@ export class SkillsConfigAdapter {
    * Get the SSOT directory for skills
    */
   getSsotDir(): string {
-    return path.join(os.homedir(), '.cc-switch', 'skills');
+    return path.join(os.homedir(), '.yes-sessions', 'skills');
   }
 
   /**
@@ -213,7 +213,7 @@ export class SkillsConfigAdapter {
     for (const entry of currentEntries) {
       const fullPath = path.join(appDir, entry);
 
-      // Check if it's a CC Switch managed skill
+      // Check if it's a Yes Sessions managed skill
       // It's managed if:
       // 1. It's a symlink pointing to SSOT, OR
       // 2. The directory exists in SSOT (was copied from there)

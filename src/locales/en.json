@@ -401,10 +401,10 @@
   },
   "help": {
     "title": "Help",
-    "description": "Quick guide to using CC Switch",
+    "description": "Quick guide to using Yes Sessions",
     "gettingStarted": {
       "title": "Getting Started",
-      "content": "CC Switch helps you manage AI CLI tools in one place. Start by adding providers in the Providers page."
+      "content": "Yes Sessions helps you manage AI CLI tools in one place. Start by adding providers in the Providers page."
     },
     "providers": {
       "title": "Managing Providers",

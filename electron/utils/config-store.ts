@@ -1,6 +1,6 @@
 /**
  * Configuration Store
- * 
+ *
  * Uses electron-store for persistent settings
  * Provides type-safe access to application settings
  */
@@ -78,7 +78,7 @@ class ConfigStore {
   constructor() {
     this.store = new Store<StoreSchema>({
       schema,
-      name: 'cc-switch-config',
+      name: 'yes-sessions-config',
       clearInvalidConfig: true, // Clear if config is corrupted
     });
 
@@ -86,7 +86,7 @@ class ConfigStore {
   }
 
   // ============ Settings ============
-  
+
   getSettings(): AppSettings {
     return this.store.get('settings');
   }

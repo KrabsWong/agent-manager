@@ -16,7 +16,7 @@ export default defineConfig({
         },
         vite: {
           build: {
-            sourcemap: true,
+            sourcemap: process.env.NODE_ENV !== 'production',
             minify: process.env.NODE_ENV === 'production',
             outDir: 'dist-electron',
             rollupOptions: {
@@ -33,7 +33,7 @@ export default defineConfig({
         },
         vite: {
           build: {
-            sourcemap: true,
+            sourcemap: process.env.NODE_ENV !== 'production',
             minify: process.env.NODE_ENV === 'production',
             outDir: 'dist-electron',
             rollupOptions: {
@@ -53,7 +53,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    sourcemap: process.env.NODE_ENV !== 'production',
   },
   server: {
     port: 5173,

@@ -11,7 +11,7 @@ import {
 
 /**
  * Database Manager
- * 
+ *
  * Features:
  * - Singleton pattern for single database connection
  * - Automatic schema migration
@@ -25,7 +25,7 @@ class DatabaseManager {
 
   constructor() {
     // Use userData directory for database storage
-    this.dbPath = path.join(app.getPath('userData'), 'cc-switch.db');
+    this.dbPath = path.join(app.getPath('userData'), 'yes-sessions.db');
     log.info(`Database path: ${this.dbPath}`);
   }
 
@@ -40,22 +40,22 @@ class DatabaseManager {
 
     try {
       log.info('Initializing database...');
-      
+
       // Open database with WAL mode for better concurrency
       this.db = new Database(this.dbPath);
       this.db.pragma('journal_mode = WAL');
       this.db.pragma('foreign_keys = ON');
-      
+
       // Create tables and indexes
       this.db.exec(CREATE_TABLES_SQL);
       this.db.exec(CREATE_INDEXES_SQL);
-      
+
       // Run migrations
       this.runMigrations();
-      
+
       // Insert default data
       this.db.exec(INSERT_DEFAULT_DATA_SQL);
-      
+
       this.initialized = true;
       log.info('Database initialized successfully');
     } catch (error) {
@@ -93,18 +93,16 @@ class DatabaseManager {
 
     if (currentVersion < SCHEMA_VERSION) {
       log.info(`Migrating from version ${currentVersion} to ${SCHEMA_VERSION}`);
-      
+
       // Run migrations for each version
       for (let version = currentVersion + 1; version <= SCHEMA_VERSION; version++) {
         this.migrateToVersion(version);
       }
 
       // Update schema version
-      const stmt = this.db.prepare(
-        'INSERT OR REPLACE INTO schema_version (version) VALUES (?)'
-      );
+      const stmt = this.db.prepare('INSERT OR REPLACE INTO schema_version (version) VALUES (?)');
       stmt.run(SCHEMA_VERSION);
-      
+
       log.info('Migrations completed');
     }
   }
@@ -183,7 +181,7 @@ class DatabaseManager {
     }
 
     const stats: Record<string, number> = {};
-    
+
     const tables = [
       'providers',
       'mcp_servers',

@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react';
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createHashRouter, Navigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -36,7 +36,7 @@ function withSuspense(Component: React.ComponentType) {
   );
 }
 
-export const router = createBrowserRouter([
+export const router = createHashRouter([
   {
     path: '/',
     element: <Layout />,

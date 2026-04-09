@@ -15,8 +15,8 @@ export class SkillInstallService {
   private skillsBasePath: string;
 
   constructor() {
-    // Store skills in user's home directory under .cc-switch/skills
-    this.skillsBasePath = path.join(os.homedir(), '.cc-switch', 'skills');
+    // Store skills in user's home directory under .yes-sessions/skills
+    this.skillsBasePath = path.join(os.homedir(), '.yes-sessions', 'skills');
   }
 
   /**

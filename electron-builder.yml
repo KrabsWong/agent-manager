@@ -1,23 +1,41 @@
-appId: com.ccswitch.app
-productName: CC Switch
-copyright: Copyright © 2024 CC Switch Team
+appId: com.yessessions.app
+productName: Yes-Sessions
+copyright: Copyright © 2026 Yes Sessions
+asar: true
 directories:
   output: release
   buildResources: build
 files:
-  - dist/**/*
-  - dist-electron/**/*
-  - node_modules/better-sqlite3/**/*
-  - node_modules/keytar/**/*
+  - 'dist/**/*'
+  - 'dist-electron/**/*'
+  - 'package.json'
+  - '!**/*.map'
+  - '!node_modules'
+  - '!node_modules/**/*'
 extraResources:
   - from: node_modules/better-sqlite3
     to: node_modules/better-sqlite3
     filter:
-      - "**/*"
+      - '**/*'
+      - '!**/*.map'
+      - '!**/*.ts'
+      - '!**/test/**/*'
+      - '!**/tests/**/*'
+      - '!**/docs/**/*'
+      - '!**/*.md'
+      - '!**/binding.gyp'
+      - '!**/build/Makefile'
+      - '!**/build/*.mk'
   - from: node_modules/keytar
     to: node_modules/keytar
     filter:
-      - "**/*"
+      - '**/*'
+      - '!**/*.map'
+      - '!**/*.ts'
+      - '!**/test/**/*'
+      - '!**/tests/**/*'
+      - '!**/docs/**/*'
+      - '!**/*.md'
 mac:
   category: public.app-category.developer-tools
   target:
@@ -38,8 +56,8 @@ linux:
   icon: build/icons
 publish:
   provider: github
-  owner: cc-switch
-  repo: cc-switch-electron
+  owner: yes-sessions
+  repo: yes-sessions-electron
   releaseType: release
 nsis:
   oneClick: false
