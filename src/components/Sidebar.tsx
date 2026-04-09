@@ -1,13 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import {
-  Puzzle,
-  Palette,
-  History,
-  Settings,
-  MessagesSquare,
-  PanelLeftClose,
-  PanelLeftOpen,
-} from 'lucide-react';
+import { Puzzle, Palette, History, Settings, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { useSidebarStore } from '@/stores/sidebar';
@@ -26,30 +18,10 @@ export function Sidebar() {
   return (
     <div
       className={cn(
-        'flex flex-col border-r bg-card transition-all duration-300 ease-in-out',
+        'flex flex-col border-r bg-card transition-all duration-300 ease-in-out pt-2',
         isCollapsed ? 'w-16' : 'w-52'
       )}
     >
-      {/* Header: Logo + Title */}
-      <div className="pt-8">
-        <div className={cn('flex items-center justify-center pb-4', isCollapsed ? 'px-0' : 'px-6')}>
-          <div className={cn('flex items-center', isCollapsed ? 'gap-0' : 'gap-3')}>
-            <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 via-purple-500 to-pink-500 shadow-lg shadow-purple-500/20 flex-shrink-0">
-              <MessagesSquare className="h-4 w-4 text-white" />
-            </div>
-            <span
-              className={cn(
-                'text-lg font-semibold whitespace-nowrap overflow-hidden transition-all duration-300 ease-out',
-                isCollapsed ? 'w-0 opacity-0 hidden' : 'w-auto opacity-100'
-              )}
-            >
-              Yes, Sessions
-            </span>
-          </div>
-        </div>
-        <div className={cn('border-b', isCollapsed ? 'mx-4' : 'mx-6')} />
-      </div>
-
       {/* 主菜单导航 */}
       <nav className={cn('space-y-1', isCollapsed ? 'p-3' : 'p-4')}>
         {mainNavigation.map((item) => (

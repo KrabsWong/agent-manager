@@ -40,7 +40,8 @@ const createWindow = () => {
       contextIsolation: true,
       nodeIntegration: false,
     },
-    titleBarStyle: 'hiddenInset',
+    titleBarStyle: 'hidden',
+    trafficLightPosition: { x: 12, y: 12 },
     show: false, // Don't show until ready
   });
 
@@ -177,6 +178,42 @@ const registerAppHandlers = () => {
   ipcRegistry.register('config:import', async (_event, ...args: unknown[]) => {
     const [data] = args as [Record<string, unknown>];
     configStore.importConfig(data);
+  });
+
+  // Window control: minimize
+  ipcRegistry.register('app:minimize', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.minimize();
+    }
+  });
+
+  // Window control: maximize
+  ipcRegistry.register('app:maximize', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.maximize();
+    }
+  });
+
+  // Window control: restore
+  ipcRegistry.register('app:restore', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.restore();
+    }
+  });
+
+  // Window control: close
+  ipcRegistry.register('app:close', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.close();
+    }
+  });
+
+  // Window control: is maximized
+  ipcRegistry.register('app:isMaximized', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      return mainWindow.isMaximized();
+    }
+    return false;
   });
 };
 
