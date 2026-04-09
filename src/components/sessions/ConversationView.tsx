@@ -11,6 +11,8 @@
 
 import { useMemo } from 'react';
 import { User, Wrench, Terminal, Puzzle, Bot } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { getAppIcon } from '@/components/AppIcons';
 import { cn } from '@/lib/utils';
 import type { AppType } from '@/types';
@@ -238,8 +240,8 @@ function AssistantMessage({ content, timestamp, appType = 'claude' }: AssistantM
           <span className="font-medium text-sm">{assistantName}</span>
           <span className="text-xs text-muted-foreground">{formatTimestamp(timestamp)}</span>
         </div>
-        <div className="text-sm leading-relaxed">
-          <MessageContent content={content} />
+        <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
         </div>
       </div>
     </div>
