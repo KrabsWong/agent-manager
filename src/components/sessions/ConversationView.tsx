@@ -35,8 +35,12 @@ const markdownComponents = {
   code({ node, inline, className, children, ...props }: any) {
     const match = /language-(\w+)/.exec(className || '');
     const language = match ? match[1] : 'text';
+    const content = String(children);
 
-    if (inline) {
+    // Treat as inline code if:
+    // 1. inline prop is true, OR
+    // 2. content has no newlines (single line code should be inline)
+    if (inline || !content.includes('\n')) {
       return (
         <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
           {children}
@@ -55,7 +59,7 @@ const markdownComponents = {
           fontSize: '0.875rem',
         }}
       >
-        {String(children).replace(/\n$/, '')}
+        {content.replace(/\n$/, '')}
       </SyntaxHighlighter>
     );
   },
@@ -284,7 +288,7 @@ function ParsedContentBlock({ item }: ParsedContentBlockProps) {
   }
 
   return (
-    <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:break-words [&_pre]:bg-[#1e1e1e] [&_pre]:p-0">
+    <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:break-words [&_pre]:bg-[#1e1e1e] [&_pre]:p-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto">
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
         {item.content}
       </ReactMarkdown>
@@ -327,7 +331,7 @@ function FileAttachment({ path, type, content }: FileAttachmentProps) {
       {/* File Content */}
       {isExpanded && (
         <div className="border-t">
-          <div className="px-3 py-2 prose prose-sm dark:prose-invert max-w-none [&_pre]:bg-[#1e1e1e] [&_pre]:p-0">
+          <div className="px-3 py-2 prose prose-sm dark:prose-invert max-w-none [&_pre]:bg-[#1e1e1e] [&_pre]:p-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto">
             <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
               {content}
             </ReactMarkdown>
@@ -366,7 +370,7 @@ function AssistantMessage({ content, timestamp, appType = 'claude' }: AssistantM
           <span className="font-medium text-sm">{assistantName}</span>
           <span className="text-xs text-muted-foreground">{formatTimestamp(timestamp)}</span>
         </div>
-        <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none [&_p]:break-words [&_pre]:bg-[#1e1e1e] [&_pre]:p-0">
+        <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none [&_p]:break-words [&_pre]:bg-[#1e1e1e] [&_pre]:p-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto">
           <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
             {content}
           </ReactMarkdown>
