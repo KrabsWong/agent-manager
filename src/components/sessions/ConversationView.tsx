@@ -9,12 +9,22 @@
  * - MCP calls and sub-agent calls (identified by tool_name patterns)
  */
 
-import { useMemo } from 'react';
-import { User, Wrench, Terminal, Puzzle, Bot } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import {
+  User,
+  Wrench,
+  Terminal,
+  Puzzle,
+  Bot,
+  FileText,
+  ChevronDown,
+  ChevronRight,
+} from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { getAppIcon } from '@/components/AppIcons';
 import { cn } from '@/lib/utils';
+import { parseMessageContent, hasSpecialParser, type ParsedContent } from './parsers';
 import type { AppType } from '@/types';
 import type { SessionMessage } from '@/types/session';
 
@@ -160,7 +170,11 @@ function ConversationTurn({ turn, appType }: ConversationTurnProps) {
     <div className="space-y-3">
       {/* User Message */}
       {turn.userMessage?.content && (
-        <UserMessage content={turn.userMessage.content} timestamp={turn.userMessage.timestamp} />
+        <UserMessage
+          content={turn.userMessage.content}
+          timestamp={turn.userMessage.timestamp}
+          appType={appType}
+        />
       )}
 
       {/* Tool Calls */}
@@ -191,9 +205,16 @@ function ConversationTurn({ turn, appType }: ConversationTurnProps) {
 interface UserMessageProps {
   content: string;
   timestamp: string;
+  appType?: string;
 }
 
-function UserMessage({ content, timestamp }: UserMessageProps) {
+function UserMessage({ content, timestamp, appType }: UserMessageProps) {
+  // 检查是否需要特殊解析
+  const needsSpecialParsing = hasSpecialParser(appType);
+  const parsedContents = needsSpecialParsing
+    ? parseMessageContent(content, appType)
+    : [{ type: 'text' as const, content }];
+
   return (
     <div className="flex gap-3">
       <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -204,10 +225,78 @@ function UserMessage({ content, timestamp }: UserMessageProps) {
           <span className="font-medium text-sm">You</span>
           <span className="text-xs text-muted-foreground">{formatTimestamp(timestamp)}</span>
         </div>
-        <div className="bg-primary/5 rounded-lg p-3 text-sm">
-          <MessageContent content={content} />
+        <div className="bg-primary/5 rounded-lg p-3 text-sm space-y-2">
+          {parsedContents.map((item, index) => (
+            <ParsedContentBlock key={index} item={item} />
+          ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+interface ParsedContentBlockProps {
+  item: ParsedContent;
+}
+
+function ParsedContentBlock({ item }: ParsedContentBlockProps) {
+  if (item.type === 'file') {
+    return (
+      <FileAttachment
+        path={item.metadata?.path || ''}
+        type={item.metadata?.type || ''}
+        content={item.content}
+      />
+    );
+  }
+
+  return (
+    <div className="prose prose-sm dark:prose-invert max-w-none">
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.content}</ReactMarkdown>
+    </div>
+  );
+}
+
+interface FileAttachmentProps {
+  path: string;
+  type: string;
+  content: string;
+}
+
+function FileAttachment({ path, type, content }: FileAttachmentProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const fileName = path.split('/').pop() || path;
+
+  return (
+    <div className="border rounded-md overflow-hidden bg-background/50">
+      {/* File Header */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between px-3 py-2 hover:bg-muted/50 transition-colors text-left"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+          <span className="text-sm font-medium truncate">{fileName}</span>
+          <span className="text-xs text-muted-foreground flex-shrink-0">({type})</span>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="text-xs text-muted-foreground">{path}</span>
+          {isExpanded ? (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          )}
+        </div>
+      </button>
+
+      {/* File Content */}
+      {isExpanded && (
+        <div className="border-t">
+          <div className="px-3 py-2 prose prose-sm dark:prose-invert max-w-none">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -422,10 +511,6 @@ function formatValue(value: unknown): string {
     return JSON.stringify(value);
   }
   return String(value);
-}
-
-function MessageContent({ content }: { content: string }) {
-  return <div className="whitespace-pre-wrap font-mono text-sm">{content}</div>;
 }
 
 function formatTimestamp(timestamp: string): string {
