@@ -14,6 +14,18 @@ export interface ParsedContent {
 export type ContentParser = (content: string) => ParsedContent[];
 
 /**
+ * 去除文件内容中的行号
+ * 例如: "1: content\n2: content" -> "content\ncontent"
+ */
+function stripLineNumbers(content: string): string {
+  // 匹配行首的数字和冒号，如 "123: " 或 "1:"
+  return content
+    .split('\n')
+    .map((line) => line.replace(/^\d+:\s?/, ''))
+    .join('\n');
+}
+
+/**
  * OpenCode 文件引用解析器
  * 处理格式: <path>...</path>\n<type>...</type>\n<content>...</content>
  */
@@ -39,9 +51,11 @@ const opencodeFileParser: ContentParser = (content: string) => {
 
     // 添加文件引用块
     const [_, filePath, fileType, fileContent] = match;
+    // 去除行号后再存储
+    const cleanedContent = stripLineNumbers(fileContent.trim());
     results.push({
       type: 'file',
-      content: fileContent.trim(),
+      content: cleanedContent,
       metadata: {
         path: filePath.trim(),
         type: fileType.trim(),
