@@ -14,9 +14,9 @@ import { useSidebarStore } from '@/stores/sidebar';
 
 // 主菜单项（显示在导航栏中）
 const mainNavigation = [
-  { name: 'nav.sessions', href: '/sessions', icon: History },
-  { name: 'nav.mcpServers', href: '/mcp', icon: Puzzle },
-  { name: 'nav.skills', href: '/skills', icon: Palette },
+  { name: 'nav.sessions', href: '/sessions', icon: History, end: false },
+  { name: 'nav.mcpServers', href: '/mcp', icon: Puzzle, end: false },
+  { name: 'nav.skills', href: '/skills', icon: Palette, end: false },
 ];
 
 export function Sidebar() {
@@ -56,6 +56,7 @@ export function Sidebar() {
           <NavLink
             key={item.name}
             to={item.href}
+            end={item.end}
             className={({ isActive }) =>
               cn(
                 'flex items-center rounded-lg transition-colors',

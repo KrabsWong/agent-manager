@@ -22,11 +22,44 @@ import {
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { getAppIcon } from '@/components/AppIcons';
 import { cn } from '@/lib/utils';
 import { parseMessageContent, hasSpecialParser, type ParsedContent } from './parsers';
 import type { AppType } from '@/types';
 import type { SessionMessage } from '@/types/session';
+
+// Custom components for ReactMarkdown to handle code blocks with syntax highlighting
+const markdownComponents = {
+  code({ node, inline, className, children, ...props }: any) {
+    const match = /language-(\w+)/.exec(className || '');
+    const language = match ? match[1] : 'text';
+
+    if (inline) {
+      return (
+        <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
+          {children}
+        </code>
+      );
+    }
+
+    return (
+      <SyntaxHighlighter
+        language={language}
+        style={vscDarkPlus}
+        className="rounded-md text-sm !bg-[#1e1e1e]"
+        customStyle={{
+          margin: 0,
+          padding: '1rem',
+          fontSize: '0.875rem',
+        }}
+      >
+        {String(children).replace(/\n$/, '')}
+      </SyntaxHighlighter>
+    );
+  },
+};
 
 interface ConversationViewProps {
   messages: SessionMessage[];
@@ -179,7 +212,7 @@ function ConversationTurn({ turn, appType }: ConversationTurnProps) {
 
       {/* Tool Calls */}
       {turn.toolCalls.length > 0 && (
-        <div className="space-y-2">
+        <div className="space-y-2 ml-11">
           {turn.toolCalls.map((toolCall, index) => (
             <ToolCallBlock
               key={index}
@@ -251,8 +284,10 @@ function ParsedContentBlock({ item }: ParsedContentBlockProps) {
   }
 
   return (
-    <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:break-words [&_pre]:whitespace-pre-wrap">
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.content}</ReactMarkdown>
+    <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:break-words [&_pre]:bg-[#1e1e1e] [&_pre]:p-0">
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+        {item.content}
+      </ReactMarkdown>
     </div>
   );
 }
@@ -292,8 +327,10 @@ function FileAttachment({ path, type, content }: FileAttachmentProps) {
       {/* File Content */}
       {isExpanded && (
         <div className="border-t">
-          <div className="px-3 py-2 prose prose-sm dark:prose-invert max-w-none">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+          <div className="px-3 py-2 prose prose-sm dark:prose-invert max-w-none [&_pre]:bg-[#1e1e1e] [&_pre]:p-0">
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+              {content}
+            </ReactMarkdown>
           </div>
         </div>
       )}
@@ -329,8 +366,10 @@ function AssistantMessage({ content, timestamp, appType = 'claude' }: AssistantM
           <span className="font-medium text-sm">{assistantName}</span>
           <span className="text-xs text-muted-foreground">{formatTimestamp(timestamp)}</span>
         </div>
-        <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+        <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none [&_p]:break-words [&_pre]:bg-[#1e1e1e] [&_pre]:p-0">
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+            {content}
+          </ReactMarkdown>
         </div>
       </div>
     </div>
@@ -347,7 +386,7 @@ function ToolCallBlock({ toolUse, toolResult }: ToolCallBlockProps) {
   const toolType = getToolType(toolName);
 
   return (
-    <div className="ml-11 border rounded-lg overflow-hidden bg-muted/30">
+    <div className="border rounded-lg overflow-hidden bg-muted/30">
       {/* Tool Header */}
       <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 border-b">
         {getToolIcon(toolType)}

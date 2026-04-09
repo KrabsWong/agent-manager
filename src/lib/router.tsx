@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react';
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -41,7 +41,7 @@ export const router = createBrowserRouter([
     path: '/',
     element: <Layout />,
     children: [
-      { path: '/', element: withSuspense(SessionsPage) },
+      { path: '/', element: <Navigate to="/sessions" replace /> },
       { path: '/providers', element: withSuspense(ProvidersPage) },
       { path: '/mcp', element: withSuspense(McpPage) },
       { path: '/skills', element: withSuspense(SkillsPage) },

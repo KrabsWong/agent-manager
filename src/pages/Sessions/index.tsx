@@ -178,12 +178,12 @@ export function SessionsPage() {
       )}
 
       {/* Main Content */}
-      <div className="grid grid-cols-[380px_1fr] gap-4 flex-1 min-h-0">
+      <div className="grid grid-cols-[360px_1fr] gap-4 flex-1 min-h-0">
         {/* Session List */}
         <CollapseContext.Provider
           value={{ collapsedDates, toggleDate, expandAll, collapseAll, allExpanded, allCollapsed }}
         >
-          <div className="flex flex-col min-h-0 border rounded-lg bg-card overflow-hidden">
+          <div className="flex flex-col min-h-0 border rounded-lg bg-card overflow-hidden w-[360px]">
             {isSupported && sessions && sessions.length > 0 && (
               <ExpandCollapseControls sessions={sessions} t={t} />
             )}
