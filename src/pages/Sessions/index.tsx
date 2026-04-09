@@ -264,9 +264,7 @@ export function SessionsPage() {
                       <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
                         Session ID:
                       </span>
-                      <span className="text-xs font-mono truncate" title={selectedSession.id}>
-                        {selectedSession.id}
-                      </span>
+                      <span className="text-xs font-mono truncate">{selectedSession.id}</span>
                       <button
                         onClick={() => {
                           navigator.clipboard.writeText(selectedSession.id || '');
@@ -290,10 +288,7 @@ export function SessionsPage() {
                       <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
                         Work:
                       </span>
-                      <span
-                        className="text-xs text-muted-foreground font-mono truncate"
-                        title={selectedSession.directory}
-                      >
+                      <span className="text-xs text-muted-foreground font-mono truncate">
                         {selectedSession.directory}
                       </span>
                     </div>
