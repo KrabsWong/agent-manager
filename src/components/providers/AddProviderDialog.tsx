@@ -98,7 +98,7 @@ export function AddProviderDialog({ appType, isOpen, onClose, onAdd }: AddProvid
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+    <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center">
       <div className="bg-background rounded-lg shadow-lg w-full max-w-lg max-h-[80vh] overflow-auto">
         <div className="p-6">
           <h2 className="text-xl font-semibold mb-4">
