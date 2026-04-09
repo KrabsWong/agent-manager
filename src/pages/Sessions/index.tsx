@@ -4,7 +4,7 @@
  * View and browse local conversation sessions from AI applications
  */
 
-import { useState, createContext, useContext } from 'react';
+import { useState, createContext, useContext, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   History,
@@ -58,6 +58,13 @@ export function SessionsPage() {
   );
   const { data: terminalInfo } = useTerminalInfo();
   const resumeMutation = useResumeSession();
+
+  // Auto-select first session when sessions are loaded
+  useEffect(() => {
+    if (sessions && sessions.length > 0 && !selectedSession) {
+      setSelectedSession(sessions[0]);
+    }
+  }, [sessions, selectedSession]);
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleString();
@@ -113,13 +120,42 @@ export function SessionsPage() {
       {/* Header */}
       <div className="flex items-center justify-between shrink-0">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <History className="h-6 w-6" />
-            {t('sessions.title') || 'Sessions'}
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {t('sessions.description') || 'View conversation history from your AI applications'}
-          </p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <History className="h-6 w-6" />
+              {t('sessions.title') || 'Sessions'}
+            </h1>
+            <span className="text-sm text-muted-foreground">
+              {t('sessions.description') || 'View conversation history from your AI applications'}
+            </span>
+          </div>
+          {/* Stats */}
+          {isSupported && stats && (
+            <div className="flex items-center gap-6 mt-3 text-sm">
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-muted-foreground">
+                  {t('sessions.totalSessions') || 'Total Sessions'}:
+                </span>
+                <span className="font-semibold text-foreground">{stats.totalSessions}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-xs text-muted-foreground">
+                  {t('sessions.totalMessages') || 'Total Messages'}:
+                </span>
+                <span className="font-semibold text-foreground">{stats.totalMessages}</span>
+              </div>
+              {stats.lastSessionDate && (
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground">
+                    {t('sessions.lastActivity') || 'Last Activity'}:
+                  </span>
+                  <span className="font-semibold text-foreground">
+                    {new Date(stats.lastSessionDate).toLocaleDateString()}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <Select
           value={selectedApp}
@@ -160,38 +196,8 @@ export function SessionsPage() {
         </Select>
       </div>
 
-      {/* Stats */}
-      {isSupported && stats && (
-        <div className="flex items-center justify-end gap-8 py-6 text-base shrink-0">
-          <div className="flex items-center gap-1">
-            <span className="text-muted-foreground">
-              {t('sessions.totalSessions') || 'Total Sessions'}:
-            </span>
-            <span className="font-semibold text-foreground">{stats.totalSessions}</span>
-          </div>
-          <div className="w-px h-6 bg-border" />
-          <div className="flex items-center gap-1">
-            <span className="text-muted-foreground">
-              {t('sessions.totalMessages') || 'Total Messages'}:
-            </span>
-            <span className="font-semibold text-foreground">{stats.totalMessages}</span>
-          </div>
-          <div className="w-px h-6 bg-border" />
-          {stats.lastSessionDate && (
-            <div className="flex items-center gap-1">
-              <span className="text-muted-foreground">
-                {t('sessions.lastActivity') || 'Last Activity'}:
-              </span>
-              <span className="font-semibold text-foreground">
-                {new Date(stats.lastSessionDate).toLocaleDateString()}
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Main Content */}
-      <div className="grid grid-cols-[360px_1fr] gap-4 flex-1 min-h-0">
+      <div className="grid grid-cols-[360px_1fr] gap-4 flex-1 min-h-0 mt-6">
         {/* Session List */}
         <CollapseContext.Provider
           value={{ collapsedDates, toggleDate, expandAll, collapseAll, allExpanded, allCollapsed }}
@@ -572,7 +578,7 @@ function SessionCard({ session, isSelected, onClick }: SessionCardProps) {
       onClick={onClick}
       className={`w-full text-left py-2 px-2 rounded-md transition-all duration-150 border-b border-border/50 last:border-b-0 relative group min-w-0 ${
         isSelected
-          ? 'bg-primary/5 text-primary border-primary/10'
+          ? 'bg-primary/10 text-primary border-primary/10 shadow-sm shadow-primary/20'
           : 'hover:bg-accent/50 text-foreground hover:border-border'
       }`}
     >

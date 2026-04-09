@@ -9,6 +9,7 @@
 
 import { spawn, exec } from 'child_process';
 import { promisify } from 'util';
+import fs from 'fs';
 import log from 'electron-log';
 import type { AppType } from '../../../src/types';
 
@@ -56,13 +57,20 @@ function launchGhostty(command: string, commandArgs: string[], workingDir?: stri
   // Ghostty's -e flag passes command to login, not shell
   // So we need to use: ghostty -e zsh -c "command args"
   const fullCommand = `${command} ${commandArgs.join(' ')}`;
-  const args: string[] = ['-e', 'zsh', '-c'];
+  const args: string[] = ['-e', 'zsh', '-ic'];
 
-  if (workingDir) {
-    // Use cd command first, then the actual command
-    args.push(`cd "${workingDir}" && ${fullCommand}`);
+  // Check if workingDir exists before using it
+  const effectiveWorkingDir = workingDir && fs.existsSync(workingDir) ? workingDir : undefined;
+
+  if (effectiveWorkingDir) {
+    // Use cd command first, then the actual command, then start interactive shell
+    args.push(`cd "${effectiveWorkingDir}" && ${fullCommand}; exec zsh -i`);
   } else {
-    args.push(fullCommand);
+    if (workingDir && !effectiveWorkingDir) {
+      log.warn(`Working directory does not exist: ${workingDir}, launching without cd`);
+    }
+    // Execute command then start interactive shell
+    args.push(`${fullCommand}; exec zsh -i`);
   }
 
   const child = spawn('ghostty', args, {
@@ -71,7 +79,9 @@ function launchGhostty(command: string, commandArgs: string[], workingDir?: stri
   });
 
   child.unref();
-  log.info(`Launched Ghostty with command: ${fullCommand}, workingDir: ${workingDir || 'none'}`);
+  log.info(
+    `Launched Ghostty with command: ${fullCommand}, workingDir: ${effectiveWorkingDir || 'none'}`
+  );
 }
 
 /**

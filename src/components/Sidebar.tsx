@@ -27,7 +27,7 @@ export function Sidebar() {
     <div
       className={cn(
         'flex flex-col border-r bg-card transition-all duration-300 ease-in-out',
-        isCollapsed ? 'w-16' : 'w-52'
+        isCollapsed ? 'w-20' : 'w-52'
       )}
     >
       {/* Header: Logo + Title */}
