@@ -17,6 +17,8 @@ import {
   History,
   ChevronsDown,
   ChevronsUp,
+  Clock,
+  MessageSquare,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
@@ -537,7 +539,7 @@ function GroupedSessionList({ sessions, selectedSession, onSelect, t }: GroupedS
 
             {/* Sessions for this date */}
             {!isCollapsed && (
-              <div className="space-y-1 mt-1 pl-5">
+              <div className="space-y-0.5 mt-0.5">
                 {grouped.get(dateKey)!.map((session) => (
                   <SessionCard
                     key={session.id}
@@ -565,8 +567,6 @@ interface SessionCardProps {
 }
 
 function SessionCard({ session, isSelected, onClick }: SessionCardProps) {
-  const { t } = useTranslation();
-
   // Format time only (HH:MM)
   const formatTime = (timestamp: number) => {
     return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -575,10 +575,10 @@ function SessionCard({ session, isSelected, onClick }: SessionCardProps) {
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left py-2 px-2 rounded-md transition-all duration-150 border-b border-border/50 last:border-b-0 relative group min-w-0 ${
+      className={`w-full text-left py-1.5 px-2 rounded transition-all duration-150 relative group min-w-0 ${
         isSelected
-          ? 'bg-primary/10 text-primary border-primary/10 shadow-sm shadow-primary/20'
-          : 'hover:bg-accent/50 text-foreground hover:border-border'
+          ? 'bg-primary/10 text-primary shadow-sm shadow-primary/20'
+          : 'hover:bg-accent/30 text-foreground'
       }`}
     >
       {/* Left indicator bar for selected state - full height */}
@@ -595,14 +595,23 @@ function SessionCard({ session, isSelected, onClick }: SessionCardProps) {
           {session.firstMessage || session.fileName || 'Untitled Session'}
         </p>
 
-        {/* Time and Count - right aligned */}
-        <div
-          className={`flex items-center gap-1.5 text-[10px] shrink-0 ${isSelected ? 'text-primary/70' : 'text-muted-foreground/70'}`}
-        >
-          <span>{formatTime(session.updatedAt)}</span>
-          <span>·</span>
-          <span>
-            {session.messageCount} {t('sessions.messages') || 'messages'}
+        {/* Time and Count - right aligned with tag style */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span
+            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+              isSelected ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
+            }`}
+          >
+            <Clock className="h-3 w-3" />
+            {formatTime(session.updatedAt)}
+          </span>
+          <span
+            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+              isSelected ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
+            }`}
+          >
+            <MessageSquare className="h-3 w-3" />
+            {session.messageCount}
           </span>
         </div>
       </div>
