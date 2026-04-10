@@ -4,26 +4,11 @@
  * View and browse local conversation sessions from AI applications
  */
 
-import { useState, createContext, useContext, useEffect } from 'react';
+import { useState, createContext, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  AlertCircle,
-  Copy,
-  Check,
-  ChevronDown,
-  ChevronRight,
-  Play,
-  AlertTriangle,
-  History,
-  ChevronsDown,
-  ChevronsUp,
-  Clock,
-  MessageSquare,
-  ChevronUp,
-} from 'lucide-react';
+import { AlertCircle, Copy, Check, Play, AlertTriangle, History, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   useSessions,
@@ -34,7 +19,7 @@ import {
   useTerminalInfo,
 } from '@/hooks/useSessions';
 import { ConversationView } from '@/components/sessions/ConversationView';
-import { MarqueeText } from '@/components/MarqueeText';
+import { VirtualSessionList } from '@/components/sessions/VirtualSessionList';
 import { APP_LABELS, getAppIcon, APP_COLORS } from '@/components/AppIcons';
 import type { AppType, Session } from '@/types';
 
@@ -206,58 +191,62 @@ export function SessionsPage() {
           value={{ collapsedDates, toggleDate, expandAll, collapseAll, allExpanded, allCollapsed }}
         >
           <div className="flex flex-col min-h-0 border rounded-lg bg-card overflow-hidden w-[360px]">
-            <ScrollArea className="flex-1 min-w-0">
-              <div className="p-4 space-y-2 min-w-0">
-                {isLoading ? (
-                  <div className="flex items-center justify-center h-64">
-                    <div className="text-muted-foreground">
-                      {t('sessions.loading') || 'Loading sessions...'}
-                    </div>
-                  </div>
-                ) : error ? (
-                  <div className="flex items-center justify-center h-64">
-                    <div className="text-destructive flex items-center gap-2">
-                      <AlertCircle className="h-5 w-5" />
-                      {t('sessions.error') || 'Failed to load sessions'}
-                    </div>
-                  </div>
-                ) : !isSupported ? (
-                  <div className="flex flex-col items-center justify-center h-64 space-y-4">
-                    <div className="text-muted-foreground text-center">
-                      <p className="text-lg font-medium mb-2">
-                        {t('sessions.comingSoon') || 'Coming Soon'}
-                      </p>
-                      <p className="text-sm">
-                        {t('sessions.unsupportedApp') ||
-                          `Session viewing is not yet supported for ${APP_LABELS[selectedApp]}.`}
-                      </p>
-                    </div>
-                    <Button variant="outline" onClick={() => setSelectedApp('claude')}>
-                      {t('sessions.switchToClaude') || 'Switch to Claude Code'}
-                    </Button>
-                  </div>
-                ) : sessions?.length === 0 ? (
-                  <div className="flex items-center justify-center h-64">
-                    <div className="text-muted-foreground text-center">
-                      <p className="text-lg font-medium mb-2">
-                        {t('sessions.noSessions') || 'No Sessions Found'}
-                      </p>
-                      <p className="text-sm">
-                        {t('sessions.noSessionsDesc') ||
-                          'No conversation history found for this application.'}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <GroupedSessionList
-                    sessions={sessions || []}
-                    selectedSession={selectedSession}
-                    onSelect={handleSessionSelect}
-                    t={t}
-                  />
-                )}
+            {isLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-muted-foreground">
+                  {t('sessions.loading') || 'Loading sessions...'}
+                </div>
               </div>
-            </ScrollArea>
+            ) : error ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-destructive flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5" />
+                  {t('sessions.error') || 'Failed to load sessions'}
+                </div>
+              </div>
+            ) : !isSupported ? (
+              <div className="flex flex-col items-center justify-center h-64 space-y-4">
+                <div className="text-muted-foreground text-center">
+                  <p className="text-lg font-medium mb-2">
+                    {t('sessions.comingSoon') || 'Coming Soon'}
+                  </p>
+                  <p className="text-sm">
+                    {t('sessions.unsupportedApp') ||
+                      `Session viewing is not yet supported for ${APP_LABELS[selectedApp]}.`}
+                  </p>
+                </div>
+                <Button variant="outline" onClick={() => setSelectedApp('claude')}>
+                  {t('sessions.switchToClaude') || 'Switch to Claude Code'}
+                </Button>
+              </div>
+            ) : sessions?.length === 0 ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-muted-foreground text-center">
+                  <p className="text-lg font-medium mb-2">
+                    {t('sessions.noSessions') || 'No Sessions Found'}
+                  </p>
+                  <p className="text-sm">
+                    {t('sessions.noSessionsDesc') ||
+                      'No conversation history found for this application.'}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 min-h-0 p-2">
+                <VirtualSessionList
+                  sessions={sessions || []}
+                  selectedSession={selectedSession}
+                  onSelect={handleSessionSelect}
+                  t={t}
+                  collapsedDates={collapsedDates}
+                  toggleDate={toggleDate}
+                  expandAll={expandAll}
+                  collapseAll={collapseAll}
+                  allExpanded={allExpanded}
+                  allCollapsed={allCollapsed}
+                />
+              </div>
+            )}
           </div>
         </CollapseContext.Provider>
 
@@ -433,70 +422,6 @@ export function SessionsPage() {
   );
 }
 
-/**
- * Group sessions by date
- */
-function groupSessionsByDate(sessions: Session[]): Map<string, Session[]> {
-  const groups = new Map<string, Session[]>();
-
-  for (const session of sessions) {
-    const date = new Date(session.updatedAt);
-    const dateKey = date.toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    });
-
-    if (!groups.has(dateKey)) {
-      groups.set(dateKey, []);
-    }
-    groups.get(dateKey)!.push(session);
-  }
-
-  // Sort sessions within each group by updatedAt descending
-  for (const [, groupSessions] of groups) {
-    groupSessions.sort((a, b) => b.updatedAt - a.updatedAt);
-  }
-
-  return groups;
-}
-
-/**
- * Format date group label (Today, Yesterday, or date)
- */
-function formatDateGroupLabel(dateKey: string, t: (key: string) => string): string {
-  const today = new Date().toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
-
-  const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
-
-  if (dateKey === today) {
-    return t('sessions.today') || 'Today';
-  }
-  if (dateKey === yesterday) {
-    return t('sessions.yesterday') || 'Yesterday';
-  }
-
-  return dateKey;
-}
-
-/**
- * Grouped Session List Component
- */
-interface GroupedSessionListProps {
-  sessions: Session[];
-  selectedSession: Session | null;
-  onSelect: (session: Session) => void;
-  t: (key: string) => string;
-}
-
 // Create a context for collapse state
 const CollapseContext = createContext<{
   collapsedDates: Set<string>;
@@ -513,157 +438,3 @@ const CollapseContext = createContext<{
   allExpanded: true,
   allCollapsed: false,
 });
-
-/**
- * Expand/Collapse Controls Component
- */
-interface ExpandCollapseControlsProps {
-  allExpanded: boolean;
-  allCollapsed: boolean;
-}
-
-function ExpandCollapseControls({ allExpanded, allCollapsed }: ExpandCollapseControlsProps) {
-  const { expandAll, collapseAll } = useContext(CollapseContext);
-
-  return (
-    <div className="flex items-center gap-0.5">
-      <button
-        onClick={expandAll}
-        disabled={allExpanded}
-        className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
-        title="Expand All"
-      >
-        <ChevronsDown className="h-3.5 w-3.5" />
-      </button>
-      <button
-        onClick={collapseAll}
-        disabled={allCollapsed}
-        className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
-        title="Collapse All"
-      >
-        <ChevronsUp className="h-3.5 w-3.5" />
-      </button>
-    </div>
-  );
-}
-
-function GroupedSessionList({ sessions, selectedSession, onSelect, t }: GroupedSessionListProps) {
-  const grouped = groupSessionsByDate(sessions);
-  const sortedDates = Array.from(grouped.keys()).sort((a, b) => {
-    const dateA = new Date(a).getTime();
-    const dateB = new Date(b).getTime();
-    return dateB - dateA;
-  });
-
-  const { collapsedDates, toggleDate, allExpanded, allCollapsed } = useContext(CollapseContext);
-
-  return (
-    <div className="space-y-1">
-      {sortedDates.map((dateKey, index) => {
-        const isCollapsed = collapsedDates.has(dateKey);
-        const sessionsCount = grouped.get(dateKey)!.length;
-        const isFirst = index === 0;
-
-        return (
-          <div key={dateKey}>
-            {/* Date Header - Clickable */}
-            <div className="w-full sticky top-0 bg-card z-10 py-2 px-2 flex items-center justify-between hover:bg-accent/50 rounded-md transition-colors">
-              <button
-                onClick={() => toggleDate(dateKey)}
-                className="flex items-center gap-2 flex-1 text-left"
-              >
-                {isCollapsed ? (
-                  <ChevronRight className="h-4 w-4 text-foreground" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 text-foreground" />
-                )}
-                <h4 className="text-sm font-semibold text-foreground">
-                  {formatDateGroupLabel(dateKey, t)}
-                </h4>
-              </button>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground font-medium">{sessionsCount}</span>
-                {isFirst && (
-                  <ExpandCollapseControls allExpanded={allExpanded} allCollapsed={allCollapsed} />
-                )}
-              </div>
-            </div>
-
-            {/* Sessions for this date */}
-            {!isCollapsed && (
-              <div className="space-y-0.5 mt-0.5">
-                {grouped.get(dateKey)!.map((session) => (
-                  <SessionCard
-                    key={session.id}
-                    session={session}
-                    isSelected={selectedSession?.id === session.id}
-                    onClick={() => onSelect(session)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-/**
- * Session Card Component
- */
-interface SessionCardProps {
-  session: Session;
-  isSelected: boolean;
-  onClick: () => void;
-}
-
-function SessionCard({ session, isSelected, onClick }: SessionCardProps) {
-  // Format time only (HH:MM)
-  const formatTime = (timestamp: number) => {
-    return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  return (
-    <button
-      onClick={onClick}
-      className={`w-full text-left py-1.5 px-2 rounded transition-all duration-150 relative group min-w-0 ${
-        isSelected ? 'bg-primary/15 text-primary shadow-sm' : 'hover:bg-accent/30 text-foreground'
-      }`}
-    >
-      {/* Left indicator bar for selected state - full height */}
-      {isSelected && (
-        <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary rounded-r-full" />
-      )}
-
-      {/* Title row: Message Preview + Time/Count */}
-      <div className="flex items-center justify-between gap-2 min-w-0">
-        {/* Title: First Message Preview with Marquee */}
-        <MarqueeText
-          text={session.firstMessage || session.fileName || 'Untitled Session'}
-          className={`text-xs flex-1 min-w-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}
-        />
-
-        {/* Time and Count - right aligned with tag style */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          <span
-            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
-              isSelected ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
-            }`}
-          >
-            <Clock className="h-3 w-3" />
-            {formatTime(session.updatedAt)}
-          </span>
-          <span
-            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
-              isSelected ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
-            }`}
-          >
-            <MessageSquare className="h-3 w-3" />
-            {session.messageCount}
-          </span>
-        </div>
-      </div>
-    </button>
-  );
-}
