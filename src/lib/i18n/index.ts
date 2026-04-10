@@ -168,6 +168,10 @@ const enTranslations = {
       skills: 'Skills',
       skillsDesc: 'Discover and manage AI skills',
     },
+    experienceTitle: 'Experience Features',
+    experienceDescription: 'Optional features to enhance your browsing experience',
+    titleMarquee: 'Title Marquee Effect',
+    titleMarqueeDesc: 'Hover over long session titles to auto-scroll and see full text',
   },
   proxy: {
     title: 'Proxy',
@@ -512,6 +516,10 @@ const zhTranslations = {
       skills: '技能',
       skillsDesc: '发现和管理 AI 技能',
     },
+    experienceTitle: '体验特性',
+    experienceDescription: '可选功能，增强您的浏览体验',
+    titleMarquee: '标题跑马灯效果',
+    titleMarqueeDesc: '鼠标悬停在长会话标题上时自动滚动显示完整文本',
   },
   proxy: {
     title: '代理',

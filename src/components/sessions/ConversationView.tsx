@@ -9,7 +9,7 @@
  * - MCP calls and sub-agent calls (identified by tool_name patterns)
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, memo, useRef, useEffect } from 'react';
 import {
   User,
   Wrench,
@@ -19,6 +19,7 @@ import {
   FileText,
   ChevronDown,
   ChevronRight,
+  Maximize2,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -97,6 +98,12 @@ import { parseMessageContent, hasSpecialParser, type ParsedContent } from './par
 import type { AppType } from '@/types';
 import type { SessionMessage } from '@/types/session';
 
+// Constants for performance optimization
+const MAX_CODE_LINES = 100; // 代码块超过此行数默认折叠
+const CODE_LINES_INCREMENT = 200; // 每次展开增加的代码行数
+const MAX_SYNTAX_HIGHLIGHT_LINES = 500; // 超过此行数禁用语法高亮，避免卡顿
+const MAX_TEXT_LENGTH = 8000; // 文本超过此字符数默认截断
+
 // Custom components for ReactMarkdown to handle code blocks with syntax highlighting
 const markdownComponents = {
   code({ node, inline, className, children, ...props }: any) {
@@ -115,23 +122,121 @@ const markdownComponents = {
       );
     }
 
-    return (
-      <SyntaxHighlighter language={language} style={tokyoNightTheme} className="rounded-md text-sm">
-        {content.replace(/\n$/, '')}
-      </SyntaxHighlighter>
-    );
+    // Use collapsible code block for large code
+    return <CollapsibleCodeBlock content={content} language={language} />;
   },
 };
 
-interface ConversationViewProps {
-  messages: SessionMessage[];
-  className?: string;
-  appType?: string;
+/**
+ * Collapsible Code Block - Performance optimization for large code blocks
+ * Uses incremental loading to avoid UI freezing on large files
+ */
+interface CollapsibleCodeBlockProps {
+  content: string;
+  language: string;
+}
+
+function CollapsibleCodeBlock({ content, language }: CollapsibleCodeBlockProps) {
+  const [displayedLines, setDisplayedLines] = useState(MAX_CODE_LINES);
+  const codeBlockRef = useRef<HTMLDivElement>(null);
+  const prevDisplayedLinesRef = useRef(displayedLines);
+  const lines = content.split('\n');
+  const totalLines = lines.length;
+  const shouldCollapse = totalLines > MAX_CODE_LINES;
+  const isFullyExpanded = displayedLines >= totalLines;
+  const shouldHighlight = totalLines <= MAX_SYNTAX_HIGHLIGHT_LINES;
+
+  // Calculate current display lines
+  const currentDisplayLines = shouldCollapse ? Math.min(displayedLines, totalLines) : totalLines;
+  const displayContent = lines.slice(0, currentDisplayLines).join('\n').replace(/\n$/, '');
+
+  // Auto-scroll to bottom when loading more content
+  useEffect(() => {
+    if (
+      codeBlockRef.current &&
+      displayedLines > prevDisplayedLinesRef.current &&
+      displayedLines > MAX_CODE_LINES
+    ) {
+      const element = codeBlockRef.current;
+      element.scrollTop = element.scrollHeight;
+    }
+    prevDisplayedLinesRef.current = displayedLines;
+  }, [displayedLines]);
+
+  const handleCollapse = () => {
+    setDisplayedLines(MAX_CODE_LINES);
+    // Scroll back to top when collapsing
+    if (codeBlockRef.current) {
+      codeBlockRef.current.scrollTop = 0;
+    }
+  };
+
+  // Determine if we should use incremental loading (only for highlighted code)
+  const useIncrementalLoad = shouldHighlight;
+
+  const handleExpand = () => {
+    if (useIncrementalLoad) {
+      // For highlighted code: load incrementally to avoid freezing
+      setDisplayedLines((prev) => Math.min(prev + CODE_LINES_INCREMENT, totalLines));
+    } else {
+      // For non-highlighted large code: load all at once (it's fast without highlighting)
+      setDisplayedLines(totalLines);
+    }
+  };
+
+  return (
+    <div className="relative">
+      {!shouldHighlight && (
+        <div className="absolute top-0 right-0 z-10 px-2 py-1 text-[10px] text-muted-foreground bg-[#1a1b26]/80 rounded-bl">
+          已禁用高亮 ({totalLines} 行)
+        </div>
+      )}
+      <div ref={codeBlockRef} className="overflow-auto max-h-[600px] rounded-md">
+        {shouldHighlight ? (
+          <SyntaxHighlighter
+            language={language}
+            style={tokyoNightTheme}
+            className="rounded-md text-sm !m-0"
+          >
+            {displayContent}
+          </SyntaxHighlighter>
+        ) : (
+          <pre className="rounded-md text-sm bg-[#1a1b26] text-[#a9b1d6] p-4 overflow-auto font-mono leading-relaxed">
+            <code>{displayContent}</code>
+          </pre>
+        )}
+      </div>
+      {shouldCollapse && (
+        <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center py-2 bg-gradient-to-t from-[#1a1b26] to-transparent">
+          <button
+            onClick={isFullyExpanded ? handleCollapse : handleExpand}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/80 hover:bg-muted text-xs font-medium text-muted-foreground hover:text-foreground transition-colors border border-border/50 shadow-sm"
+          >
+            {isFullyExpanded ? (
+              <>
+                <ChevronDown className="h-3.5 w-3.5" />
+                收起代码
+              </>
+            ) : useIncrementalLoad ? (
+              <>
+                <Maximize2 className="h-3.5 w-3.5" />
+                加载更多 ({currentDisplayLines}/{totalLines} 行)
+              </>
+            ) : (
+              <>
+                <Maximize2 className="h-3.5 w-3.5" />
+                展开全部 ({totalLines} 行)
+              </>
+            )}
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 /**
- * Group messages into conversation turns
- * Each turn contains: user message, assistant reasoning (tool_use/tool_result pairs), and final response
+ * Group messages into turns and count messages per turn
  */
 function groupMessagesIntoTurns(messages: SessionMessage[]): MessageTurn[] {
   const turns: MessageTurn[] = [];
@@ -239,18 +344,124 @@ interface MessageTurn {
   assistantMessage: SessionMessage | null;
 }
 
+// Constants for message pagination
+const MAX_MESSAGES_PER_BATCH = 100; // 每次加载的最大原始消息条数
+
+interface MessageTurnWithCount extends MessageTurn {
+  messageCount: number; // 这轮对话包含的原始消息数量
+}
+
+/**
+ * Group messages into turns and count messages per turn
+ */
+function groupMessagesIntoTurnsWithCount(messages: SessionMessage[]): MessageTurnWithCount[] {
+  const turns = groupMessagesIntoTurns(messages);
+  return turns.map((turn) => {
+    let messageCount = 0;
+    if (turn.userMessage) messageCount++;
+    messageCount += turn.toolCalls.length * 2; // tool_use + tool_result
+    if (turn.assistantMessage) messageCount++;
+    return { ...turn, messageCount };
+  });
+}
+
+interface ConversationViewProps {
+  messages: SessionMessage[];
+  className?: string;
+  appType?: string;
+  onLoadAll?: () => void;
+}
+
 export function ConversationView({
   messages,
   className,
   appType = 'claude',
+  onLoadAll,
 }: ConversationViewProps) {
-  const turns = useMemo(() => groupMessagesIntoTurns(messages), [messages]);
+  const turnsWithCount = useMemo(() => groupMessagesIntoTurnsWithCount(messages), [messages]);
+  const [displayedTurns, setDisplayedTurns] = useState<MessageTurnWithCount[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [remainingCount, setRemainingCount] = useState(0);
+
+  // Initialize displayed turns based on message count limit
+  useEffect(() => {
+    let count = 0;
+    let index = 0;
+    const totalMessages = turnsWithCount.reduce((sum, t) => sum + t.messageCount, 0);
+
+    // Find how many turns we can display within the limit
+    for (const turn of turnsWithCount) {
+      if (count + turn.messageCount > MAX_MESSAGES_PER_BATCH && index > 0) {
+        break;
+      }
+      count += turn.messageCount;
+      index++;
+    }
+
+    setDisplayedTurns(turnsWithCount.slice(0, index));
+    setHasMore(index < turnsWithCount.length);
+    setRemainingCount(totalMessages - count);
+  }, [turnsWithCount]);
+
+  const handleLoadMore = () => {
+    const currentCount = displayedTurns.reduce((sum, t) => sum + t.messageCount, 0);
+    let newCount = currentCount;
+    let newIndex = displayedTurns.length;
+    const totalMessages = turnsWithCount.reduce((sum, t) => sum + t.messageCount, 0);
+
+    // Add more turns until we hit the limit again
+    for (let i = displayedTurns.length; i < turnsWithCount.length; i++) {
+      const turn = turnsWithCount[i];
+      if (
+        newCount + turn.messageCount > currentCount + MAX_MESSAGES_PER_BATCH &&
+        newIndex > displayedTurns.length
+      ) {
+        break;
+      }
+      newCount += turn.messageCount;
+      newIndex++;
+    }
+
+    const newDisplayed = turnsWithCount.slice(0, newIndex);
+    setDisplayedTurns(newDisplayed);
+    setHasMore(newIndex < turnsWithCount.length);
+    setRemainingCount(totalMessages - newCount);
+  };
+
+  const handleLoadAll = () => {
+    setDisplayedTurns(turnsWithCount);
+    setHasMore(false);
+    setRemainingCount(0);
+    onLoadAll?.();
+  };
+
+  const shouldPaginate = turnsWithCount.length > displayedTurns.length;
 
   return (
     <div className={cn('space-y-6', className)}>
-      {turns.map((turn, index) => (
+      {displayedTurns.map((turn, index) => (
         <ConversationTurn key={index} turn={turn} appType={appType} />
       ))}
+      {/* Load more buttons at BOTTOM */}
+      {shouldPaginate && hasMore && (
+        <div className="flex justify-center items-center gap-4 py-3">
+          <button
+            onClick={handleLoadMore}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ChevronDown className="h-3.5 w-3.5" />
+            加载更多 ({remainingCount} 条)
+          </button>
+          <span className="text-border">|</span>
+          <button
+            onClick={handleLoadAll}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Maximize2 className="h-3.5 w-3.5" />
+            加载全部
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -260,7 +471,7 @@ interface ConversationTurnProps {
   appType: string;
 }
 
-function ConversationTurn({ turn, appType }: ConversationTurnProps) {
+const ConversationTurn = memo(function ConversationTurn({ turn, appType }: ConversationTurnProps) {
   return (
     <div className="space-y-3">
       {/* User Message */}
@@ -295,7 +506,7 @@ function ConversationTurn({ turn, appType }: ConversationTurnProps) {
       )}
     </div>
   );
-}
+});
 
 interface UserMessageProps {
   content: string;
@@ -303,7 +514,7 @@ interface UserMessageProps {
   appType?: string;
 }
 
-function UserMessage({ content, timestamp, appType }: UserMessageProps) {
+const UserMessage = memo(function UserMessage({ content, timestamp, appType }: UserMessageProps) {
   // 检查是否需要特殊解析
   const needsSpecialParsing = hasSpecialParser(appType);
   const parsedContents = needsSpecialParsing
@@ -328,7 +539,7 @@ function UserMessage({ content, timestamp, appType }: UserMessageProps) {
       </div>
     </div>
   );
-}
+});
 
 interface ParsedContentBlockProps {
   item: ParsedContent;
@@ -406,8 +617,16 @@ interface AssistantMessageProps {
   appType?: string;
 }
 
-function AssistantMessage({ content, timestamp, appType = 'claude' }: AssistantMessageProps) {
+const AssistantMessage = memo(function AssistantMessage({
+  content,
+  timestamp,
+  appType = 'claude',
+}: AssistantMessageProps) {
   const assistantName = APP_LABELS[appType as AppType] || APP_LABELS.claude;
+  const [isExpanded, setIsExpanded] = useState(false);
+  const shouldTruncate = content.length > MAX_TEXT_LENGTH;
+  const displayContent =
+    isExpanded || !shouldTruncate ? content : content.slice(0, MAX_TEXT_LENGTH) + '\n\n...';
 
   return (
     <div className="flex gap-3">
@@ -421,13 +640,22 @@ function AssistantMessage({ content, timestamp, appType = 'claude' }: AssistantM
         </div>
         <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none [&_p]:break-words [&_pre]:bg-[#1e1e1e] [&_pre]:p-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto">
           <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-            {content}
+            {displayContent}
           </ReactMarkdown>
+          {shouldTruncate && !isExpanded && (
+            <button
+              onClick={() => setIsExpanded(true)}
+              className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted hover:bg-muted/80 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors border border-border/50"
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+              展开全部 ({(content.length / 1000).toFixed(1)}K 字符)
+            </button>
+          )}
         </div>
       </div>
     </div>
   );
-}
+});
 
 interface ToolCallBlockProps {
   toolUse: SessionMessage;
@@ -437,6 +665,7 @@ interface ToolCallBlockProps {
 function ToolCallBlock({ toolUse, toolResult }: ToolCallBlockProps) {
   const toolName = toolUse.tool_name || 'unknown';
   const toolType = getToolType(toolName);
+  const summary = getToolSummary(toolName, toolUse.tool_input);
 
   return (
     <div className="border rounded-lg overflow-hidden bg-muted/30">
@@ -444,7 +673,14 @@ function ToolCallBlock({ toolUse, toolResult }: ToolCallBlockProps) {
       <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 border-b">
         {getToolIcon(toolType)}
         <span className="font-medium text-sm">{getToolDisplayName(toolName)}</span>
-        <span className="text-xs text-muted-foreground ml-auto">{toolName}</span>
+        {summary && (
+          <span
+            className="text-xs text-muted-foreground ml-auto truncate max-w-[200px]"
+            title={summary}
+          >
+            {summary}
+          </span>
+        )}
       </div>
 
       {/* Tool Input */}
@@ -530,6 +766,67 @@ function getToolDisplayName(toolName: string): string {
   };
 
   return displayNames[toolName] || toolName.charAt(0).toUpperCase() + toolName.slice(1);
+}
+
+/**
+ * Get a summary of the tool input for display in the header
+ * E.g., file path for read/write, command for bash, pattern for grep
+ */
+function getToolSummary(toolName: string, input?: Record<string, unknown>): string | null {
+  if (!input) return null;
+
+  const name = toolName.toLowerCase();
+
+  // File operations - show file path
+  if (['read', 'write', 'edit'].includes(name)) {
+    const filePath = input.file_path || input.path;
+    if (typeof filePath === 'string') {
+      // Extract just the filename from the path
+      const parts = filePath.split('/');
+      return parts[parts.length - 1] || filePath;
+    }
+  }
+
+  // Glob - show pattern
+  if (name === 'glob') {
+    const pattern = input.pattern || input.glob;
+    if (typeof pattern === 'string') {
+      return pattern;
+    }
+  }
+
+  // Grep - show pattern and path
+  if (name === 'grep') {
+    const pattern = input.pattern || input.regex;
+    const path = input.path || input.file_path;
+    if (typeof pattern === 'string') {
+      const pathSuffix = typeof path === 'string' ? ` in ${path.split('/').pop()}` : '';
+      return `"${pattern}"${pathSuffix}`;
+    }
+  }
+
+  // Bash - show command preview
+  if (name === 'bash') {
+    const command = input.command;
+    if (typeof command === 'string') {
+      // Truncate long commands
+      if (command.length > 50) {
+        return command.substring(0, 50) + '...';
+      }
+      return command;
+    }
+  }
+
+  // LS - show directory
+  if (name === 'ls') {
+    const dir = input.dir || input.directory || input.path;
+    if (typeof dir === 'string') {
+      const parts = dir.split('/');
+      return parts[parts.length - 1] || dir;
+    }
+  }
+
+  return null;
 }
 
 function ToolInputDisplay({ input }: { input?: Record<string, unknown> }) {

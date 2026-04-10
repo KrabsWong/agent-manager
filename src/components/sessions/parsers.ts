@@ -88,6 +88,30 @@ const opencodeFileParser: ContentParser = (content: string) => {
 };
 
 /**
+ * Claude Code 内容解析器
+ * 1. 先清理系统生成的加载文本
+ * 2. 然后解析文件引用（与 OpenCode 格式相同）
+ */
+const claudeCodeParser: ContentParser = (content: string) => {
+  // 第一步：清理系统文本
+  const patterns = [
+    /\[Pasted ~\d+ lines?\]/g,
+    /Loading from\s+\S+\.\.\.?/g,
+    /\d+\s+bytes?\s+from\s+\S+/g,
+    /\[Uploaded file:[^\]]*\]/g,
+  ];
+
+  let cleanedContent = content;
+  for (const pattern of patterns) {
+    cleanedContent = cleanedContent.replace(pattern, '');
+  }
+  cleanedContent = cleanedContent.replace(/\n{3,}/g, '\n\n').trim();
+
+  // 第二步：复用 OpenCode 的文件解析逻辑
+  return opencodeFileParser(cleanedContent);
+};
+
+/**
  * 默认解析器 - 将内容作为纯文本处理
  */
 const defaultParser: ContentParser = (content: string) => [
@@ -101,7 +125,10 @@ const defaultParser: ContentParser = (content: string) => [
  * 解析器注册表
  * key: appType, value: ContentParser
  */
-const parserRegistry: Map<string, ContentParser> = new Map([['opencode', opencodeFileParser]]);
+const parserRegistry: Map<string, ContentParser> = new Map([
+  ['opencode', opencodeFileParser],
+  ['claude', claudeCodeParser],
+]);
 
 /**
  * 注册自定义解析器

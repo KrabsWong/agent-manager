@@ -46,7 +46,7 @@ const IconFromCDN = ({
       alt={APP_LABELS[appType]}
       width={sizeNum}
       height={sizeNum}
-      className={`inline-block ${className}`}
+      className={`inline-block dark:invert ${className}`}
       style={{ display: 'inline-block', verticalAlign: 'middle' }}
     />
   );

@@ -19,6 +19,7 @@ import {
   ChevronsUp,
   Clock,
   MessageSquare,
+  ChevronUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
@@ -33,6 +34,7 @@ import {
   useTerminalInfo,
 } from '@/hooks/useSessions';
 import { ConversationView } from '@/components/sessions/ConversationView';
+import { MarqueeText } from '@/components/MarqueeText';
 import { APP_LABELS, getAppIcon, APP_COLORS } from '@/components/AppIcons';
 import type { AppType, Session } from '@/types';
 
@@ -204,9 +206,6 @@ export function SessionsPage() {
           value={{ collapsedDates, toggleDate, expandAll, collapseAll, allExpanded, allCollapsed }}
         >
           <div className="flex flex-col min-h-0 border rounded-lg bg-card overflow-hidden w-[360px]">
-            {isSupported && sessions && sessions.length > 0 && (
-              <ExpandCollapseControls sessions={sessions} />
-            )}
             <ScrollArea className="flex-1 min-w-0">
               <div className="p-4 space-y-2 min-w-0">
                 {isLoading ? (
@@ -263,7 +262,7 @@ export function SessionsPage() {
         </CollapseContext.Provider>
 
         {/* Session Detail */}
-        <div className="border rounded-lg bg-card overflow-hidden flex flex-col">
+        <div className="border rounded-lg bg-card overflow-hidden flex flex-col h-full min-h-0">
           {selectedSession ? (
             <>
               {/* Header */}
@@ -358,19 +357,67 @@ export function SessionsPage() {
               </div>
 
               {/* Conversation */}
-              <ScrollArea className="flex-1 p-4">
-                {isLoadingDetail ? (
-                  <div className="flex items-center justify-center h-64 text-muted-foreground">
-                    {t('sessions.loadingConversation') || 'Loading conversation...'}
-                  </div>
-                ) : sessionDetail?.messages ? (
-                  <ConversationView messages={sessionDetail.messages} appType={selectedApp} />
-                ) : (
-                  <div className="flex items-center justify-center h-64 text-muted-foreground">
-                    {t('sessions.noMessages') || 'No messages found'}
-                  </div>
-                )}
-              </ScrollArea>
+              <div className="flex-1 relative overflow-hidden">
+                <div
+                  id="conversation-scroll-container"
+                  className="h-full overflow-auto p-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent scroll-smooth"
+                  onScroll={(e) => {
+                    const target = e.currentTarget;
+                    const show = target.scrollTop > 300;
+                    const btn = document.getElementById('back-to-top-btn');
+                    if (btn) {
+                      btn.style.opacity = show ? '1' : '0';
+                      btn.style.pointerEvents = show ? 'auto' : 'none';
+                      btn.style.transform = show ? 'translateY(0)' : 'translateY(16px)';
+                    }
+                  }}
+                >
+                  {isLoadingDetail ? (
+                    <div className="flex items-center justify-center h-64 text-muted-foreground">
+                      {t('sessions.loadingConversation') || 'Loading conversation...'}
+                    </div>
+                  ) : sessionDetail?.messages ? (
+                    <ConversationView messages={sessionDetail.messages} appType={selectedApp} />
+                  ) : (
+                    <div className="flex items-center justify-center h-64 text-muted-foreground">
+                      {t('sessions.noMessages') || 'No messages found'}
+                    </div>
+                  )}
+                </div>
+
+                {/* Back to top button */}
+                <button
+                  id="back-to-top-btn"
+                  onClick={() => {
+                    const container = document.getElementById('conversation-scroll-container');
+                    if (container) {
+                      // Fast smooth scroll animation (200ms)
+                      const start = container.scrollTop;
+                      const duration = 200;
+                      const startTime = performance.now();
+
+                      const animate = (currentTime: number) => {
+                        const elapsed = currentTime - startTime;
+                        const progress = Math.min(elapsed / duration, 1);
+                        // Ease out quad
+                        const ease = 1 - (1 - progress) * (1 - progress);
+                        container.scrollTop = start * (1 - ease);
+
+                        if (progress < 1) {
+                          requestAnimationFrame(animate);
+                        }
+                      };
+
+                      requestAnimationFrame(animate);
+                    }
+                  }}
+                  className="absolute bottom-4 right-4 p-2.5 rounded-full bg-primary text-primary-foreground shadow-lg transition-all duration-300 hover:bg-primary/90 z-50"
+                  style={{ opacity: 0, pointerEvents: 'none', transform: 'translateY(16px)' }}
+                  title="回到顶部"
+                >
+                  <ChevronUp className="h-5 w-5" />
+                </button>
+              </div>
             </>
           ) : (
             <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -471,31 +518,30 @@ const CollapseContext = createContext<{
  * Expand/Collapse Controls Component
  */
 interface ExpandCollapseControlsProps {
-  sessions: Session[];
+  allExpanded: boolean;
+  allCollapsed: boolean;
 }
 
-function ExpandCollapseControls({ sessions }: ExpandCollapseControlsProps) {
-  const { expandAll, collapseAll, allExpanded, allCollapsed } = useContext(CollapseContext);
-
-  if (sessions.length === 0) return null;
+function ExpandCollapseControls({ allExpanded, allCollapsed }: ExpandCollapseControlsProps) {
+  const { expandAll, collapseAll } = useContext(CollapseContext);
 
   return (
-    <div className="flex items-center justify-end gap-1 p-2 border-b border-border/50 bg-card shrink-0">
+    <div className="flex items-center gap-0.5">
       <button
         onClick={expandAll}
         disabled={allExpanded}
-        className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
+        className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
         title="Expand All"
       >
-        <ChevronsDown className="h-4 w-4" />
+        <ChevronsDown className="h-3.5 w-3.5" />
       </button>
       <button
         onClick={collapseAll}
         disabled={allCollapsed}
-        className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
+        className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
         title="Collapse All"
       >
-        <ChevronsUp className="h-4 w-4" />
+        <ChevronsUp className="h-3.5 w-3.5" />
       </button>
     </div>
   );
@@ -509,22 +555,23 @@ function GroupedSessionList({ sessions, selectedSession, onSelect, t }: GroupedS
     return dateB - dateA;
   });
 
-  const { collapsedDates, toggleDate } = useContext(CollapseContext);
+  const { collapsedDates, toggleDate, allExpanded, allCollapsed } = useContext(CollapseContext);
 
   return (
     <div className="space-y-1">
-      {sortedDates.map((dateKey) => {
+      {sortedDates.map((dateKey, index) => {
         const isCollapsed = collapsedDates.has(dateKey);
         const sessionsCount = grouped.get(dateKey)!.length;
+        const isFirst = index === 0;
 
         return (
           <div key={dateKey}>
             {/* Date Header - Clickable */}
-            <button
-              onClick={() => toggleDate(dateKey)}
-              className="w-full sticky top-0 bg-card z-10 py-2 px-2 flex items-center justify-between hover:bg-accent/50 rounded-md transition-colors"
-            >
-              <div className="flex items-center gap-2">
+            <div className="w-full sticky top-0 bg-card z-10 py-2 px-2 flex items-center justify-between hover:bg-accent/50 rounded-md transition-colors">
+              <button
+                onClick={() => toggleDate(dateKey)}
+                className="flex items-center gap-2 flex-1 text-left"
+              >
                 {isCollapsed ? (
                   <ChevronRight className="h-4 w-4 text-foreground" />
                 ) : (
@@ -533,9 +580,14 @@ function GroupedSessionList({ sessions, selectedSession, onSelect, t }: GroupedS
                 <h4 className="text-sm font-semibold text-foreground">
                   {formatDateGroupLabel(dateKey, t)}
                 </h4>
+              </button>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground font-medium">{sessionsCount}</span>
+                {isFirst && (
+                  <ExpandCollapseControls allExpanded={allExpanded} allCollapsed={allCollapsed} />
+                )}
               </div>
-              <span className="text-sm text-muted-foreground font-medium">{sessionsCount}</span>
-            </button>
+            </div>
 
             {/* Sessions for this date */}
             {!isCollapsed && (
@@ -577,29 +629,28 @@ function SessionCard({ session, isSelected, onClick }: SessionCardProps) {
       onClick={onClick}
       className={`w-full text-left py-1.5 px-2 rounded transition-all duration-150 relative group min-w-0 ${
         isSelected
-          ? 'bg-primary/10 text-primary shadow-sm shadow-primary/20'
+          ? 'bg-indigo-500/15 text-indigo-600 shadow-sm shadow-indigo-500/20'
           : 'hover:bg-accent/30 text-foreground'
       }`}
     >
       {/* Left indicator bar for selected state - full height */}
       {isSelected && (
-        <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary rounded-r-full" />
+        <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-indigo-500 rounded-r-full" />
       )}
 
       {/* Title row: Message Preview + Time/Count */}
       <div className="flex items-center justify-between gap-2 min-w-0">
-        {/* Title: First Message Preview */}
-        <p
-          className={`text-xs truncate flex-1 min-w-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}
-        >
-          {session.firstMessage || session.fileName || 'Untitled Session'}
-        </p>
+        {/* Title: First Message Preview with Marquee */}
+        <MarqueeText
+          text={session.firstMessage || session.fileName || 'Untitled Session'}
+          className={`text-xs flex-1 min-w-0 ${isSelected ? 'text-indigo-600' : 'text-muted-foreground'}`}
+        />
 
         {/* Time and Count - right aligned with tag style */}
         <div className="flex items-center gap-1.5 shrink-0">
           <span
             className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
-              isSelected ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
+              isSelected ? 'bg-indigo-500/20 text-indigo-600' : 'bg-muted text-muted-foreground'
             }`}
           >
             <Clock className="h-3 w-3" />
@@ -607,7 +658,7 @@ function SessionCard({ session, isSelected, onClick }: SessionCardProps) {
           </span>
           <span
             className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
-              isSelected ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
+              isSelected ? 'bg-indigo-500/20 text-indigo-600' : 'bg-muted text-muted-foreground'
             }`}
           >
             <MessageSquare className="h-3 w-3" />
