@@ -5,7 +5,8 @@
     "skills": "Skills",
     "prompts": "Prompts",
     "proxy": "Proxy",
-    "settings": "Settings"
+    "settings": "Settings",
+    "sessions": "Sessions"
   },
   "providers": {
     "title": "Providers",
@@ -328,7 +329,21 @@
     "title": "Settings",
     "description": "Configure application settings and preferences",
     "language": "Language",
-    "selectLanguage": "Select a language"
+    "selectLanguage": "Select a language",
+    "generalTitle": "General",
+    "generalDescription": "Basic application settings",
+    "navigationTitle": "Navigation",
+    "navigationDescription": "Customize which sections appear in the sidebar",
+    "navigationHint": "At least one navigation item must be enabled. When only one item is shown, the sidebar will be compact.",
+    "reset": "Reset",
+    "nav": {
+      "sessions": "Sessions",
+      "sessionsDesc": "View conversation history from AI applications",
+      "mcp": "MCP Servers",
+      "mcpDesc": "Manage Model Context Protocol servers",
+      "skills": "Skills",
+      "skillsDesc": "Discover and manage AI skills"
+    }
   },
   "common": {
     "buttons": {

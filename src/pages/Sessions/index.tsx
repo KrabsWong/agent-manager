@@ -7,7 +7,6 @@
 import { useState, createContext, useContext, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  History,
   AlertCircle,
   Copy,
   Check,
@@ -15,6 +14,9 @@ import {
   ChevronRight,
   Play,
   AlertTriangle,
+  History,
+  ChevronsDown,
+  ChevronsUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
@@ -121,10 +123,7 @@ export function SessionsPage() {
       <div className="flex items-center justify-between shrink-0">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <History className="h-6 w-6" />
-              {t('sessions.title') || 'Sessions'}
-            </h1>
+            <h1 className="text-2xl font-bold">{t('sessions.title') || 'Sessions'}</h1>
             <span className="text-sm text-muted-foreground">
               {t('sessions.description') || 'View conversation history from your AI applications'}
             </span>
@@ -204,7 +203,7 @@ export function SessionsPage() {
         >
           <div className="flex flex-col min-h-0 border rounded-lg bg-card overflow-hidden w-[360px]">
             {isSupported && sessions && sessions.length > 0 && (
-              <ExpandCollapseControls sessions={sessions} t={t} />
+              <ExpandCollapseControls sessions={sessions} />
             )}
             <ScrollArea className="flex-1 min-w-0">
               <div className="p-4 space-y-2 min-w-0">
@@ -471,30 +470,30 @@ const CollapseContext = createContext<{
  */
 interface ExpandCollapseControlsProps {
   sessions: Session[];
-  t: (key: string) => string;
 }
 
-function ExpandCollapseControls({ sessions, t }: ExpandCollapseControlsProps) {
+function ExpandCollapseControls({ sessions }: ExpandCollapseControlsProps) {
   const { expandAll, collapseAll, allExpanded, allCollapsed } = useContext(CollapseContext);
 
   if (sessions.length === 0) return null;
 
   return (
-    <div className="flex items-center justify-end gap-2 p-3 border-b border-border/50 bg-card shrink-0">
+    <div className="flex items-center justify-end gap-1 p-2 border-b border-border/50 bg-card shrink-0">
       <button
         onClick={expandAll}
         disabled={allExpanded}
-        className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
+        title="Expand All"
       >
-        {t('sessions.expandAll') || 'Expand All'}
+        <ChevronsDown className="h-4 w-4" />
       </button>
-      <span className="text-muted-foreground text-xs">|</span>
       <button
         onClick={collapseAll}
         disabled={allCollapsed}
-        className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
+        title="Collapse All"
       >
-        {t('sessions.collapseAll') || 'Collapse All'}
+        <ChevronsUp className="h-4 w-4" />
       </button>
     </div>
   );
@@ -587,22 +586,25 @@ function SessionCard({ session, isSelected, onClick }: SessionCardProps) {
         <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary rounded-r-full" />
       )}
 
-      {/* Title: First Message Preview */}
-      <p
-        className={`text-xs truncate block ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}
-      >
-        {session.firstMessage || session.fileName || 'Untitled Session'}
-      </p>
+      {/* Title row: Message Preview + Time/Count */}
+      <div className="flex items-center justify-between gap-2 min-w-0">
+        {/* Title: First Message Preview */}
+        <p
+          className={`text-xs truncate flex-1 min-w-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}
+        >
+          {session.firstMessage || session.fileName || 'Untitled Session'}
+        </p>
 
-      {/* Metadata - more compact */}
-      <div
-        className={`flex items-center gap-2 text-[10px] mt-1 min-w-0 ${isSelected ? 'text-primary/70' : 'text-muted-foreground/70'}`}
-      >
-        <span className="truncate">{formatTime(session.updatedAt)}</span>
-        <span>·</span>
-        <span className="truncate">
-          {session.messageCount} {t('sessions.messages') || 'messages'}
-        </span>
+        {/* Time and Count - right aligned */}
+        <div
+          className={`flex items-center gap-1.5 text-[10px] shrink-0 ${isSelected ? 'text-primary/70' : 'text-muted-foreground/70'}`}
+        >
+          <span>{formatTime(session.updatedAt)}</span>
+          <span>·</span>
+          <span>
+            {session.messageCount} {t('sessions.messages') || 'messages'}
+          </span>
+        </div>
       </div>
     </button>
   );

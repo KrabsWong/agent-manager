@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Plus, FileText, Download, AlertCircle } from 'lucide-react';
+import { Plus, Download, AlertCircle, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 import {
@@ -98,10 +98,7 @@ export function PromptsPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <FileText className="h-6 w-6" />
-            {t('prompts.title')}
-          </h1>
+          <h1 className="text-2xl font-bold">{t('prompts.title')}</h1>
           <p className="text-muted-foreground mt-1">{t('prompts.description')}</p>
         </div>
         <div className="flex items-center gap-2">

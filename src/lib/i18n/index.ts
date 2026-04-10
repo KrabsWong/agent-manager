@@ -155,6 +155,19 @@ const enTranslations = {
     themeLight: 'Light',
     themeDark: 'Dark',
     themeSystem: 'System',
+    navigationTitle: 'Navigation',
+    navigationDescription: 'Customize which sections appear in the sidebar',
+    navigationHint:
+      'At least one navigation item must be enabled. When only one item is shown, the sidebar will be compact.',
+    reset: 'Reset',
+    nav: {
+      sessions: 'Sessions',
+      sessionsDesc: 'View conversation history from AI applications',
+      mcp: 'MCP Servers',
+      mcpDesc: 'Manage Model Context Protocol servers',
+      skills: 'Skills',
+      skillsDesc: 'Discover and manage AI skills',
+    },
   },
   proxy: {
     title: 'Proxy',
@@ -487,6 +500,18 @@ const zhTranslations = {
     themeLight: '浅色',
     themeDark: '深色',
     themeSystem: '跟随系统',
+    navigationTitle: '导航',
+    navigationDescription: '自定义要在侧边栏中显示的板块',
+    navigationHint: '至少必须启用一个导航项。仅显示一个项目时，侧边栏将会更紧凑。',
+    reset: '重置',
+    nav: {
+      sessions: '会话记录',
+      sessionsDesc: '查看 AI 应用程序的对话历史',
+      mcp: 'MCP 服务器',
+      mcpDesc: '管理模型上下文协议服务器',
+      skills: '技能',
+      skillsDesc: '发现和管理 AI 技能',
+    },
   },
   proxy: {
     title: '代理',

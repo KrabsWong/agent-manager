@@ -5,7 +5,8 @@
     "skills": "技能",
     "prompts": "提示词",
     "proxy": "代理",
-    "settings": "设置"
+    "settings": "设置",
+    "sessions": "会话记录"
   },
   "providers": {
     "title": "提供商",
@@ -328,7 +329,21 @@
     "title": "设置",
     "description": "配置应用程序设置和偏好",
     "language": "语言",
-    "selectLanguage": "选择语言"
+    "selectLanguage": "选择语言",
+    "generalTitle": "通用",
+    "generalDescription": "基本应用程序设置",
+    "navigationTitle": "导航",
+    "navigationDescription": "自定义要在侧边栏中显示的板块",
+    "navigationHint": "至少必须启用一个导航项。仅显示一个项目时，侧边栏将会更紧凑。",
+    "reset": "重置",
+    "nav": {
+      "sessions": "会话记录",
+      "sessionsDesc": "查看 AI 应用程序的对话历史",
+      "mcp": "MCP 服务器",
+      "mcpDesc": "管理模型上下文协议服务器",
+      "skills": "技能",
+      "skillsDesc": "发现和管理 AI 技能"
+    }
   },
   "common": {
     "buttons": {
