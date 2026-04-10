@@ -7,14 +7,7 @@
 
 import { useRef, useMemo, useContext, createContext, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import {
-  ChevronDown,
-  ChevronRight,
-  Clock,
-  MessageSquare,
-  ChevronsDown,
-  ChevronsUp,
-} from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronsDown, ChevronsUp } from 'lucide-react';
 import { MarqueeText } from '@/components/MarqueeText';
 import type { Session } from '@/types';
 

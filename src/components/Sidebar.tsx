@@ -42,7 +42,7 @@ export function Sidebar() {
         <div className={cn('flex items-center justify-center pb-4', isCollapsed ? 'px-0' : 'px-6')}>
           <div className={cn('flex items-center', isCollapsed ? 'gap-0' : 'gap-3')}>
             <img
-              src="/logo.png"
+              src="./logo.png"
               alt="Yes Sessions Logo"
               className={cn(
                 'rounded-lg shadow-lg transition-all duration-300',
