@@ -2,6 +2,8 @@ import { useTranslation } from 'react-i18next';
 import { History, Puzzle, Palette, RotateCcw, Type } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
+import { ColorPicker } from '@/components/ColorPicker';
+import { useTheme } from '@/components/ThemeProvider';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -27,6 +29,7 @@ const navOptions: { id: NavItem; label: string; icon: React.ElementType; descrip
 export function SettingsPage() {
   const { t } = useTranslation();
   const { enabledItems, toggleItem, resetToDefault } = useNavigationStore();
+  const { accentColor, setAccentColor } = useTheme();
 
   return (
     <div className="space-y-6">
@@ -41,6 +44,9 @@ export function SettingsPage() {
           <LanguageSwitcher />
           <div className="border-t pt-6">
             <ThemeSwitcher />
+          </div>
+          <div className="border-t pt-6">
+            <ColorPicker value={accentColor} onChange={setAccentColor} />
           </div>
         </CardContent>
       </Card>

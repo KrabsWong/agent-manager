@@ -1,13 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import {
-  Puzzle,
-  Palette,
-  History,
-  Settings,
-  MessagesSquare,
-  PanelLeftClose,
-  PanelLeftOpen,
-} from 'lucide-react';
+import { Puzzle, Palette, History, Settings, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { useSidebarStore } from '@/stores/sidebar';
@@ -49,9 +41,14 @@ export function Sidebar() {
       <div className="pt-8">
         <div className={cn('flex items-center justify-center pb-4', isCollapsed ? 'px-0' : 'px-6')}>
           <div className={cn('flex items-center', isCollapsed ? 'gap-0' : 'gap-3')}>
-            <div className="relative flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 via-purple-500 to-pink-500 shadow-lg shadow-purple-500/20 flex-shrink-0">
-              <MessagesSquare className="h-4 w-4 text-white" />
-            </div>
+            <img
+              src="/logo.png"
+              alt="Yes Sessions Logo"
+              className={cn(
+                'rounded-lg shadow-lg transition-all duration-300',
+                isCollapsed ? 'w-9 h-9' : 'w-10 h-10'
+              )}
+            />
             <span
               className={cn(
                 'text-lg font-semibold whitespace-nowrap overflow-hidden transition-all duration-300 ease-out',

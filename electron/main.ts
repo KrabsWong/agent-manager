@@ -23,6 +23,46 @@ log.initialize();
 
 // Keep a global reference of the window object
 let mainWindow: BrowserWindow | null = null;
+let splashWindow: BrowserWindow | null = null;
+
+// Create splash screen
+const createSplashWindow = () => {
+  splashWindow = new BrowserWindow({
+    width: 400,
+    height: 500,
+    frame: false,
+    alwaysOnTop: true,
+    transparent: true,
+    resizable: false,
+    show: false,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  // Get user accent color preference
+  const settings = configStore.getSettings();
+  const accentColor = settings.accentColor || 'default';
+  const theme = settings.theme || 'system';
+
+  // Build splash URL with color params
+  const splashPath = process.env.VITE_DEV_SERVER_URL
+    ? path.join(__dirname, '../public/splash.html')
+    : path.join(app.getAppPath(), 'dist', 'splash.html');
+
+  const splashUrl = new URL(`file://${splashPath}`);
+  splashUrl.searchParams.set('color', accentColor);
+  splashUrl.searchParams.set('theme', theme);
+
+  splashWindow.loadURL(splashUrl.toString());
+
+  splashWindow.once('ready-to-show', () => {
+    splashWindow?.show();
+  });
+
+  log.info('Splash window created with accent color:', accentColor);
+};
 
 const createWindow = () => {
   // Get saved window bounds
@@ -72,16 +112,26 @@ const createWindow = () => {
     configStore.setWindowBounds({ maximized: false });
   });
 
-  // Show window when ready
+  // Show window when ready and close splash
   mainWindow.once('ready-to-show', () => {
-    mainWindow?.show();
+    // Ensure splash shows for at least 2.5 seconds
+    setTimeout(() => {
+      // Close splash window if exists
+      if (splashWindow && !splashWindow.isDestroyed()) {
+        splashWindow.close();
+        splashWindow = null;
+        log.info('Splash window closed');
+      }
 
-    // Check if first run
-    if (configStore.isFirstRun()) {
-      log.info('First run detected');
-      // Could show welcome dialog here
-      configStore.setFirstRunComplete();
-    }
+      mainWindow?.show();
+
+      // Check if first run
+      if (configStore.isFirstRun()) {
+        log.info('First run detected');
+        // Could show welcome dialog here
+        configStore.setFirstRunComplete();
+      }
+    }, 2500);
   });
 
   // Load app
@@ -107,6 +157,9 @@ const createWindow = () => {
 const initializeApp = () => {
   try {
     log.info('Initializing application...');
+
+    // Create splash window first
+    createSplashWindow();
 
     // Initialize database first (critical path)
     dbManager.initialize();

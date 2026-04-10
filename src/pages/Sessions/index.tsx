@@ -628,14 +628,12 @@ function SessionCard({ session, isSelected, onClick }: SessionCardProps) {
     <button
       onClick={onClick}
       className={`w-full text-left py-1.5 px-2 rounded transition-all duration-150 relative group min-w-0 ${
-        isSelected
-          ? 'bg-indigo-500/15 text-indigo-600 shadow-sm shadow-indigo-500/20'
-          : 'hover:bg-accent/30 text-foreground'
+        isSelected ? 'bg-primary/15 text-primary shadow-sm' : 'hover:bg-accent/30 text-foreground'
       }`}
     >
       {/* Left indicator bar for selected state - full height */}
       {isSelected && (
-        <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-indigo-500 rounded-r-full" />
+        <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary rounded-r-full" />
       )}
 
       {/* Title row: Message Preview + Time/Count */}
@@ -643,14 +641,14 @@ function SessionCard({ session, isSelected, onClick }: SessionCardProps) {
         {/* Title: First Message Preview with Marquee */}
         <MarqueeText
           text={session.firstMessage || session.fileName || 'Untitled Session'}
-          className={`text-xs flex-1 min-w-0 ${isSelected ? 'text-indigo-600' : 'text-muted-foreground'}`}
+          className={`text-xs flex-1 min-w-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}
         />
 
         {/* Time and Count - right aligned with tag style */}
         <div className="flex items-center gap-1.5 shrink-0">
           <span
             className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
-              isSelected ? 'bg-indigo-500/20 text-indigo-600' : 'bg-muted text-muted-foreground'
+              isSelected ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
             }`}
           >
             <Clock className="h-3 w-3" />
@@ -658,7 +656,7 @@ function SessionCard({ session, isSelected, onClick }: SessionCardProps) {
           </span>
           <span
             className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
-              isSelected ? 'bg-indigo-500/20 text-indigo-600' : 'bg-muted text-muted-foreground'
+              isSelected ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
             }`}
           >
             <MessageSquare className="h-3 w-3" />

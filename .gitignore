@@ -1,21 +1,45 @@
-.DS_Store
+# Dependencies
 node_modules
+
+# Build outputs
 dist
 dist-electron
+
+# Release artifacts
 release
-*.log
+
+# Environment files
 .env
 .env.local
+.env.*.local
+
+# IDE
 .vscode
 .idea
+
+# Logs
+*.log
+logs/
+
+# Database
 *.db
 *.db-journal
+
+# Coverage
 coverage
 .nyc_output
-out/
-build/
+
+# TypeScript
 *.tsbuildinfo
+
+# System files
+.DS_Store
+Thumbs.db
 
 # Development screenshots
 detail.png
 sidebar.png
+
+# Temporary files
+*.tmp
+*.temp

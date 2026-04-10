@@ -132,10 +132,34 @@ export interface SkillRepo {
 }
 
 // ============ Settings Types ============
+export type AccentColor =
+  | 'default'
+  | 'pink'
+  | 'rose'
+  | 'red'
+  | 'orange'
+  | 'amber'
+  | 'yellow'
+  | 'lime'
+  | 'green'
+  | 'emerald'
+  | 'teal'
+  | 'cyan'
+  | 'sky'
+  | 'blue'
+  | 'indigo'
+  | 'violet'
+  | 'purple'
+  | 'fuchsia'
+  | 'slate'
+  | 'zinc'
+  | 'neutral';
+
 export interface AppSettings {
   // General
   language: 'en' | 'zh' | 'ja';
   theme: 'light' | 'dark' | 'system';
+  accentColor: AccentColor;
   autoStart: boolean;
   lightweightMode: boolean;
 
@@ -162,6 +186,7 @@ export interface AppSettings {
 export const DEFAULT_SETTINGS: AppSettings = {
   language: 'en',
   theme: 'system',
+  accentColor: 'default',
   autoStart: false,
   lightweightMode: false,
   proxyEnabled: false,

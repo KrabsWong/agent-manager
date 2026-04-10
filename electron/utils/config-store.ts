@@ -30,6 +30,7 @@ const schema = {
     properties: {
       language: { type: 'string', default: 'en' },
       theme: { type: 'string', default: 'system' },
+      accentColor: { type: 'string', default: 'default' },
       autoStart: { type: 'boolean', default: false },
       lightweightMode: { type: 'boolean', default: false },
       proxyEnabled: { type: 'boolean', default: false },

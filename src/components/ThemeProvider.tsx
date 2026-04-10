@@ -1,5 +1,11 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import type { AppSettings } from '@/types';
+import {
+  type AccentColor,
+  defaultAccentColor,
+  applyAccentColor,
+  resetAccentColor,
+} from '@/lib/theme/colors';
 
 type Theme = AppSettings['theme'];
 type ResolvedTheme = 'light' | 'dark';
@@ -9,6 +15,9 @@ interface ThemeContextType {
   resolvedTheme: ResolvedTheme;
   setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
+  accentColor: AccentColor;
+  setAccentColor: (color: AccentColor) => void;
+  resetAccentColor: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -20,27 +29,37 @@ interface ThemeProviderProps {
 export function ThemeProvider({ children }: ThemeProviderProps) {
   const [theme, setThemeState] = useState<Theme>('system');
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>('light');
+  const [accentColor, setAccentColorState] = useState<AccentColor>(defaultAccentColor);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load theme from settings on mount
+  // Load theme and accent color from settings on mount
   useEffect(() => {
-    const loadTheme = async () => {
+    const loadSettings = async () => {
       try {
         const settings = (await window.electronAPI.invoke('settings:get')) as
-          | { theme?: Theme }
+          | { theme?: Theme; accentColor?: AccentColor }
           | undefined;
+
         if (settings?.theme) {
           setThemeState(settings.theme);
         }
+        if (settings?.accentColor) {
+          setAccentColorState(settings.accentColor);
+        }
+        setIsLoaded(true);
       } catch (error) {
         console.error('Failed to load theme settings:', error);
+        setIsLoaded(true);
       }
     };
 
-    loadTheme();
+    loadSettings();
   }, []);
 
-  // Apply theme to document
+  // Apply theme and accent color to document
   useEffect(() => {
+    if (!isLoaded) return;
+
     const applyTheme = () => {
       let newResolvedTheme: ResolvedTheme;
 
@@ -60,10 +79,13 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       } else {
         document.documentElement.classList.remove('dark');
       }
+
+      // Apply accent color
+      applyAccentColor(accentColor, newResolvedTheme === 'dark');
     };
 
     applyTheme();
-  }, [theme]);
+  }, [theme, accentColor, isLoaded]);
 
   // Listen for system theme changes
   useEffect(() => {
@@ -78,11 +100,13 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       } else {
         document.documentElement.classList.remove('dark');
       }
+      // Re-apply accent color with new theme
+      applyAccentColor(accentColor, newTheme === 'dark');
     };
 
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, [theme]);
+  }, [theme, accentColor]);
 
   const setTheme = async (newTheme: Theme) => {
     try {
@@ -90,6 +114,27 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       await window.electronAPI.invoke('settings:update', { theme: newTheme });
     } catch (error) {
       console.error('Failed to save theme:', error);
+    }
+  };
+
+  const setAccentColor = async (newColor: AccentColor) => {
+    try {
+      setAccentColorState(newColor);
+      await window.electronAPI.invoke('settings:update', { accentColor: newColor });
+      // Apply immediately
+      applyAccentColor(newColor, resolvedTheme === 'dark');
+    } catch (error) {
+      console.error('Failed to save accent color:', error);
+    }
+  };
+
+  const handleResetAccentColor = () => {
+    try {
+      setAccentColorState(defaultAccentColor);
+      window.electronAPI.invoke('settings:update', { accentColor: defaultAccentColor });
+      resetAccentColor();
+    } catch (error) {
+      console.error('Failed to reset accent color:', error);
     }
   };
 
@@ -101,7 +146,17 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, resolvedTheme, setTheme, toggleTheme }}>
+    <ThemeContext.Provider
+      value={{
+        theme,
+        resolvedTheme,
+        setTheme,
+        toggleTheme,
+        accentColor,
+        setAccentColor,
+        resetAccentColor: handleResetAccentColor,
+      }}
+    >
       {children}
     </ThemeContext.Provider>
   );

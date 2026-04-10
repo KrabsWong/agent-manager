@@ -330,6 +330,8 @@
     "description": "配置应用程序设置和偏好",
     "language": "语言",
     "selectLanguage": "选择语言",
+    "accentColor": "主色调",
+    "selectAccentColor": "选择主色调",
     "generalTitle": "通用",
     "generalDescription": "基本应用程序设置",
     "navigationTitle": "导航",
@@ -343,6 +345,29 @@
       "mcpDesc": "管理模型上下文协议服务器",
       "skills": "技能",
       "skillsDesc": "发现和管理 AI 技能"
+    },
+    "colors": {
+      "default": "默认",
+      "pink": "粉色",
+      "rose": "玫瑰",
+      "red": "红色",
+      "orange": "橙色",
+      "amber": "琥珀",
+      "yellow": "黄色",
+      "lime": "青柠",
+      "green": "绿色",
+      "emerald": "翠绿",
+      "teal": "青蓝",
+      "cyan": "青色",
+      "sky": "天蓝",
+      "blue": "蓝色",
+      "indigo": "靛蓝",
+      "violet": "紫罗兰",
+      "purple": "紫色",
+      "fuchsia": "洋红",
+      "slate": "石板",
+      "zinc": "锌色",
+      "neutral": "中性"
     }
   },
   "common": {

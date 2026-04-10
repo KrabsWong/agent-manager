@@ -330,6 +330,8 @@
     "description": "Configure application settings and preferences",
     "language": "Language",
     "selectLanguage": "Select a language",
+    "accentColor": "Accent Color",
+    "selectAccentColor": "Select Accent Color",
     "generalTitle": "General",
     "generalDescription": "Basic application settings",
     "navigationTitle": "Navigation",
@@ -343,6 +345,29 @@
       "mcpDesc": "Manage Model Context Protocol servers",
       "skills": "Skills",
       "skillsDesc": "Discover and manage AI skills"
+    },
+    "colors": {
+      "default": "Default",
+      "pink": "Pink",
+      "rose": "Rose",
+      "red": "Red",
+      "orange": "Orange",
+      "amber": "Amber",
+      "yellow": "Yellow",
+      "lime": "Lime",
+      "green": "Green",
+      "emerald": "Emerald",
+      "teal": "Teal",
+      "cyan": "Cyan",
+      "sky": "Sky",
+      "blue": "Blue",
+      "indigo": "Indigo",
+      "violet": "Violet",
+      "purple": "Purple",
+      "fuchsia": "Fuchsia",
+      "slate": "Slate",
+      "zinc": "Zinc",
+      "neutral": "Neutral"
     }
   },
   "common": {
