@@ -20,7 +20,7 @@ interface McpCardProps {
   isToggling?: boolean;
 }
 
-const APP_ORDER: AppType[] = ['claude', 'codex', 'gemini', 'opencode', 'openclaw'];
+const APP_ORDER: AppType[] = ['claude', 'codex', 'codebuddy', 'gemini', 'opencode', 'openclaw'];
 
 export function McpCard({ server, onEdit, onDelete, onToggleApp, isToggling }: McpCardProps) {
   const getTransportIcon = () => {

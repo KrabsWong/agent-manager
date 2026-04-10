@@ -109,7 +109,7 @@ export class McpService {
       );
 
       // Initialize app enablements (all disabled by default)
-      const apps: AppType[] = ['claude', 'codex', 'gemini', 'opencode', 'openclaw'];
+      const apps: AppType[] = ['claude', 'codex', 'codebuddy', 'gemini', 'opencode', 'openclaw'];
       const appStmt = this.db.prepare(`
         INSERT INTO mcp_server_apps (server_id, app_type, enabled) VALUES (?, ?, 0)
       `);
@@ -257,6 +257,7 @@ export class McpService {
     const result: Record<string, boolean> = {
       claude: false,
       codex: false,
+      codebuddy: false,
       gemini: false,
       opencode: false,
       openclaw: false,

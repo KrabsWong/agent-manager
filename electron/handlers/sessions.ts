@@ -7,6 +7,7 @@
 import { ipcRegistry } from '../ipc/registry';
 import { claudeSessionService } from '../services/session/claude';
 import { opencodeSessionService } from '../services/session/opencode';
+import { codebuddySessionService } from '../services/session/codebuddy';
 import { resumeSessionInTerminal, getTerminalInfo } from '../services/terminal/launcher';
 import type { AppType } from '../../src/types';
 import log from 'electron-log';
@@ -26,6 +27,9 @@ export function registerSessionsHandlers(): void {
       if (appType === 'opencode') {
         return await opencodeSessionService.getAllSessions();
       }
+      if (appType === 'codebuddy') {
+        return await codebuddySessionService.getAllSessions();
+      }
       // Return empty array for unsupported apps
       return [];
     } catch (error) {
@@ -44,6 +48,9 @@ export function registerSessionsHandlers(): void {
       }
       if (appType === 'opencode') {
         return await opencodeSessionService.getSessionDetail(sessionId);
+      }
+      if (appType === 'codebuddy') {
+        return await codebuddySessionService.getSessionDetail(sessionId);
       }
       // Try to infer from sessionId format or try both services
       const claudeSession = claudeSessionService.getSessionDetail(sessionId);
@@ -68,6 +75,9 @@ export function registerSessionsHandlers(): void {
       if (appType === 'opencode') {
         return await opencodeSessionService.getStats();
       }
+      if (appType === 'codebuddy') {
+        return await codebuddySessionService.getStats();
+      }
       return { totalSessions: 0, totalMessages: 0 };
     } catch (error) {
       log.error('Failed to get session stats:', error);
@@ -85,6 +95,7 @@ export function registerSessionsHandlers(): void {
       gemini: { supported: false, status: 'coming_soon' },
       opencode: { supported: opencodeSessionService.isAvailable(), status: 'full' },
       openclaw: { supported: false, status: 'coming_soon' },
+      codebuddy: { supported: codebuddySessionService.isAvailable(), status: 'full' },
     };
 
     return supportMap[appType] || { supported: false, status: 'not_supported' };

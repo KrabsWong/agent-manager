@@ -19,6 +19,7 @@ const GEMINI_ENV_PATH = path.join(os.homedir(), '.gemini', '.env');
 const GEMINI_SETTINGS_PATH = path.join(os.homedir(), '.gemini', 'settings.json');
 const OPENCODE_CONFIG_PATH = path.join(os.homedir(), '.opencode', 'settings.json');
 const OPENCLAW_CONFIG_PATH = path.join(os.homedir(), '.openclaw', 'settings.json');
+const CODEBUDDY_CONFIG_PATH = path.join(os.homedir(), '.codebuddy', 'settings.json');
 
 /**
  * Read JSON config file
@@ -259,6 +260,28 @@ function convertToOpenClawFormat(provider: Provider): Record<string, any> {
 }
 
 /**
+ * Convert provider config to Codebuddy format
+ * Codebuddy uses: ~/.codebuddy/settings.json
+ */
+function convertToCodebuddyFormat(provider: Provider): Record<string, any> {
+  const settings = provider.settingsConfig;
+  const providerKey =
+    (settings.providerKey as string) || provider.name.toLowerCase().replace(/\s+/g, '_');
+
+  const config: Record<string, any> = {
+    providerKey,
+    enabled: settings.enabled ?? true,
+    options: {
+      apiKey: settings.apiKey as string,
+      baseUrl: settings.baseUrl as string,
+      model: settings.model as string,
+    },
+  };
+
+  return config;
+}
+
+/**
  * Sync provider config to app config file(s)
  */
 export function syncProviderToApp(provider: Provider): void {
@@ -353,6 +376,19 @@ export function syncProviderToApp(provider: Provider): void {
       break;
     }
 
+    case 'codebuddy': {
+      const providerConfig = convertToCodebuddyFormat(provider);
+      const appConfig = readJsonConfig(CODEBUDDY_CONFIG_PATH);
+
+      // Codebuddy uses provider key structure similar to OpenCode
+      const providerKey = providerConfig.providerKey;
+      if (!appConfig.providers) appConfig.providers = {};
+      appConfig.providers[providerKey] = providerConfig.options;
+
+      writeJsonConfig(CODEBUDDY_CONFIG_PATH, appConfig);
+      break;
+    }
+
     default:
       log.warn(`Unknown app type: ${appType}`);
   }
@@ -423,6 +459,18 @@ export function removeProviderFromApp(provider: Provider): void {
           (p: any) => p.name !== providerName
         );
         writeJsonConfig(OPENCLAW_CONFIG_PATH, appConfig);
+      }
+      break;
+    }
+
+    case 'codebuddy': {
+      const appConfig = readJsonConfig(CODEBUDDY_CONFIG_PATH);
+      const providerKey =
+        (settings.providerKey as string) || provider.name.toLowerCase().replace(/\s+/g, '_');
+
+      if (appConfig.providers) {
+        delete appConfig.providers[providerKey];
+        writeJsonConfig(CODEBUDDY_CONFIG_PATH, appConfig);
       }
       break;
     }

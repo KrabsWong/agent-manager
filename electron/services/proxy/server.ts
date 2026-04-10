@@ -24,7 +24,14 @@ export class ProxyServer {
     try {
       // Initialize prompt service to ensure it's available
       getPromptService();
-      const appTypes: AppType[] = ['claude', 'codex', 'gemini', 'opencode', 'openclaw'];
+      const appTypes: AppType[] = [
+        'claude',
+        'codex',
+        'codebuddy',
+        'gemini',
+        'opencode',
+        'openclaw',
+      ];
 
       // Set up failover queues for each app type
       for (const appType of appTypes) {
@@ -267,7 +274,14 @@ export class ProxyServer {
     // Try to get from header first
     const appTypeHeader = req.headers['x-app-type'] as string;
     if (appTypeHeader) {
-      const validAppTypes: AppType[] = ['claude', 'codex', 'gemini', 'opencode', 'openclaw'];
+      const validAppTypes: AppType[] = [
+        'claude',
+        'codex',
+        'codebuddy',
+        'gemini',
+        'opencode',
+        'openclaw',
+      ];
       if (validAppTypes.includes(appTypeHeader as AppType)) {
         return appTypeHeader as AppType;
       }

@@ -19,6 +19,7 @@ import log from 'electron-log';
 const CONFIG_PATHS: Record<AppType, string> = {
   claude: path.join(os.homedir(), 'Library/Application Support/Claude/settings.json'),
   codex: path.join(os.homedir(), '.codex/settings.json'),
+  codebuddy: path.join(os.homedir(), '.codebuddy/settings.json'),
   gemini: path.join(os.homedir(), '.gemini/settings.json'),
   opencode: path.join(os.homedir(), '.opencode/settings.json'),
   openclaw: path.join(os.homedir(), '.openclaw/settings.json'),
@@ -30,6 +31,7 @@ const CONFIG_PATHS: Record<AppType, string> = {
 const PROXY_CONFIG_KEYS: Record<AppType, string> = {
   claude: 'apiUrl',
   codex: 'apiBaseUrl',
+  codebuddy: 'proxyUrl',
   gemini: 'proxyUrl',
   opencode: 'proxyUrl',
   openclaw: 'proxyUrl',
@@ -127,7 +129,7 @@ export class ProxyConfigAdapter {
    * Enable proxy for all apps
    */
   enableForAll(proxyUrl: string): void {
-    const apps: AppType[] = ['claude', 'codex', 'gemini', 'opencode', 'openclaw'];
+    const apps: AppType[] = ['claude', 'codex', 'codebuddy', 'gemini', 'opencode', 'openclaw'];
 
     for (const app of apps) {
       try {
@@ -145,7 +147,7 @@ export class ProxyConfigAdapter {
    * Disable proxy for all apps
    */
   disableForAll(): void {
-    const apps: AppType[] = ['claude', 'codex', 'gemini', 'opencode', 'openclaw'];
+    const apps: AppType[] = ['claude', 'codex', 'codebuddy', 'gemini', 'opencode', 'openclaw'];
 
     for (const app of apps) {
       try {

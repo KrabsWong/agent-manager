@@ -52,6 +52,9 @@ export class SkillsConfigAdapter {
       case 'openclaw':
         return path.join(home, '.openclaw', 'skills');
 
+      case 'codebuddy':
+        return path.join(home, '.codebuddy', 'skills');
+
       default:
         throw errors.invalidInput('appType', `Unknown app type: ${appType}`);
     }
@@ -257,7 +260,7 @@ export class SkillsConfigAdapter {
    * Sync skills to all apps
    */
   syncToAllApps(skills: Skill[]): void {
-    const apps: AppType[] = ['claude', 'codex', 'gemini', 'opencode', 'openclaw'];
+    const apps: AppType[] = ['claude', 'codex', 'codebuddy', 'gemini', 'opencode', 'openclaw'];
 
     for (const app of apps) {
       const appSkills = skills.filter((s) => s.enabledApps[app]);

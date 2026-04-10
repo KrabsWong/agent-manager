@@ -4,9 +4,16 @@
  */
 
 // ============ App Types ============
-export type AppType = 'claude' | 'codex' | 'gemini' | 'opencode' | 'openclaw';
+export type AppType = 'claude' | 'codex' | 'gemini' | 'opencode' | 'openclaw' | 'codebuddy';
 
-export const APP_TYPES: AppType[] = ['claude', 'codex', 'gemini', 'opencode', 'openclaw'];
+export const APP_TYPES: AppType[] = [
+  'claude',
+  'codex',
+  'codebuddy',
+  'gemini',
+  'opencode',
+  'openclaw',
+];
 
 // ============ Provider Types ============
 export type ProviderCategory =
@@ -71,6 +78,7 @@ export interface McpServer {
   enabledApps: {
     claude: boolean;
     codex: boolean;
+    codebuddy: boolean;
     gemini: boolean;
     opencode: boolean;
     openclaw: boolean;
@@ -118,17 +126,11 @@ export interface Skill {
   enabledApps: {
     claude: boolean;
     codex: boolean;
+    codebuddy: boolean;
     gemini: boolean;
     opencode: boolean;
     openclaw: boolean;
   };
-}
-
-export interface SkillRepo {
-  owner: string;
-  name: string;
-  url: string;
-  lastScanned?: number;
 }
 
 // ============ Settings Types ============

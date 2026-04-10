@@ -22,6 +22,7 @@ import { CodexProviderForm } from './forms/CodexProviderForm';
 import { GeminiProviderForm } from './forms/GeminiProviderForm';
 import { OpenCodeProviderForm } from './forms/OpenCodeProviderForm';
 import { OpenClawProviderForm } from './forms/OpenClawProviderForm';
+import { CodebuddyProviderForm } from './forms/CodebuddyProviderForm';
 import type { Provider, AppType } from '@/types';
 
 interface EditProviderDialogProps {
@@ -72,6 +73,10 @@ export function EditProviderDialog({ provider, isOpen, onClose, onSave }: EditPr
         return <OpenCodeProviderForm initialConfig={settingsConfig} onChange={setSettingsConfig} />;
       case 'openclaw':
         return <OpenClawProviderForm initialConfig={settingsConfig} onChange={setSettingsConfig} />;
+      case 'codebuddy':
+        return (
+          <CodebuddyProviderForm initialConfig={settingsConfig} onChange={setSettingsConfig} />
+        );
       default:
         return null;
     }

@@ -1,6 +1,6 @@
 /**
  * Skills Service
- * 
+ *
  * CRUD operations for Skills
  * Manages installed skills and their enablement across apps
  */
@@ -26,7 +26,7 @@ export class SkillsService {
     `);
 
     const rows = stmt.all() as Array<Record<string, unknown>>;
-    return rows.map(row => this.mapRowToSkill(row));
+    return rows.map((row) => this.mapRowToSkill(row));
   }
 
   /**
@@ -60,7 +60,7 @@ export class SkillsService {
     `);
 
     const rows = stmt.all(appType) as Array<Record<string, unknown>>;
-    return rows.map(row => this.mapRowToSkill(row));
+    return rows.map((row) => this.mapRowToSkill(row));
   }
 
   /**
@@ -88,7 +88,7 @@ export class SkillsService {
       );
 
       // Initialize app enablements (all disabled by default)
-      const apps: AppType[] = ['claude', 'codex', 'gemini', 'opencode', 'openclaw'];
+      const apps: AppType[] = ['claude', 'codex', 'codebuddy', 'gemini', 'opencode', 'openclaw'];
       const appStmt = this.db.prepare(`
         INSERT INTO skill_apps (skill_id, app_type, enabled) VALUES (?, ?, 0)
       `);
@@ -119,7 +119,7 @@ export class SkillsService {
     }
 
     const stmt = this.db.prepare('DELETE FROM skills WHERE id = ?');
-    
+
     try {
       stmt.run(id);
       log.info(`Skill deleted: ${id}`);
@@ -162,10 +162,11 @@ export class SkillsService {
     `);
 
     const rows = stmt.all(skillId) as Array<{ app_type: string; enabled: number }>;
-    
+
     const result: Record<string, boolean> = {
       claude: false,
       codex: false,
+      codebuddy: false,
       gemini: false,
       opencode: false,
       openclaw: false,

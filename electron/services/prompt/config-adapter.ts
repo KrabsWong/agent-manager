@@ -1,6 +1,6 @@
 /**
  * Prompt Config Adapter
- * 
+ *
  * Handles syncing prompt configurations to/from different AI application config files
  * Each app has its own prompt configuration format
  */
@@ -23,6 +23,7 @@ const CONFIG_PATHS: Record<AppType, string> = {
   gemini: path.join(os.homedir(), '.gemini'),
   opencode: path.join(os.homedir(), '.opencode'),
   openclaw: path.join(os.homedir(), '.openclaw'),
+  codebuddy: path.join(os.homedir(), '.codebuddy'),
 };
 
 /**
@@ -34,6 +35,7 @@ const CONFIG_FILES: Record<AppType, string> = {
   gemini: 'config.json',
   opencode: 'settings.json',
   openclaw: 'settings.json',
+  codebuddy: 'settings.json',
 };
 
 export class PromptConfigAdapter {
@@ -52,7 +54,7 @@ export class PromptConfigAdapter {
    */
   readConfig(appType: AppType): Record<string, unknown> {
     const configPath = this.getConfigPath(appType);
-    
+
     try {
       if (!fs.existsSync(configPath)) {
         return {};
@@ -72,7 +74,7 @@ export class PromptConfigAdapter {
   writeConfig(appType: AppType, config: Record<string, unknown>): void {
     const configPath = this.getConfigPath(appType);
     const configDir = path.dirname(configPath);
-    
+
     try {
       // Ensure directory exists
       if (!fs.existsSync(configDir)) {
@@ -95,16 +97,17 @@ export class PromptConfigAdapter {
     switch (appType) {
       case 'claude':
         return (config.systemPrompt as string) || null;
-      
+
       case 'codex':
         // Codex supports both systemPrompt and customInstructions
         return (config.systemPrompt as string) || (config.customInstructions as string) || null;
-      
+
       case 'gemini':
       case 'opencode':
       case 'openclaw':
+      case 'codebuddy':
         return (config.systemPrompt as string) || null;
-      
+
       default:
         return null;
     }
@@ -115,8 +118,8 @@ export class PromptConfigAdapter {
    * Returns updated config object
    */
   injectPromptContent(
-    appType: AppType, 
-    config: Record<string, unknown>, 
+    appType: AppType,
+    config: Record<string, unknown>,
     content: string
   ): Record<string, unknown> {
     switch (appType) {
@@ -125,22 +128,23 @@ export class PromptConfigAdapter {
           ...config,
           systemPrompt: content,
         };
-      
+
       case 'codex':
         // Use systemPrompt for codex
         return {
           ...config,
           systemPrompt: content,
         };
-      
+
       case 'gemini':
       case 'opencode':
       case 'openclaw':
+      case 'codebuddy':
         return {
           ...config,
           systemPrompt: content,
         };
-      
+
       default:
         return config;
     }
@@ -154,7 +158,7 @@ export class PromptConfigAdapter {
     try {
       const promptService = getPromptService();
       const activePrompt = promptService.getActive(appType);
-      
+
       if (!activePrompt) {
         log.info(`No active prompt for ${appType}, skipping sync`);
         return;
@@ -163,7 +167,7 @@ export class PromptConfigAdapter {
       const config = this.readConfig(appType);
       const updatedConfig = this.injectPromptContent(appType, config, activePrompt.content);
       this.writeConfig(appType, updatedConfig);
-      
+
       log.info(`Synced prompt "${activePrompt.name}" to ${appType}`);
     } catch (error) {
       log.error(`Failed to sync prompt to ${appType}:`, error);
@@ -180,7 +184,7 @@ export class PromptConfigAdapter {
       const promptService = getPromptService();
       const config = this.readConfig(appType);
       const content = this.extractPromptContent(appType, config);
-      
+
       if (!content) {
         log.info(`No prompt content found in ${appType} config`);
         return null;
@@ -206,8 +210,8 @@ export class PromptConfigAdapter {
    * Sync active prompts to all apps
    */
   syncAll(): void {
-    const apps: AppType[] = ['claude', 'codex', 'gemini', 'opencode', 'openclaw'];
-    
+    const apps: AppType[] = ['claude', 'codex', 'codebuddy', 'gemini', 'opencode', 'openclaw'];
+
     for (const app of apps) {
       try {
         this.syncToApp(app);
@@ -223,7 +227,7 @@ export class PromptConfigAdapter {
    */
   openConfigFolder(appType: AppType): void {
     const configPath = CONFIG_PATHS[appType];
-    
+
     try {
       shell.openPath(configPath);
       log.info(`Opened config folder for ${appType}: ${configPath}`);

@@ -57,6 +57,12 @@ export class McpConfigAdapter {
           filename: 'mcp.json',
         };
 
+      case 'codebuddy':
+        return {
+          path: path.join(home, '.codebuddy'),
+          filename: 'mcp.json',
+        };
+
       default:
         throw errors.invalidInput('appType', `Unknown app type: ${appType}`);
     }
@@ -119,6 +125,9 @@ export class McpConfigAdapter {
 
       case 'openclaw':
         return this.convertForOpenClaw(server);
+
+      case 'codebuddy':
+        return this.convertForCodebuddy(server);
 
       default:
         throw errors.invalidInput('appType', `Unknown app type: ${appType}`);
@@ -217,6 +226,24 @@ export class McpConfigAdapter {
   }
 
   /**
+   * Convert for Codebuddy
+   */
+  private convertForCodebuddy(server: McpServer): Record<string, unknown> {
+    if (server.transport === 'stdio') {
+      return {
+        command: server.command,
+        args: server.args || [],
+        env: server.env || {},
+      };
+    }
+
+    return {
+      url: server.url,
+      type: server.transport,
+    };
+  }
+
+  /**
    * Sync MCP servers to an app's config file
    */
   syncToApp(appType: AppType, servers: McpServer[]): void {
@@ -246,7 +273,7 @@ export class McpConfigAdapter {
    * Sync MCP servers to all apps that have them enabled
    */
   syncToAllApps(servers: McpServer[]): void {
-    const apps: AppType[] = ['claude', 'codex', 'gemini', 'opencode', 'openclaw'];
+    const apps: AppType[] = ['claude', 'codex', 'codebuddy', 'gemini', 'opencode', 'openclaw'];
 
     for (const app of apps) {
       const appServers = servers.filter((s) => s.enabledApps[app]);

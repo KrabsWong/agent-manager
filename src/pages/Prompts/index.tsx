@@ -29,6 +29,7 @@ import { APP_TYPES } from '@/types';
 const APP_LABELS: Record<AppType, string> = {
   claude: 'Claude Code',
   codex: 'Codex CLI',
+  codebuddy: 'Codebuddy',
   gemini: 'Gemini CLI',
   opencode: 'OpenCode',
   openclaw: 'OpenClaw',

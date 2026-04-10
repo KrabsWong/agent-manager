@@ -237,11 +237,16 @@ function CollapsibleCodeBlock({ content, language }: CollapsibleCodeBlockProps) 
 
 /**
  * Group messages into turns and count messages per turn
+ * @param messages - Array of session messages
+ * @param appType - Application type (e.g., 'claude', 'codebuddy')
  */
-function groupMessagesIntoTurns(messages: SessionMessage[]): MessageTurn[] {
+function groupMessagesIntoTurns(messages: SessionMessage[], appType?: string): MessageTurn[] {
   const turns: MessageTurn[] = [];
   let currentTurn: MessageTurn | null = null;
   let pendingToolCalls: SessionMessage[] = [];
+
+  // Claude Code specific: tool_result outputs are used as assistant messages
+  const isClaudeCode = appType === 'claude';
 
   for (const message of messages) {
     switch (message.type) {
@@ -288,9 +293,9 @@ function groupMessagesIntoTurns(messages: SessionMessage[]): MessageTurn[] {
             }
           }
 
-          // For Claude Code: every tool_result with output is an assistant response
-          // We'll collect all tool_result contents as the assistant message
-          if (message.tool_output) {
+          // For Claude Code only: tool_result outputs are used as assistant messages
+          // Other apps (Codebuddy, etc.) have separate assistant messages
+          if (isClaudeCode && message.tool_output) {
             const output = message.tool_output;
             let content = '';
 
@@ -353,9 +358,14 @@ interface MessageTurnWithCount extends MessageTurn {
 
 /**
  * Group messages into turns and count messages per turn
+ * @param messages - Array of session messages
+ * @param appType - Application type (e.g., 'claude', 'codebuddy')
  */
-function groupMessagesIntoTurnsWithCount(messages: SessionMessage[]): MessageTurnWithCount[] {
-  const turns = groupMessagesIntoTurns(messages);
+function groupMessagesIntoTurnsWithCount(
+  messages: SessionMessage[],
+  appType?: string
+): MessageTurnWithCount[] {
+  const turns = groupMessagesIntoTurns(messages, appType);
   return turns.map((turn) => {
     let messageCount = 0;
     if (turn.userMessage) messageCount++;
@@ -378,7 +388,10 @@ export function ConversationView({
   appType = 'claude',
   onLoadAll,
 }: ConversationViewProps) {
-  const turnsWithCount = useMemo(() => groupMessagesIntoTurnsWithCount(messages), [messages]);
+  const turnsWithCount = useMemo(
+    () => groupMessagesIntoTurnsWithCount(messages, appType),
+    [messages, appType]
+  );
   const [displayedTurns, setDisplayedTurns] = useState<MessageTurnWithCount[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [remainingCount, setRemainingCount] = useState(0);
@@ -557,7 +570,7 @@ function ParsedContentBlock({ item }: ParsedContentBlockProps) {
   }
 
   return (
-    <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:break-words [&_pre]:bg-[#1e1e1e] [&_pre]:p-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto">
+    <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:break-words [&_p]:overflow-wrap-anywhere [&_pre]:bg-[#1e1e1e] [&_pre]:p-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto [&_*]:break-words [&_*]:overflow-wrap-anywhere">
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
         {item.content}
       </ReactMarkdown>

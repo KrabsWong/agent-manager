@@ -141,6 +141,7 @@ const enTranslations = {
       gemini: 'Gemini CLI',
       opencode: 'OpenCode',
       openclaw: 'OpenClaw',
+      codebuddy: 'Codebuddy',
     },
   },
   settings: {
@@ -516,6 +517,7 @@ const zhTranslations = {
       gemini: 'Gemini CLI',
       opencode: 'OpenCode',
       openclaw: 'OpenClaw',
+      codebuddy: 'Codebuddy',
     },
   },
   settings: {
