@@ -215,13 +215,9 @@ function DateHeader({
         <h4 className="text-sm font-semibold text-foreground">
           {formatDateGroupLabel(dateKey, t)}
         </h4>
+        <span className="text-[10px] text-muted-foreground/70 font-medium">×{sessionsCount}</span>
       </button>
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground font-medium">{sessionsCount}</span>
-        {isFirst && (
-          <ExpandCollapseControls allExpanded={allExpanded} allCollapsed={allCollapsed} />
-        )}
-      </div>
+      {isFirst && <ExpandCollapseControls allExpanded={allExpanded} allCollapsed={allCollapsed} />}
     </div>
   );
 }
@@ -261,23 +257,14 @@ function SessionCard({ session, isSelected, onClick }: SessionCardProps) {
           className={`text-xs flex-1 min-w-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}
         />
 
-        {/* Time and Count - right aligned with tag style */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        {/* Time and Count - minimal text only */}
+        <div className="flex items-center shrink-0">
           <span
-            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+            className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
               isSelected ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
             }`}
           >
-            <Clock className="h-3 w-3" />
-            {formatTime(session.updatedAt)}
-          </span>
-          <span
-            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
-              isSelected ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
-            }`}
-          >
-            <MessageSquare className="h-3 w-3" />
-            {session.messageCount}
+            @{formatTime(session.updatedAt)} ×{session.messageCount}
           </span>
         </div>
       </div>
