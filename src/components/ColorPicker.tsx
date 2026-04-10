@@ -42,71 +42,81 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
 
   return (
     <Dialog>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="w-full justify-start gap-3 h-auto py-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="text-sm font-medium">
+            {t('settings.accentColor') || 'Accent Color'}
+            <span className="text-muted-foreground font-normal">
+              {' · '}
+              {t(`settings.colors.${value}`) || currentColor.name}
+            </span>
+          </div>
           <div
-            className="w-6 h-6 rounded-full border-2 border-border"
+            className="w-4 h-4 rounded-full border border-border/60 shrink-0"
             style={getColorPreviewStyle(value, isDark)}
           />
-          <div className="flex-1 text-left">
-            <div className="font-medium">{t('settings.accentColor') || 'Accent Color'}</div>
-            <div className="text-sm text-muted-foreground">
-              {t(`settings.colors.${value}`) || currentColor.name}
-            </div>
-          </div>
-          <Palette className="h-4 w-4 text-muted-foreground" />
-        </Button>
-      </DialogTrigger>
+        </div>
+        <DialogTrigger asChild>
+          <button className="flex items-center justify-center w-8 h-8 rounded-md border border-border/60 hover:border-primary/50 hover:bg-accent/50 transition-colors shrink-0">
+            <Palette className="h-4 w-4 text-muted-foreground" />
+          </button>
+        </DialogTrigger>
+      </div>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t('settings.selectAccentColor') || 'Select Accent Color'}</DialogTitle>
         </DialogHeader>
+
         <div className="grid grid-cols-5 gap-3 py-4">
-          {accentColors.map((color) => (
-            <button
-              key={color.id}
-              onClick={() => onChange(color.id)}
-              className={cn(
-                'group relative flex flex-col items-center gap-2 p-2 rounded-lg transition-all',
-                'hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
-                value === color.id && 'bg-primary/10'
-              )}
-              title={t(`settings.colors.${color.id}`) || color.name}
-            >
-              <div
+          {accentColors.map((color) => {
+            const isSelected = String(value) === String(color.id);
+            return (
+              <button
+                key={color.id}
+                onClick={() => onChange(color.id)}
+                data-selected={isSelected}
                 className={cn(
-                  'w-10 h-10 rounded-full border-2 transition-all',
-                  'group-hover:scale-110 group-hover:shadow-md',
-                  value === color.id ? 'border-primary scale-110 shadow-md' : 'border-border'
+                  'group relative flex flex-col items-center gap-2 p-2 rounded-lg transition-all',
+                  'hover:bg-accent',
+                  isSelected && 'bg-primary/10'
                 )}
-                style={getColorPreviewStyle(color.id, isDark)}
+                title={t(`settings.colors.${color.id}`) || color.name}
               >
-                {value === color.id && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Check
-                      className={cn(
-                        'h-5 w-5',
-                        useDarkCheck(color.id) ? 'text-black' : 'text-white'
-                      )}
-                      style={{
-                        filter: useDarkCheck(color.id)
-                          ? 'none'
-                          : 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-              <span
-                className={cn(
-                  'text-xs text-center truncate w-full',
-                  value === color.id ? 'font-medium text-primary' : 'text-muted-foreground'
-                )}
-              >
-                {t(`settings.colors.${color.id}`) || color.name}
-              </span>
-            </button>
-          ))}
+                <div
+                  className={cn(
+                    'w-10 h-10 rounded-full border-2 transition-all',
+                    'group-hover:scale-110 group-hover:shadow-md',
+                    isSelected ? 'border-primary scale-110 shadow-md' : 'border-border'
+                  )}
+                  style={getColorPreviewStyle(color.id, isDark)}
+                >
+                  {isSelected && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Check
+                        className={cn(
+                          'h-5 w-5',
+                          useDarkCheck(color.id) ? 'text-black' : 'text-white'
+                        )}
+                        style={{
+                          filter: useDarkCheck(color.id)
+                            ? 'none'
+                            : 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+                <span
+                  className={cn(
+                    'text-xs text-center truncate w-full',
+                    isSelected ? 'font-medium text-primary' : 'text-muted-foreground'
+                  )}
+                >
+                  {t(`settings.colors.${color.id}`) || color.name}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </DialogContent>
     </Dialog>

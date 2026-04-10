@@ -32,7 +32,7 @@ export function ThemeSwitcher() {
 
   return (
     <div className="flex items-center justify-between">
-      <div className="space-y-0.5">
+      <div>
         <label className="text-sm font-medium">{t('settings.theme') || 'Theme'}</label>
         <p className="text-xs text-muted-foreground">
           {t('settings.themeDescription') || 'Choose your preferred color scheme'}
@@ -41,9 +41,9 @@ export function ThemeSwitcher() {
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="gap-2">
-            <Icon className="h-4 w-4" />
-            <span>{t(themeLabelKeys[theme])}</span>
+          <Button variant="outline" size="sm" className="gap-2 h-8">
+            <Icon className="h-3.5 w-3.5" />
+            <span className="text-xs">{t(themeLabelKeys[theme])}</span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">

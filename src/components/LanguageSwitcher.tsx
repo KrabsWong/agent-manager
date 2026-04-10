@@ -23,10 +23,15 @@ export function LanguageSwitcher() {
   };
 
   return (
-    <div className="space-y-2">
-      <Label>{t('settings.language')}</Label>
+    <div className="flex items-center justify-between">
+      <div>
+        <Label className="text-sm font-medium">{t('settings.language')}</Label>
+        <p className="text-xs text-muted-foreground">
+          {t('settings.languageDescription') || 'Select your preferred language'}
+        </p>
+      </div>
       <Select value={currentLanguage} onValueChange={handleLanguageChange}>
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className="w-[140px] h-8 text-sm">
           <SelectValue placeholder={t('settings.selectLanguage')} />
         </SelectTrigger>
         <SelectContent>

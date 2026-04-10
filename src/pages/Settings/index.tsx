@@ -32,43 +32,46 @@ export function SettingsPage() {
   const { accentColor, setAccentColor } = useTheme();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <h1 className="text-2xl font-bold">{t('settings.title')}</h1>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('settings.generalTitle')}</CardTitle>
-          <CardDescription>{t('settings.generalDescription')}</CardDescription>
+      <Card className="border-border/60">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">{t('settings.generalTitle')}</CardTitle>
+          <CardDescription className="text-xs">{t('settings.generalDescription')}</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4">
           <LanguageSwitcher />
-          <div className="border-t pt-6">
-            <ThemeSwitcher />
-          </div>
-          <div className="border-t pt-6">
-            <ColorPicker value={accentColor} onChange={setAccentColor} />
-          </div>
+          <ThemeSwitcher />
+          <ColorPicker value={accentColor} onChange={setAccentColor} />
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
+      <Card className="border-border/60">
+        <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>{t('settings.navigationTitle') || 'Navigation'}</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-base">
+                {t('settings.navigationTitle') || 'Navigation'}
+              </CardTitle>
+              <CardDescription className="text-xs">
                 {t('settings.navigationDescription') ||
                   'Customize which sections appear in the sidebar'}
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={resetToDefault} className="gap-2">
-              <RotateCcw className="h-4 w-4" />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={resetToDefault}
+              className="gap-1.5 h-7 px-2 text-xs"
+            >
+              <RotateCcw className="h-3 w-3" />
               {t('settings.reset') || 'Reset'}
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {navOptions.map((option) => {
               const isEnabled = enabledItems.includes(option.id);
               const Icon = option.icon;
@@ -80,39 +83,39 @@ export function SettingsPage() {
                   onClick={() => toggleItem(option.id)}
                   disabled={isLastEnabled}
                   className={cn(
-                    'w-full flex items-center gap-4 p-4 rounded-lg border transition-all text-left',
+                    'w-full flex items-center gap-3 p-2.5 rounded-md border transition-all text-left',
                     isEnabled
                       ? 'border-primary/50 bg-primary/5'
-                      : 'border-border hover:border-primary/30 hover:bg-accent/50',
+                      : 'border-border/60 hover:border-primary/30 hover:bg-accent/50',
                     isLastEnabled && 'opacity-70 cursor-not-allowed'
                   )}
                 >
                   <div
                     className={cn(
-                      'flex items-center justify-center w-10 h-10 rounded-lg transition-colors',
+                      'flex items-center justify-center w-8 h-8 rounded-md transition-colors shrink-0',
                       isEnabled
                         ? 'bg-primary text-primary-foreground'
                         : 'bg-muted text-muted-foreground'
                     )}
                   >
-                    <Icon className="h-5 w-5" />
+                    <Icon className="h-4 w-4" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium">{t(option.label) || option.id}</div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="font-medium text-sm">{t(option.label) || option.id}</div>
+                    <div className="text-xs text-muted-foreground leading-tight">
                       {t(option.description) || ''}
                     </div>
                   </div>
                   <div
                     className={cn(
-                      'w-11 h-6 rounded-full transition-colors relative',
+                      'w-9 h-5 rounded-full transition-colors relative shrink-0',
                       isEnabled ? 'bg-primary' : 'bg-muted'
                     )}
                   >
                     <div
                       className={cn(
-                        'absolute top-1 w-4 h-4 rounded-full bg-white transition-transform',
-                        isEnabled ? 'translate-x-6' : 'translate-x-1'
+                        'absolute top-1 w-3 h-3 rounded-full bg-white transition-transform',
+                        isEnabled ? 'translate-x-5' : 'translate-x-1'
                       )}
                     />
                   </div>
@@ -120,7 +123,7 @@ export function SettingsPage() {
               );
             })}
           </div>
-          <p className="text-xs text-muted-foreground mt-4">
+          <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
             {t('settings.navigationHint') ||
               'At least one navigation item must be enabled. When only one item is shown, the sidebar will be compact.'}
           </p>
@@ -138,59 +141,59 @@ function ExperienceSettings() {
   const { enableTitleMarquee, toggleTitleMarquee } = useExperienceStore();
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{t('settings.experienceTitle') || 'Experience Features'}</CardTitle>
-        <CardDescription>
+    <Card className="border-border/60">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">
+          {t('settings.experienceTitle') || 'Experience Features'}
+        </CardTitle>
+        <CardDescription className="text-xs">
           {t('settings.experienceDescription') ||
             'Optional features to enhance your browsing experience'}
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
-          <button
-            onClick={toggleTitleMarquee}
+        <button
+          onClick={toggleTitleMarquee}
+          className={cn(
+            'w-full flex items-center gap-3 p-2.5 rounded-md border transition-all text-left',
+            enableTitleMarquee
+              ? 'border-primary/50 bg-primary/5'
+              : 'border-border/60 hover:border-primary/30 hover:bg-accent/50'
+          )}
+        >
+          <div
             className={cn(
-              'w-full flex items-center gap-4 p-4 rounded-lg border transition-all text-left',
+              'flex items-center justify-center w-8 h-8 rounded-md transition-colors shrink-0',
               enableTitleMarquee
-                ? 'border-primary/50 bg-primary/5'
-                : 'border-border hover:border-primary/30 hover:bg-accent/50'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground'
+            )}
+          >
+            <Type className="h-4 w-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-medium text-sm">
+              {t('settings.titleMarquee') || 'Title Marquee Effect'}
+            </div>
+            <div className="text-xs text-muted-foreground leading-tight">
+              {t('settings.titleMarqueeDesc') ||
+                'Hover over long session titles to auto-scroll and see full text'}
+            </div>
+          </div>
+          <div
+            className={cn(
+              'w-9 h-5 rounded-full transition-colors relative shrink-0',
+              enableTitleMarquee ? 'bg-primary' : 'bg-muted'
             )}
           >
             <div
               className={cn(
-                'flex items-center justify-center w-10 h-10 rounded-lg transition-colors',
-                enableTitleMarquee
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground'
+                'absolute top-1 w-3 h-3 rounded-full bg-white transition-transform',
+                enableTitleMarquee ? 'translate-x-5' : 'translate-x-1'
               )}
-            >
-              <Type className="h-5 w-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-medium">
-                {t('settings.titleMarquee') || 'Title Marquee Effect'}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {t('settings.titleMarqueeDesc') ||
-                  'Hover over long session titles to auto-scroll and see full text'}
-              </div>
-            </div>
-            <div
-              className={cn(
-                'w-11 h-6 rounded-full transition-colors relative',
-                enableTitleMarquee ? 'bg-primary' : 'bg-muted'
-              )}
-            >
-              <div
-                className={cn(
-                  'absolute top-1 w-4 h-4 rounded-full bg-white transition-transform',
-                  enableTitleMarquee ? 'translate-x-6' : 'translate-x-1'
-                )}
-              />
-            </div>
-          </button>
-        </div>
+            />
+          </div>
+        </button>
       </CardContent>
     </Card>
   );
