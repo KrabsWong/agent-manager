@@ -1,145 +1,111 @@
-# CC Switch Electron
+# Yes Sessions
 
-All-in-One AI CLI configuration manager - Electron Edition v4.0.0
+一款用于管理 AI CLI 工具会话历史的桌面应用程序。
 
-## Project Status
+![Logo](./public/logo.png)
 
-✅ **Phase 0: 项目初始化** - 已完成
-✅ **Phase 1: 核心基础设施** - 已完成
+## 功能特性
 
-### Phase 0: 项目初始化
+### 📊 会话管理
 
-1. **项目结构搭建**
-   - Electron + Vite + React + TypeScript 集成
-   - TailwindCSS + shadcn/ui 配置
-   - 严格 TypeScript 模式启用
-   - ESLint + Prettier 代码规范配置
+- **多应用支持**：Claude Code、OpenCode、Codebuddy
+- **会话列表**：按时间分组展示所有历史会话
+- **详情查看**：完整的对话历史，包括用户消息、AI 回复、工具调用
+- **模型追踪**：显示每条消息使用的 AI 模型（包括模型切换历史）
+- **子 Agent 支持**：识别并展示子 Agent 调用及其使用的模型
 
-2. **构建系统**
-   - Vite 构建配置（渲染进程 + 主进程 + preload）
-   - electron-builder 打包配置
-   - 支持 macOS/Windows/Linux 多平台构建
+### 🔍 智能解析
 
-3. **应用架构**
-   - React Router 路由系统
-   - TanStack Query 服务端状态管理
-   - 基础页面框架（Sidebar + Layout）
-   - IPC 通信基础设置
+- **文件引用解析**：自动解析 OpenCode/Claude Code 格式的文件引用
+- **代码高亮**：支持多种编程语言的语法高亮
+- **Markdown 渲染**：AI 回复内容支持 Markdown 格式
+- **思考过程展示**：支持显示 AI 的思考/推理过程
 
-### Phase 1: 核心基础设施 ✅
+### 🎨 界面特性
 
-1. **数据库层** (`electron/database/`)
-   - better-sqlite3 集成
-   - 完整 Schema 设计 (providers, mcp_servers, prompts, skills, settings)
-   - 自动迁移系统
-   - WAL 模式支持
-   - 数据库统计和备份
+- **暗色/亮色主题**：支持系统主题自动切换
+- **虚拟滚动**：大量会话列表流畅滚动
+- **日期折叠**：按日期分组，支持展开/折叠
+- **国际化**：支持中文/英文切换
 
-2. **IPC 通信** (`electron/ipc/`)
-   - 类型安全的 IPC 注册表
-   - 统一响应格式 (ApiResponse)
-   - 错误包装和序列化
-   - Provider handlers 实现
+## 支持的 AI 工具
 
-3. **错误处理** (`electron/utils/errors.ts`)
-   - 标准化错误代码 (ErrorCode)
-   - CCError 自定义错误类
-   - Result<T, E> 类型
-   - IPC 错误包装器
-
-4. **配置持久化** (`electron/utils/config-store.ts`)
-   - electron-store 集成
-   - 类型安全设置管理
-   - 窗口状态保存/恢复
-   - 导入/导出功能
-
-5. **日志系统** (electron-log)
-   - 主进程日志初始化
-   - 自动日志轮转
-   - 错误追踪
-
-6. **共享类型** (`src/types/index.ts`)
-   - 前后端共享类型定义
-   - Provider/MCP/Prompt/Skill 类型
-   - IPC 通道类型
-   - 设置默认值
-
-### Phase 2: Provider 管理 ✅
-
-1. **前端 API 层** (`src/lib/api/`)
-   - 完整的 IPC 调用封装
-   - 类型安全的 API 方法
-   - Provider/MCP/Prompt/Skill/Settings API
-
-2. **TanStack Query Hooks** (`src/hooks/`)
-   - `useProviders` - 获取所有 providers
-   - `useCreateProvider` - 创建 provider
-   - `useUpdateProvider` - 更新 provider
-   - `useDeleteProvider` - 删除 provider
-   - `useSwitchProvider` - 切换 provider
-
-3. **UI 组件** (`src/components/`)
-   - `ProviderCard` - Provider 卡片展示
-   - `AddProviderDialog` - 添加 Provider 对话框
-   - `EditProviderDialog` - 编辑 Provider 对话框
-   - 基础 UI 组件 (Button, Card, Badge, Input, Label, Select)
-
-4. **Provider 页面** (`src/pages/Providers/`)
-   - Provider 列表视图
-   - 应用选择器 (Claude/Codex/Gemini/OpenCode/OpenClaw)
-   - CRUD 操作完整支持
-   - 预设供应商选择
-
-5. **预设配置** (`src/config/providerPresets.ts`)
-   - 8 个预设供应商配置
-   - Claude Official, OpenAI, Gemini
-   - DeepSeek (CN Official)
-   - OpenRouter, SiliconFlow (Aggregator)
-   - Azure OpenAI, AWS Bedrock (Cloud Provider)
-
-### Phase 3-9: 后续功能...
-
-## 可用脚本
-
-```bash
-# 开发模式
-npm run dev
-
-# 构建项目
-npm run build
-
-# 类型检查
-npm run typecheck
-
-# 代码格式化
-npm run format
-npm run lint
-
-# 测试
-npm run test
-```
+| 工具        | 状态        | 说明              |
+| ----------- | ----------- | ----------------- |
+| Claude Code | ✅ 完全支持 | 新旧格式都支持    |
+| OpenCode    | ✅ 完全支持 | SQLite 数据库读取 |
+| Codebuddy   | ✅ 完全支持 | JSONL 文件解析    |
+| Codex       | 🚧 计划中   | 即将支持          |
+| Gemini CLI  | 🚧 计划中   | 即将支持          |
 
 ## 技术栈
 
-- **Electron**: ^30.0.0
-- **React**: ^18.3.0
-- **TypeScript**: ^5.4.0
-- **Vite**: ^5.0.0
-- **TailwindCSS**: ^3.4.0
-- **TanStack Query**: ^5.35.0
-- **React Router**: ^6.23.0
-- **better-sqlite3**: ^9.6.0
-- **electron-store**: ^8.2.0
+- **框架**: Electron + React 18 + TypeScript
+- **构建**: Vite
+- **样式**: Tailwind CSS + shadcn/ui
+- **状态管理**: Zustand + TanStack Query
+- **国际化**: i18next
+- **数据库**: better-sqlite3 (OpenCode)
 
-## 架构设计
+## 开发
 
-遵循 ELECTRON_REWRITE_PLAN.md 中的规划，规避原项目的架构问题：
+```bash
+# 安装依赖
+npm install
 
-- ✅ 单文件限制 (<300 行)
-- ✅ 单一职责原则
-- ✅ 类型安全 (严格 TypeScript)
-- ✅ 分层架构 (Services/DAO/Components)
+# 开发模式
+npm run dev
+
+# 构建应用
+npm run build
+
+# 类型检查
+npx tsc --noEmit
+
+# 代码格式化
+npm run format
+```
+
+## 项目结构
+
+```
+src/
+  components/      # React 组件
+    sessions/      # 会话相关组件
+  pages/           # 页面组件
+  locales/         # 多语言文件
+  stores/          # Zustand 状态管理
+  lib/             # 工具函数
+  types/           # TypeScript 类型定义
+  hooks/           # 自定义 hooks
+
+electron/
+  services/        # 主进程服务
+    session/       # 各 AI 工具的会话读取服务
+  handlers/        # IPC 处理程序
+  ipc/             # IPC 通信
+
+```
+
+## 数据读取
+
+### Claude Code
+
+- 新格式：`~/.claude/projects/<project>/<sessionId>.jsonl`
+- 旧格式：`~/.claude/transcripts/ses_*.jsonl`
+
+### OpenCode
+
+- 数据库：`~/.local/share/opencode/opencode.db`
+
+### Codebuddy
+
+- 会话文件：`~/.codebuddy/projects/<project>/*.jsonl`
 
 ## 许可证
 
 MIT
+
+---
+
+Made with ❤️ for AI CLI users
