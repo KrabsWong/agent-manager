@@ -1188,7 +1188,7 @@ const AssistantMessage = memo(function AssistantMessage({
   timestamp,
   appType = 'claude',
   model,
-  searchQuery: _searchQuery = '',
+  searchQuery = '',
 }: AssistantMessageProps) {
   const assistantName = APP_LABELS[appType as AppType] || APP_LABELS.claude;
   const [isExpanded, setIsExpanded] = useState(false);
@@ -1246,9 +1246,13 @@ const AssistantMessage = memo(function AssistantMessage({
               </button>
               {isReasoningExpanded && (
                 <div className="px-3 pb-3 text-sm text-amber-800/80 dark:text-amber-300/80 leading-relaxed prose prose-sm dark:prose-invert max-w-none [&_p]:break-words [&_pre]:bg-[#1e1e1e] [&_pre]:p-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto border-t border-amber-200/50 dark:border-amber-800/50 pt-2">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                    {reasoningContent}
-                  </ReactMarkdown>
+                  {searchQuery ? (
+                    <HighlightedText text={reasoningContent} query={searchQuery} />
+                  ) : (
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                      {reasoningContent}
+                    </ReactMarkdown>
+                  )}
                 </div>
               )}
             </div>
@@ -1261,10 +1265,14 @@ const AssistantMessage = memo(function AssistantMessage({
               <ClaudeCodeXMLViewer data={parsedXML} />
             ) : (
               <>
-                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                  {displayContent}
-                </ReactMarkdown>
-                {shouldTruncate && !isExpanded && (
+                {searchQuery ? (
+                  <HighlightedText text={displayContent} query={searchQuery} />
+                ) : (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                    {displayContent}
+                  </ReactMarkdown>
+                )}
+                {shouldTruncate && !isExpanded && !searchQuery && (
                   <button
                     onClick={() => setIsExpanded(true)}
                     className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted hover:bg-muted/80 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors border border-border/50"
@@ -1482,7 +1490,7 @@ function ToolCallBlock({
   toolUse,
   toolResult,
   onViewSubAgentSession,
-  searchQuery: _searchQuery = '',
+  searchQuery = '',
 }: ToolCallBlockProps) {
   const { t } = useTranslation();
 
@@ -1539,7 +1547,7 @@ function ToolCallBlock({
         {toolResult?.tool_output && (
           <div className="px-3 py-2">
             <div className="text-xs text-muted-foreground mb-1">Output</div>
-            <ToolOutputDisplay output={toolResult.tool_output} />
+            <ToolOutputDisplay output={toolResult.tool_output} searchQuery={searchQuery} />
           </div>
         )}
       </div>
@@ -1576,7 +1584,7 @@ function ToolCallBlock({
       {toolUse?.tool_input && (
         <div className="px-3 py-2 border-b border-dashed">
           <div className="text-xs text-muted-foreground mb-1">Input</div>
-          <ToolInputDisplay input={toolUse.tool_input} />
+          <ToolInputDisplay input={toolUse.tool_input} searchQuery={searchQuery} />
         </div>
       )}
 
@@ -1584,7 +1592,7 @@ function ToolCallBlock({
       {toolResult?.tool_output && (
         <div className="px-3 py-2">
           <div className="text-xs text-muted-foreground mb-1">Output</div>
-          <ToolOutputDisplay output={toolResult.tool_output} />
+          <ToolOutputDisplay output={toolResult.tool_output} searchQuery={searchQuery} />
         </div>
       )}
     </div>
@@ -1720,7 +1728,12 @@ function getToolSummary(toolName: string, input?: Record<string, unknown>): stri
   return null;
 }
 
-function ToolInputDisplay({ input }: { input?: Record<string, unknown> }) {
+interface ToolInputDisplayProps {
+  input?: Record<string, unknown>;
+  searchQuery?: string;
+}
+
+function ToolInputDisplay({ input, searchQuery = '' }: ToolInputDisplayProps) {
   if (!input || Object.keys(input).length === 0) {
     return <span className="text-xs text-muted-foreground">No input</span>;
   }
@@ -1730,19 +1743,33 @@ function ToolInputDisplay({ input }: { input?: Record<string, unknown> }) {
 
   return (
     <div className="text-xs space-y-1">
-      {entries.map(([key, value]) => (
-        <div key={key} className="flex gap-2">
-          <span className="text-muted-foreground font-mono flex-shrink-0">{key}:</span>
-          <span className="font-mono break-all">{formatValue(value)}</span>
-        </div>
-      ))}
+      {entries.map(([key, value]) => {
+        const formattedValue = formatValue(value);
+        return (
+          <div key={key} className="flex gap-2">
+            <span className="text-muted-foreground font-mono flex-shrink-0">{key}:</span>
+            <span className="font-mono break-all">
+              {searchQuery ? (
+                <HighlightedText text={formattedValue} query={searchQuery} />
+              ) : (
+                formattedValue
+              )}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 const MAX_TOOL_OUTPUT_LINES = 20; // 工具输出超过此行数默认折叠
 
-function ToolOutputDisplay({ output }: { output: SessionMessage['tool_output'] }) {
+interface ToolOutputDisplayProps {
+  output: SessionMessage['tool_output'];
+  searchQuery?: string;
+}
+
+function ToolOutputDisplay({ output, searchQuery = '' }: ToolOutputDisplayProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (!output) {
@@ -1762,9 +1789,10 @@ function ToolOutputDisplay({ output }: { output: SessionMessage['tool_output'] }
 
   // If no text, show JSON
   if (!text) {
+    const jsonStr = JSON.stringify(output, null, 2);
     return (
       <pre className="text-xs font-mono bg-muted/50 rounded p-2 whitespace-pre-wrap break-all">
-        {JSON.stringify(output, null, 2)}
+        {searchQuery ? <HighlightedText text={jsonStr} query={searchQuery} /> : jsonStr}
       </pre>
     );
   }
@@ -1781,9 +1809,9 @@ function ToolOutputDisplay({ output }: { output: SessionMessage['tool_output'] }
   return (
     <div className="relative">
       <pre className="text-xs font-mono bg-muted/50 rounded p-2 whitespace-pre-wrap break-all">
-        {displayText}
+        {searchQuery ? <HighlightedText text={displayText} query={searchQuery} /> : displayText}
       </pre>
-      {shouldCollapse && (
+      {shouldCollapse && !searchQuery && (
         <div className="flex justify-center mt-2">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
