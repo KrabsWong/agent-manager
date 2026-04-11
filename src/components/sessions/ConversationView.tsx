@@ -20,6 +20,9 @@ import {
   ChevronDown,
   ChevronRight,
   Maximize2,
+  Sparkles,
+  Info,
+  Folder,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -103,6 +106,123 @@ const MAX_CODE_LINES = 100; // 代码块超过此行数默认折叠
 const CODE_LINES_INCREMENT = 200; // 每次展开增加的代码行数
 const MAX_SYNTAX_HIGHLIGHT_LINES = 500; // 超过此行数禁用语法高亮，避免卡顿
 const MAX_TEXT_LENGTH = 8000; // 文本超过此字符数默认截断
+
+/**
+ * Parse Claude Code XML output format
+ * Handles <path>, <type>, <content> tags from tool results
+ */
+function parseClaudeCodeXML(content: string): Array<{
+  type: 'file' | 'directory' | 'text';
+  path?: string;
+  content?: string;
+  entries?: string[];
+}> | null {
+  // Check if this is Claude Code XML format
+  if (!content.includes('<path>') || !content.includes('<type>')) {
+    return null;
+  }
+
+  const results: Array<{
+    type: 'file' | 'directory' | 'text';
+    path?: string;
+    content?: string;
+    entries?: string[];
+  }> = [];
+
+  // Helper function to extract tag content - finds the FIRST closing tag
+  const extractTag = (str: string, tagName: string): string | null => {
+    const openTag = `<${tagName}>`;
+    const closeTag = `</${tagName}>`;
+    const startIdx = str.indexOf(openTag);
+    if (startIdx === -1) return null;
+    const contentStart = startIdx + openTag.length;
+    // Find the FIRST occurrence of closeTag after the opening tag
+    const endIdx = str.indexOf(closeTag, contentStart);
+    if (endIdx === -1) return null;
+    return str.substring(contentStart, endIdx);
+  };
+
+  // Find all path positions using regex to ensure we match actual XML tags
+  // not content that happens to contain "<path>"
+  const paths: Array<{ path: string; start: number }> = [];
+  const pathRegex = /<path>([\s\S]*?)<\/path>/g;
+  let match;
+
+  while ((match = pathRegex.exec(content)) !== null) {
+    const path = match[1];
+    // Only accept paths that look like actual file paths (start with /)
+    if (path.startsWith('/')) {
+      paths.push({ path, start: match.index });
+    }
+  }
+
+  // Helper to extract content after a specific position
+  const extractContentAfter = (str: string, startPos: number): string | null => {
+    const openTag = '<content>';
+    const closeTag = '</content>';
+    const openIdx = str.indexOf(openTag, startPos);
+    if (openIdx === -1) return null;
+    const contentStart = openIdx + openTag.length;
+    const closeIdx = str.indexOf(closeTag, contentStart);
+    if (closeIdx === -1) return null;
+    return str.substring(contentStart, closeIdx);
+  };
+
+  const extractEntriesAfter = (str: string, startPos: number): string | null => {
+    const openTag = '<entries>';
+    const closeTag = '</entries>';
+    const openIdx = str.indexOf(openTag, startPos);
+    if (openIdx === -1) return null;
+    const contentStart = openIdx + openTag.length;
+    const closeIdx = str.indexOf(closeTag, contentStart);
+    if (closeIdx === -1) return null;
+    return str.substring(contentStart, closeIdx);
+  };
+
+  // Process each path with its corresponding segment
+  for (let i = 0; i < paths.length; i++) {
+    const { path, start } = paths[i];
+    // Segment ends at the next path or end of content
+    const end = i < paths.length - 1 ? paths[i + 1].start : content.length;
+    const segment = content.substring(start, end);
+
+    const type = extractTag(segment, 'type');
+
+    if (type === 'file') {
+      // Look for content that comes after this file's <type> tag
+      const typePos = segment.indexOf('<type>file</type>');
+      const fileContent = extractContentAfter(segment, typePos);
+      if (fileContent !== null) {
+        results.push({
+          type: 'file',
+          path,
+          content: fileContent,
+        });
+      }
+    } else if (type === 'directory') {
+      const typePos = segment.indexOf('<type>directory</type>');
+      const entriesContent = extractEntriesAfter(segment, typePos);
+      if (entriesContent !== null) {
+        const entries = entriesContent
+          .trim()
+          .split('\n')
+          .filter((e) => e.trim());
+        results.push({
+          type: 'directory',
+          path,
+          entries,
+        });
+      }
+    } else if (type) {
+      results.push({
+        type: 'text',
+        path,
+      });
+    }
+  }
+
+  return results.length > 0 ? results : null;
+}
 
 // Custom components for ReactMarkdown to handle code blocks with syntax highlighting
 const markdownComponents = {
@@ -246,9 +366,12 @@ function groupMessagesIntoTurns(messages: SessionMessage[], appType?: string): M
   let pendingToolCalls: SessionMessage[] = [];
 
   // Claude Code specific: tool_result outputs are used as assistant messages
+  // Also, multiple consecutive assistant messages belong to the same turn
   const isClaudeCode = appType === 'claude';
 
-  for (const message of messages) {
+  for (let i = 0; i < messages.length; i++) {
+    const message = messages[i];
+
     switch (message.type) {
       case 'user':
         // Start a new turn
@@ -259,8 +382,24 @@ function groupMessagesIntoTurns(messages: SessionMessage[], appType?: string): M
           userMessage: message,
           toolCalls: [],
           assistantMessage: null,
+          systemMessages: [],
         };
         pendingToolCalls = [];
+        break;
+
+      case 'system':
+        // Add system message to current turn or create a new system-only turn
+        if (currentTurn) {
+          currentTurn.systemMessages.push(message);
+        } else {
+          // Create a system-only turn (for messages before first user message)
+          currentTurn = {
+            userMessage: null,
+            toolCalls: [],
+            assistantMessage: null,
+            systemMessages: [message],
+          };
+        }
         break;
 
       case 'tool_use':
@@ -325,11 +464,33 @@ function groupMessagesIntoTurns(messages: SessionMessage[], appType?: string): M
         break;
 
       case 'assistant':
-        // This is the assistant's final response after tool calls
         if (currentTurn) {
-          currentTurn.assistantMessage = message;
-          turns.push(currentTurn);
-          currentTurn = null;
+          // Check if this is part of a multi-message assistant response
+          // (common in Claude Code with thinking -> text -> tool_use sequence)
+          const nextMessage = messages[i + 1];
+          const isMultiMessageTurn =
+            isClaudeCode &&
+            nextMessage &&
+            (nextMessage.type === 'assistant' || nextMessage.type === 'tool_use');
+
+          if (currentTurn.assistantMessage) {
+            // Merge with existing assistant message
+            if (message.reasoning_content) {
+              currentTurn.assistantMessage.reasoning_content = message.reasoning_content;
+            }
+            if (message.content) {
+              currentTurn.assistantMessage.content = message.content;
+            }
+          } else {
+            // First assistant message in this turn
+            currentTurn.assistantMessage = message;
+          }
+
+          // Only end the turn if next message is user or end of messages
+          if (!isMultiMessageTurn) {
+            turns.push(currentTurn);
+            currentTurn = null;
+          }
         }
         break;
     }
@@ -347,6 +508,7 @@ interface MessageTurn {
   userMessage: SessionMessage | null;
   toolCalls: { toolUse: SessionMessage; toolResult: SessionMessage | null }[];
   assistantMessage: SessionMessage | null;
+  systemMessages: SessionMessage[];
 }
 
 // Constants for message pagination
@@ -371,6 +533,7 @@ function groupMessagesIntoTurnsWithCount(
     if (turn.userMessage) messageCount++;
     messageCount += turn.toolCalls.length * 2; // tool_use + tool_result
     if (turn.assistantMessage) messageCount++;
+    messageCount += turn.systemMessages.length;
     return { ...turn, messageCount };
   });
 }
@@ -475,6 +638,12 @@ export function ConversationView({
           </button>
         </div>
       )}
+      {/* End of session indicator */}
+      {!hasMore && displayedTurns.length > 0 && (
+        <div className="flex justify-center py-4">
+          <span className="text-xs text-muted-foreground/50">— 已加载全部内容 —</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -487,6 +656,20 @@ interface ConversationTurnProps {
 const ConversationTurn = memo(function ConversationTurn({ turn, appType }: ConversationTurnProps) {
   return (
     <div className="space-y-3">
+      {/* System Messages */}
+      {turn.systemMessages.length > 0 && (
+        <div className="space-y-1">
+          {turn.systemMessages.map((sysMsg, index) => (
+            <SystemMessage
+              key={index}
+              content={sysMsg.content || ''}
+              timestamp={sysMsg.timestamp}
+              metadata={sysMsg.metadata}
+            />
+          ))}
+        </div>
+      )}
+
       {/* User Message */}
       {turn.userMessage?.content && (
         <UserMessage
@@ -510,13 +693,79 @@ const ConversationTurn = memo(function ConversationTurn({ turn, appType }: Conve
       )}
 
       {/* Assistant Response */}
-      {turn.assistantMessage?.content && (
+      {(turn.assistantMessage?.content || turn.assistantMessage?.reasoning_content) && (
         <AssistantMessage
-          content={turn.assistantMessage.content}
+          content={turn.assistantMessage.content || ''}
+          reasoningContent={turn.assistantMessage.reasoning_content}
           timestamp={turn.assistantMessage.timestamp}
           appType={appType}
         />
       )}
+    </div>
+  );
+});
+
+interface SystemMessageProps {
+  content: string;
+  timestamp: string;
+  metadata?: { subtype?: string; command?: string };
+}
+
+const SystemMessage = memo(function SystemMessage({
+  content,
+  timestamp,
+  metadata,
+}: SystemMessageProps) {
+  // Get icon and style based on subtype
+  const getSubtypeConfig = () => {
+    switch (metadata?.subtype) {
+      case 'caveat':
+        return {
+          icon: <Info className="h-3.5 w-3.5 text-blue-500" />,
+          label: 'Info',
+          bgColor: 'bg-blue-50/50 dark:bg-blue-900/20',
+          borderColor: 'border-blue-200 dark:border-blue-800',
+          textColor: 'text-blue-700 dark:text-blue-400',
+        };
+      case 'command':
+        return {
+          icon: <Terminal className="h-3.5 w-3.5 text-purple-500" />,
+          label: 'Command',
+          bgColor: 'bg-purple-50/50 dark:bg-purple-900/20',
+          borderColor: 'border-purple-200 dark:border-purple-800',
+          textColor: 'text-purple-700 dark:text-purple-400',
+        };
+      case 'command_output':
+        return {
+          icon: <Terminal className="h-3.5 w-3.5 text-gray-500" />,
+          label: 'Output',
+          bgColor: 'bg-gray-50/50 dark:bg-gray-900/20',
+          borderColor: 'border-gray-200 dark:border-gray-800',
+          textColor: 'text-gray-700 dark:text-gray-400',
+        };
+      default:
+        return {
+          icon: <Info className="h-3.5 w-3.5 text-muted-foreground" />,
+          label: 'System',
+          bgColor: 'bg-muted/50',
+          borderColor: 'border-border',
+          textColor: 'text-muted-foreground',
+        };
+    }
+  };
+
+  const config = getSubtypeConfig();
+
+  return (
+    <div className={`rounded-lg border ${config.borderColor} ${config.bgColor} overflow-hidden`}>
+      <div className="flex items-center gap-2 px-3 py-1.5">
+        {config.icon}
+        <span className={`text-xs font-medium ${config.textColor}`}>{config.label}</span>
+        <span className="text-xs text-muted-foreground/60 ml-auto">
+          {formatTimestamp(timestamp)}
+        </span>
+      </div>
+      <div className={`px-3 pb-2 text-sm ${config.textColor} opacity-80`}>{content}</div>
     </div>
   );
 });
@@ -626,18 +875,29 @@ function FileAttachment({ path, type, content }: FileAttachmentProps) {
 
 interface AssistantMessageProps {
   content: string;
+  reasoningContent?: string;
   timestamp: string;
   appType?: string;
 }
 
 const AssistantMessage = memo(function AssistantMessage({
   content,
+  reasoningContent,
   timestamp,
   appType = 'claude',
 }: AssistantMessageProps) {
   const assistantName = APP_LABELS[appType as AppType] || APP_LABELS.claude;
   const [isExpanded, setIsExpanded] = useState(false);
-  const shouldTruncate = content.length > MAX_TEXT_LENGTH;
+  const [isReasoningExpanded, setIsReasoningExpanded] = useState(false);
+
+  // For Claude Code: parse XML before truncating to avoid breaking XML structure
+  const parsedXML = useMemo(
+    () => (appType === 'claude' ? parseClaudeCodeXML(content) : null),
+    [content, appType]
+  );
+
+  // Only truncate if not displaying as XML (which handles its own overflow)
+  const shouldTruncate = !parsedXML && content.length > MAX_TEXT_LENGTH;
   const displayContent =
     isExpanded || !shouldTruncate ? content : content.slice(0, MAX_TEXT_LENGTH) + '\n\n...';
 
@@ -651,19 +911,59 @@ const AssistantMessage = memo(function AssistantMessage({
           <span className="font-medium text-sm">{assistantName}</span>
           <span className="text-xs text-muted-foreground">{formatTimestamp(timestamp)}</span>
         </div>
-        <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none [&_p]:break-words [&_pre]:bg-[#1e1e1e] [&_pre]:p-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto">
-          <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-            {displayContent}
-          </ReactMarkdown>
-          {shouldTruncate && !isExpanded && (
-            <button
-              onClick={() => setIsExpanded(true)}
-              className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted hover:bg-muted/80 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors border border-border/50"
-            >
-              <Maximize2 className="h-3.5 w-3.5" />
-              展开全部 ({(content.length / 1000).toFixed(1)}K 字符)
-            </button>
+        <div className={content && reasoningContent ? 'space-y-2' : undefined}>
+          {/* Reasoning / Thinking Block */}
+          {reasoningContent && (
+            <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/20 overflow-hidden">
+              <button
+                onClick={() => setIsReasoningExpanded(!isReasoningExpanded)}
+                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-amber-100/50 dark:hover:bg-amber-900/30 transition-colors"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                  Thinking
+                </span>
+                <span className="text-xs text-amber-600/70 dark:text-amber-500/70 ml-auto">
+                  {isReasoningExpanded ? '收起' : '展开'}
+                </span>
+                {isReasoningExpanded ? (
+                  <ChevronDown className="h-3.5 w-3.5 text-amber-500" />
+                ) : (
+                  <ChevronRight className="h-3.5 w-3.5 text-amber-500" />
+                )}
+              </button>
+              {isReasoningExpanded && (
+                <div className="px-3 pb-3 text-sm text-amber-800/80 dark:text-amber-300/80 leading-relaxed prose prose-sm dark:prose-invert max-w-none [&_p]:break-words [&_pre]:bg-[#1e1e1e] [&_pre]:p-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto border-t border-amber-200/50 dark:border-amber-800/50 pt-2">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                    {reasoningContent}
+                  </ReactMarkdown>
+                </div>
+              )}
+            </div>
           )}
+
+          {/* Main Content */}
+          <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none [&_p]:break-words [&_pre]:bg-[#1e1e1e] [&_pre]:p-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto">
+            {/* Check for Claude Code XML format */}
+            {parsedXML && parsedXML.length > 0 ? (
+              <ClaudeCodeXMLViewer data={parsedXML} />
+            ) : (
+              <>
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                  {displayContent}
+                </ReactMarkdown>
+                {shouldTruncate && !isExpanded && (
+                  <button
+                    onClick={() => setIsExpanded(true)}
+                    className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted hover:bg-muted/80 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors border border-border/50"
+                  >
+                    <Maximize2 className="h-3.5 w-3.5" />
+                    展开全部 ({(content.length / 1000).toFixed(1)}K 字符)
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -673,6 +973,195 @@ const AssistantMessage = memo(function AssistantMessage({
 interface ToolCallBlockProps {
   toolUse: SessionMessage;
   toolResult: SessionMessage | null;
+}
+
+interface ClaudeCodeXMLViewerProps {
+  data: Array<{
+    type: 'file' | 'directory' | 'text';
+    path?: string;
+    content?: string;
+    entries?: string[];
+  }>;
+}
+
+function ClaudeCodeXMLViewer({ data }: ClaudeCodeXMLViewerProps) {
+  // Track expanded state for each item
+  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set([0])); // Default expand first item
+
+  const toggleExpanded = (index: number) => {
+    setExpandedItems((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
+
+  const expandAll = () => {
+    setExpandedItems(new Set(data.map((_, i) => i)));
+  };
+
+  const collapseAll = () => {
+    setExpandedItems(new Set());
+  };
+
+  const fileName = (path: string) => path.split('/').pop() || path;
+
+  // Get display path with at most 3 parent directory levels
+  const getDisplayPath = (path: string): string => {
+    if (!path) return '';
+    const parts = path.split('/').filter(Boolean);
+    if (parts.length <= 1) return '.'; // Only filename
+
+    // Remove filename
+    parts.pop();
+
+    // Keep at most 3 parent directories (last 3)
+    if (parts.length > 3) {
+      parts.splice(0, parts.length - 3);
+    }
+
+    return parts.join('/');
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Expand/Collapse All buttons */}
+      {data.length > 1 && (
+        <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={expandAll}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            全部展开
+          </button>
+          <span className="text-muted-foreground/30">|</span>
+          <button
+            onClick={collapseAll}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            全部收起
+          </button>
+        </div>
+      )}
+
+      {data.map((item, index) => {
+        const isExpanded = expandedItems.has(index);
+        const displayPath = getDisplayPath(item.path || '');
+
+        return (
+          <div
+            key={index}
+            className="rounded-lg border border-border overflow-hidden bg-background/50"
+          >
+            {/* Header with path - clickable */}
+            <button
+              onClick={() => toggleExpanded(index)}
+              className="w-full flex items-center justify-between px-3 py-2 bg-muted/50 border-b hover:bg-muted/70 transition-colors text-left"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                {item.type === 'directory' ? (
+                  <Folder className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                ) : (
+                  <FileText className="h-4 w-4 text-primary flex-shrink-0" />
+                )}
+                <span className="text-sm font-medium truncate">{fileName(item.path || '')}</span>
+                <span className="text-xs text-muted-foreground flex-shrink-0">
+                  {item.type === 'directory' ? '目录' : '文件'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span
+                  className="text-xs text-muted-foreground/70 truncate max-w-[200px]"
+                  title={item.path}
+                >
+                  {displayPath}
+                </span>
+                {isExpanded ? (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                )}
+              </div>
+            </button>
+
+            {/* Content */}
+            {isExpanded && (
+              <div className="border-t">
+                {item.type === 'directory' && item.entries && (
+                  <div className="px-3 py-2 text-sm">
+                    <div className="text-muted-foreground text-xs mb-2">
+                      ({item.entries.length} 个条目)
+                    </div>
+                    <div className="space-y-1">
+                      {item.entries.map((entry, i) => (
+                        <div key={i} className="flex items-center gap-2 text-sm">
+                          {entry.endsWith('/') ? (
+                            <Folder className="h-3.5 w-3.5 text-blue-500" />
+                          ) : (
+                            <FileText className="h-3.5 w-3.5 text-gray-400" />
+                          )}
+                          <span>{entry}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {item.type === 'file' && item.content && (
+                  <div className="max-h-96 overflow-auto">
+                    <CollapsibleCodeBlock
+                      content={item.content}
+                      language={getLanguageFromPath(item.path || '')}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function getLanguageFromPath(path: string): string {
+  const ext = path.split('.').pop()?.toLowerCase();
+  const langMap: Record<string, string> = {
+    js: 'javascript',
+    ts: 'typescript',
+    jsx: 'jsx',
+    tsx: 'tsx',
+    py: 'python',
+    go: 'go',
+    rs: 'rust',
+    java: 'java',
+    kt: 'kotlin',
+    swift: 'swift',
+    c: 'c',
+    cpp: 'cpp',
+    h: 'c',
+    hpp: 'cpp',
+    json: 'json',
+    yaml: 'yaml',
+    yml: 'yaml',
+    md: 'markdown',
+    sh: 'bash',
+    bash: 'bash',
+    zsh: 'bash',
+    html: 'html',
+    css: 'css',
+    scss: 'scss',
+    less: 'less',
+    sql: 'sql',
+    xml: 'xml',
+    dockerfile: 'dockerfile',
+    env: 'bash',
+  };
+  return langMap[ext || ''] || 'text';
 }
 
 function ToolCallBlock({ toolUse, toolResult }: ToolCallBlockProps) {

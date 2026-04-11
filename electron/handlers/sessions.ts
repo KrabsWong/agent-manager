@@ -89,16 +89,49 @@ export function registerSessionsHandlers(): void {
   ipcRegistry.register('sessions:getSupportStatus', async (_event, ...args: unknown[]) => {
     const [appType] = args as [AppType];
 
-    const supportMap: Record<AppType, { supported: boolean; status: string }> = {
-      claude: { supported: true, status: 'full' },
-      codex: { supported: false, status: 'coming_soon' },
-      gemini: { supported: false, status: 'coming_soon' },
-      opencode: { supported: opencodeSessionService.isAvailable(), status: 'full' },
-      openclaw: { supported: false, status: 'coming_soon' },
-      codebuddy: { supported: codebuddySessionService.isAvailable(), status: 'full' },
+    const supportMap: Record<
+      AppType,
+      { supported: boolean; status: string; isAvailable: boolean; notAvailableReason?: string }
+    > = {
+      claude: { supported: true, status: 'full', isAvailable: true },
+      codex: {
+        supported: false,
+        status: 'coming_soon',
+        isAvailable: false,
+        notAvailableReason: 'coming_soon',
+      },
+      gemini: {
+        supported: false,
+        status: 'coming_soon',
+        isAvailable: false,
+        notAvailableReason: 'coming_soon',
+      },
+      opencode: {
+        supported: true,
+        status: 'full',
+        isAvailable: opencodeSessionService.isAvailable(),
+      },
+      openclaw: {
+        supported: false,
+        status: 'coming_soon',
+        isAvailable: false,
+        notAvailableReason: 'coming_soon',
+      },
+      codebuddy: {
+        supported: true,
+        status: 'full',
+        isAvailable: codebuddySessionService.isAvailable(),
+      },
     };
 
-    return supportMap[appType] || { supported: false, status: 'not_supported' };
+    return (
+      supportMap[appType] || {
+        supported: false,
+        status: 'not_supported',
+        isAvailable: false,
+        notAvailableReason: 'not_supported',
+      }
+    );
   });
 
   // Resume session in terminal

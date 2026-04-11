@@ -31,12 +31,14 @@ interface ProjectMessage {
   sessionId?: string;
   message?: {
     role?: string;
-    content?: string | Array<{ type: string; text?: string }>;
+    content?: string | Array<{ type: string; text?: string; thinking?: string }>;
     tool_use?: Array<{
       id: string;
       name: string;
       input: Record<string, unknown>;
     }>;
+    thinking?: string;
+    reasoning_content?: string;
   };
   parentUuid?: string | null;
   promptId?: string;
@@ -338,18 +340,21 @@ export class ClaudeSessionService {
       const content = fs.readFileSync(filePath, 'utf-8');
       const lines = content.split('\n').filter((line) => line.trim());
 
-      const messages: SessionMessage[] = [];
+      const rawMessages: SessionMessage[] = [];
       for (const line of lines) {
         try {
           const msg = JSON.parse(line) as ProjectMessage;
           const parsedMsg = this.parseNewProjectMessage(msg);
           if (parsedMsg) {
-            messages.push(parsedMsg);
+            rawMessages.push(parsedMsg);
           }
         } catch (error) {
           log.warn('Failed to parse message:', error);
         }
       }
+
+      // Merge consecutive assistant messages (thinking + text)
+      const messages = this.mergeAssistantMessages(rawMessages);
 
       return {
         id: sessionId,
@@ -438,6 +443,46 @@ export class ClaudeSessionService {
         content = `[${msg.toolUseResult}]`;
       }
 
+      // Check for local command messages and convert to system messages
+      if (content.includes('<local-command-caveat>')) {
+        const caveatMatch = content.match(/<local-command-caveat>(.*?)<\/local-command-caveat>/);
+        const caveatText = caveatMatch ? caveatMatch[1] : 'Local command caveat';
+        return {
+          type: 'system',
+          timestamp,
+          content: caveatText,
+          metadata: { subtype: 'caveat' },
+        } as SessionMessage;
+      }
+
+      if (content.includes('<local-command-stdout>')) {
+        const stdoutMatch = content.match(/<local-command-stdout>(.*?)<\/local-command-stdout>/);
+        const stdoutText = stdoutMatch ? stdoutMatch[1] : content;
+        return {
+          type: 'system',
+          timestamp,
+          content: stdoutText,
+          metadata: { subtype: 'command_output' },
+        } as SessionMessage;
+      }
+
+      if (content.includes('<command-name>')) {
+        const nameMatch = content.match(/<command-name>(.*?)<\/command-name>/);
+        const msgMatch = content.match(/<command-message>(.*?)<\/command-message>/);
+        const argsMatch = content.match(/<command-args>(.*?)<\/command-args>/);
+
+        const cmdName = nameMatch ? nameMatch[1] : 'unknown';
+        const cmdMsg = msgMatch ? msgMatch[1] : '';
+        const cmdArgs = argsMatch ? argsMatch[1] : '';
+
+        return {
+          type: 'system',
+          timestamp,
+          content: `${cmdName} ${cmdMsg} ${cmdArgs}`.trim(),
+          metadata: { subtype: 'command', command: cmdName },
+        } as SessionMessage;
+      }
+
       return {
         type: 'user',
         timestamp,
@@ -446,43 +491,76 @@ export class ClaudeSessionService {
     }
 
     if (msg.type === 'assistant') {
-      let content = '';
       const toolCalls: Array<{
         id: string;
         name: string;
         input: Record<string, unknown>;
       }> = [];
 
-      if (typeof msg.message?.content === 'string') {
-        content = msg.message.content;
-      } else if (Array.isArray(msg.message?.content)) {
-        for (const item of msg.message.content) {
-          if (item.type === 'text' && item.text) {
-            content += item.text + '\n';
-          } else if (item.type === 'tool_use') {
-            toolCalls.push({
-              id: (item as unknown as { id: string }).id || 'unknown',
-              name: (item as unknown as { name: string }).name || 'unknown',
-              input: (item as unknown as { input: Record<string, unknown> }).input || {},
-            });
-          }
-        }
-      }
+      // Check if this is a thinking-only message
+      if (Array.isArray(msg.message?.content)) {
+        // Check if this message only contains thinking content
+        const thinkingItems = msg.message.content.filter(
+          (item) => item.type === 'thinking' && item.thinking
+        );
+        const textItems = msg.message.content.filter((item) => item.type === 'text' && item.text);
+        const toolUseItems = msg.message.content.filter((item) => item.type === 'tool_use');
 
-      if (toolCalls.length > 0) {
+        // If this message only has thinking items, return as reasoning content
+        if (thinkingItems.length > 0 && textItems.length === 0) {
+          const reasoningContent = thinkingItems.map((item) => item.thinking).join('\n');
+          return {
+            type: 'assistant',
+            timestamp,
+            content: '', // Empty content for thinking-only messages
+            reasoning_content: reasoningContent,
+          };
+        }
+
+        // Process tool_use items
+        for (const item of toolUseItems) {
+          toolCalls.push({
+            id: (item as unknown as { id: string }).id || 'unknown',
+            name: (item as unknown as { name: string }).name || 'unknown',
+            input: (item as unknown as { input: Record<string, unknown> }).input || {},
+          });
+        }
+
+        // If has tool calls, return as tool_use
+        if (toolCalls.length > 0) {
+          const content = textItems.map((item) => item.text).join('\n');
+          return {
+            type: 'tool_use',
+            timestamp,
+            tool_name: toolCalls[0].name,
+            tool_input: toolCalls[0].input,
+            content,
+          };
+        }
+
+        // Regular text content
+        const content = textItems.map((item) => item.text).join('\n');
         return {
-          type: 'tool_use',
+          type: 'assistant',
           timestamp,
-          tool_name: toolCalls[0].name,
-          tool_input: toolCalls[0].input,
           content,
         };
       }
 
+      // String content (fallback)
+      if (typeof msg.message?.content === 'string') {
+        return {
+          type: 'assistant',
+          timestamp,
+          content: msg.message.content,
+        };
+      }
+
+      // Empty fallback
       return {
         type: 'assistant',
         timestamp,
-        content,
+        content: '',
       };
     }
 
@@ -513,6 +591,52 @@ export class ClaudeSessionService {
       firstSessionDate: dates[0],
       lastSessionDate: dates[dates.length - 1],
     };
+  }
+
+  /**
+   * Merge consecutive assistant messages (thinking + text)
+   * Claude Code sends thinking and text as separate consecutive messages
+   */
+  private mergeAssistantMessages(messages: SessionMessage[]): SessionMessage[] {
+    const merged: SessionMessage[] = [];
+    let pendingThinking: SessionMessage | null = null;
+
+    for (const msg of messages) {
+      if (msg.type === 'assistant') {
+        // If this is a thinking-only message (no content, only reasoning_content)
+        if (!msg.content && msg.reasoning_content) {
+          pendingThinking = msg;
+          continue;
+        }
+
+        // If this is a text message and we have pending thinking, merge them
+        if (msg.content && pendingThinking) {
+          merged.push({
+            ...msg,
+            reasoning_content: pendingThinking.reasoning_content,
+          });
+          pendingThinking = null;
+          continue;
+        }
+
+        // Regular assistant message
+        merged.push(msg);
+      } else {
+        // Non-assistant message: flush pending thinking if any
+        if (pendingThinking) {
+          merged.push(pendingThinking);
+          pendingThinking = null;
+        }
+        merged.push(msg);
+      }
+    }
+
+    // Flush any remaining pending thinking
+    if (pendingThinking) {
+      merged.push(pendingThinking);
+    }
+
+    return merged;
   }
 }
 

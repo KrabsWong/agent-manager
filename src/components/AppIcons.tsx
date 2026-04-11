@@ -133,3 +133,13 @@ export const APP_TYPES: AppType[] = [
   'opencode',
   'openclaw',
 ];
+
+// App official websites
+export const APP_WEBSITES: Record<AppType, string> = {
+  claude: 'https://claude.ai/code',
+  codex: 'https://github.com/openai/codex',
+  gemini: 'https://ai.google.dev/gemini-cli',
+  opencode: 'https://opencode.com',
+  openclaw: 'https://github.com/openclaw/cli',
+  codebuddy: 'https://codebuddy.ai',
+};

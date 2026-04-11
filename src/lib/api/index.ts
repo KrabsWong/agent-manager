@@ -510,11 +510,23 @@ export const sessionsApi = {
     return extractData(response);
   },
 
-  getSupportStatus: async (appType: AppType): Promise<{ supported: boolean; status: string }> => {
+  getSupportStatus: async (
+    appType: AppType
+  ): Promise<{
+    supported: boolean;
+    status: string;
+    isAvailable: boolean;
+    notAvailableReason?: string;
+  }> => {
     const response = (await window.electronAPI.invoke(
       'sessions:getSupportStatus',
       appType
-    )) as ApiResponse<{ supported: boolean; status: string }>;
+    )) as ApiResponse<{
+      supported: boolean;
+      status: string;
+      isAvailable: boolean;
+      notAvailableReason?: string;
+    }>;
     return extractData(response);
   },
 

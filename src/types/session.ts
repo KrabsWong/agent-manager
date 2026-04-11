@@ -5,9 +5,10 @@
  */
 
 export interface SessionMessage {
-  type: 'user' | 'assistant' | 'tool_use' | 'tool_result';
+  type: 'user' | 'assistant' | 'tool_use' | 'tool_result' | 'system';
   timestamp: string;
   content?: string;
+  reasoning_content?: string;
   tool_name?: string;
   tool_input?: Record<string, unknown>;
   tool_output?: {
@@ -15,6 +16,11 @@ export interface SessionMessage {
     content?: Array<{ type: string; text?: string }>;
     preview?: string;
     truncated?: boolean;
+    [key: string]: unknown;
+  };
+  metadata?: {
+    subtype?: string;
+    command?: string;
     [key: string]: unknown;
   };
 }

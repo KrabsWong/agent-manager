@@ -220,6 +220,7 @@ export class OpenCodeSessionService {
 
     // Extract content from all part types
     const contents: string[] = [];
+    const reasoningContents: string[] = [];
     const toolCalls: Array<Record<string, unknown>> = [];
 
     for (const part of parts) {
@@ -233,7 +234,7 @@ export class OpenCodeSessionService {
           break;
         case 'reasoning':
           if (part.text) {
-            contents.push(`💭 Thinking:\n${String(part.text)}`);
+            reasoningContents.push(String(part.text));
           }
           break;
         case 'tool':
@@ -259,6 +260,7 @@ export class OpenCodeSessionService {
     }
 
     const content = contents.join('\n\n');
+    const reasoningContent = reasoningContents.join('\n\n');
 
     // Check for tool calls in assistant messages
     if (role === 'assistant' && toolCalls.length > 0) {
@@ -269,6 +271,7 @@ export class OpenCodeSessionService {
         tool_input:
           ((toolCalls[0].state as Record<string, unknown>)?.input as Record<string, unknown>) || {},
         content,
+        reasoning_content: reasoningContent || undefined,
       } as SessionMessage;
     }
 
@@ -276,6 +279,7 @@ export class OpenCodeSessionService {
       type: role === 'user' ? 'user' : 'assistant',
       timestamp: timeStr,
       content,
+      reasoning_content: reasoningContent || undefined,
     } as SessionMessage;
   }
 

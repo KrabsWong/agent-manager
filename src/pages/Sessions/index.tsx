@@ -6,7 +6,16 @@
 
 import { useState, createContext, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AlertCircle, Copy, Check, Play, AlertTriangle, History, ChevronUp } from 'lucide-react';
+import {
+  AlertCircle,
+  Copy,
+  Check,
+  Play,
+  AlertTriangle,
+  History,
+  ChevronUp,
+  ExternalLink,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -20,7 +29,7 @@ import {
 } from '@/hooks/useSessions';
 import { ConversationView } from '@/components/sessions/ConversationView';
 import { VirtualSessionList } from '@/components/sessions/VirtualSessionList';
-import { APP_LABELS, getAppIcon, APP_COLORS } from '@/components/AppIcons';
+import { APP_LABELS, getAppIcon, APP_COLORS, APP_WEBSITES } from '@/components/AppIcons';
 import type { AppType, Session } from '@/types';
 
 /**
@@ -221,6 +230,26 @@ export function SessionsPage() {
                   {t('sessions.switchToClaude') || 'Switch to Claude Code'}
                 </Button>
               </div>
+            ) : !supportStatus?.isAvailable ? (
+              <div className="flex flex-col items-center justify-center h-64 space-y-4">
+                <div className="text-muted-foreground text-center">
+                  <p className="text-lg font-medium mb-2">
+                    {t('sessions.notInstalled') || 'Not Installed'}
+                  </p>
+                  <p className="text-sm">
+                    {t('sessions.notInstalledDesc', { app: APP_LABELS[selectedApp] }) ||
+                      `Install ${APP_LABELS[selectedApp]} to view your conversation history.`}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => window.open(APP_WEBSITES[selectedApp], '_blank')}
+                  className="flex items-center gap-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  {t('sessions.visitWebsite') || 'Visit Website'}
+                </Button>
+              </div>
             ) : sessions?.length === 0 ? (
               <div className="flex items-center justify-center h-64">
                 <div className="text-muted-foreground text-center">
@@ -367,7 +396,7 @@ export function SessionsPage() {
                     <div className="flex items-center justify-center h-64 text-muted-foreground">
                       {t('sessions.loadingConversation') || 'Loading conversation...'}
                     </div>
-                  ) : sessionDetail?.messages ? (
+                  ) : sessionDetail?.messages && sessionDetail.messages.length > 0 ? (
                     <ConversationView messages={sessionDetail.messages} appType={selectedApp} />
                   ) : (
                     <div className="flex items-center justify-center h-64 text-muted-foreground">
@@ -411,10 +440,18 @@ export function SessionsPage() {
               </div>
             </>
           ) : (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
-              <div className="text-center">
-                <History className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>{t('sessions.selectSession') || 'Select a session to view details'}</p>
+            <div className="flex items-center justify-center h-full">
+              <div className="text-center max-w-md px-6">
+                <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-6">
+                  <History className="h-8 w-8 text-muted-foreground opacity-50" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  {t('sessions.emptyStateTitle') || 'No Session Selected'}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {t('sessions.emptyStateDesc') ||
+                    'Choose a session from the list on the left to view conversation details, or select a different application to browse its history.'}
+                </p>
               </div>
             </div>
           )}
