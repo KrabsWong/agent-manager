@@ -9,7 +9,7 @@
  * - MCP calls and sub-agent calls (identified by tool_name patterns)
  */
 
-import { useMemo, useState, memo, useRef, useEffect } from 'react';
+import { useMemo, useState, memo, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   User,
@@ -100,6 +100,8 @@ import { getAppIcon, APP_LABELS } from '@/components/AppIcons';
 import { cn } from '@/lib/utils';
 import { parseMessageContent, hasSpecialParser, type ParsedContent } from './parsers';
 import { SubAgentCard } from './SubAgentCard';
+import { SearchBar } from './SearchBar';
+import { HighlightedText } from './HighlightedText';
 import type { AppType } from '@/types';
 import type { SessionMessage } from '@/types/session';
 
@@ -645,6 +647,20 @@ export function ConversationView({
   const [hasMore, setHasMore] = useState(false);
   const [remainingCount, setRemainingCount] = useState(0);
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isLoadingAll, setIsLoadingAll] = useState(false);
+
+  // Debounced search query
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   // Initialize displayed turns based on message count limit
   useEffect(() => {
     let count = 0;
@@ -704,44 +720,130 @@ export function ConversationView({
     onLoadAll?.();
   };
 
+  // Filter turns based on search
+  const filteredTurns = useMemo(() => {
+    if (!debouncedQuery.trim()) {
+      return displayedTurns;
+    }
+
+    return displayedTurns.filter((turn) => {
+      // Check user message
+      if (
+        turn.userMessage?.content &&
+        turn.userMessage.content.toLowerCase().includes(debouncedQuery.toLowerCase())
+      ) {
+        return true;
+      }
+
+      // Check assistant message
+      if (
+        turn.assistantMessage?.content &&
+        turn.assistantMessage.content.toLowerCase().includes(debouncedQuery.toLowerCase())
+      ) {
+        return true;
+      }
+
+      if (
+        turn.assistantMessage?.reasoning_content &&
+        turn.assistantMessage.reasoning_content.toLowerCase().includes(debouncedQuery.toLowerCase())
+      ) {
+        return true;
+      }
+
+      // Check tool calls
+      for (const tc of turn.toolCalls) {
+        const toolContent = [
+          tc.toolUse?.tool_name,
+          tc.toolUse?.tool_input ? JSON.stringify(tc.toolUse.tool_input) : '',
+          tc.toolResult?.tool_output ? JSON.stringify(tc.toolResult.tool_output) : '',
+        ].join(' ');
+
+        if (toolContent.toLowerCase().includes(debouncedQuery.toLowerCase())) {
+          return true;
+        }
+      }
+
+      // Check system messages
+      for (const sysMsg of turn.systemMessages) {
+        if (sysMsg.content?.toLowerCase().includes(debouncedQuery.toLowerCase())) {
+          return true;
+        }
+      }
+
+      return false;
+    });
+  }, [displayedTurns, debouncedQuery]);
+
+  // Calculate match count for display
+  const matchCount = useMemo(() => {
+    if (!debouncedQuery.trim()) return 0;
+    return filteredTurns.length;
+  }, [filteredTurns, debouncedQuery]);
+
+  // Handle load all
+  const handleLoadAllSearch = useCallback(async () => {
+    setIsLoadingAll(true);
+    if (handleLoadAll) {
+      handleLoadAll();
+    }
+    setTimeout(() => setIsLoadingAll(false), 500);
+  }, [handleLoadAll]);
+
   const shouldPaginate = turnsWithCount.length > displayedTurns.length;
 
   return (
-    <div className={cn('space-y-6', className)}>
-      {displayedTurns.map((turn, index) => (
-        <ConversationTurn
-          key={index}
-          turn={turn}
-          appType={appType}
-          onViewSubAgentSession={onViewSubAgentSession}
-        />
-      ))}
-      {/* Load more buttons at BOTTOM */}
-      {shouldPaginate && hasMore && (
-        <div className="flex justify-center items-center gap-4 py-3">
-          <button
-            onClick={handleLoadMore}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ChevronDown className="h-3.5 w-3.5" />
-            加载更多 ({remainingCount} 条)
-          </button>
-          <span className="text-border">|</span>
-          <button
-            onClick={handleLoadAll}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Maximize2 className="h-3.5 w-3.5" />
-            加载全部
-          </button>
+    <div className={cn('flex flex-col h-full', className)}>
+      {/* Search Bar */}
+      <SearchBar
+        query={searchQuery}
+        onQueryChange={setSearchQuery}
+        matchCount={matchCount}
+        totalMessages={turnsWithCount.reduce((sum, t) => sum + t.messageCount, 0)}
+        loadedMessages={displayedTurns.reduce((sum, t) => sum + t.messageCount, 0)}
+        onLoadAll={hasMore ? handleLoadAllSearch : undefined}
+        isLoadingAll={isLoadingAll}
+      />
+
+      {/* Messages Container */}
+      <div className="flex-1 relative overflow-hidden">
+        <div className="absolute inset-0 overflow-y-auto p-4 space-y-6">
+          {filteredTurns.map((turn, index) => (
+            <ConversationTurn
+              key={index}
+              turn={turn}
+              appType={appType}
+              onViewSubAgentSession={onViewSubAgentSession}
+              searchQuery={debouncedQuery}
+            />
+          ))}
+          {/* Load more buttons at BOTTOM */}
+          {shouldPaginate && hasMore && !searchQuery && (
+            <div className="flex justify-center items-center gap-4 py-3">
+              <button
+                onClick={handleLoadMore}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ChevronDown className="h-3.5 w-3.5" />
+                加载更多 ({remainingCount} 条)
+              </button>
+              <span className="text-border">|</span>
+              <button
+                onClick={handleLoadAll}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Maximize2 className="h-3.5 w-3.5" />
+                加载全部
+              </button>
+            </div>
+          )}
+          {/* End of session indicator */}
+          {!hasMore && displayedTurns.length > 0 && (
+            <div className="flex justify-center py-4">
+              <span className="text-xs text-muted-foreground/50">— 已加载全部内容 —</span>
+            </div>
+          )}
         </div>
-      )}
-      {/* End of session indicator */}
-      {!hasMore && displayedTurns.length > 0 && (
-        <div className="flex justify-center py-4">
-          <span className="text-xs text-muted-foreground/50">— 已加载全部内容 —</span>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -750,12 +852,14 @@ interface ConversationTurnProps {
   turn: MessageTurn;
   appType: string;
   onViewSubAgentSession?: (sessionId: string, appType: string) => void;
+  searchQuery?: string;
 }
 
 const ConversationTurn = memo(function ConversationTurn({
   turn,
   appType,
   onViewSubAgentSession,
+  searchQuery = '',
 }: ConversationTurnProps) {
   return (
     <div className="space-y-3">
@@ -769,6 +873,7 @@ const ConversationTurn = memo(function ConversationTurn({
               timestamp={sysMsg.timestamp}
               metadata={sysMsg.metadata}
               model={sysMsg.model}
+              searchQuery={searchQuery}
             />
           ))}
         </div>
@@ -781,6 +886,7 @@ const ConversationTurn = memo(function ConversationTurn({
           timestamp={turn.userMessage.timestamp}
           appType={appType}
           model={turn.userMessage.model}
+          searchQuery={searchQuery}
         />
       )}
 
@@ -793,6 +899,7 @@ const ConversationTurn = memo(function ConversationTurn({
               toolUse={toolCall.toolUse}
               toolResult={toolCall.toolResult}
               onViewSubAgentSession={onViewSubAgentSession}
+              searchQuery={searchQuery}
             />
           ))}
         </div>
@@ -806,6 +913,7 @@ const ConversationTurn = memo(function ConversationTurn({
           timestamp={turn.assistantMessage.timestamp}
           appType={appType}
           model={turn.assistantMessage.model}
+          searchQuery={searchQuery}
         />
       )}
     </div>
@@ -817,6 +925,7 @@ interface SystemMessageProps {
   timestamp: string;
   metadata?: { subtype?: string; command?: string };
   model?: string;
+  searchQuery?: string;
 }
 
 const SystemMessage = memo(function SystemMessage({
@@ -824,6 +933,7 @@ const SystemMessage = memo(function SystemMessage({
   timestamp,
   metadata,
   model,
+  searchQuery = '',
 }: SystemMessageProps) {
   // Auto-detect subtype from content if not provided
   const detectSubtype = (): string | undefined => {
@@ -936,7 +1046,9 @@ const SystemMessage = memo(function SystemMessage({
           {formatTimestamp(timestamp)}
         </span>
       </div>
-      <div className={`px-3 pb-2 text-sm ${config.textColor} opacity-80`}>{cleanContent}</div>
+      <div className={`px-3 pb-2 text-sm ${config.textColor} opacity-80`}>
+        <HighlightedText text={cleanContent} query={searchQuery} />
+      </div>
     </div>
   );
 });
@@ -946,6 +1058,7 @@ interface UserMessageProps {
   timestamp: string;
   appType?: string;
   model?: string;
+  searchQuery?: string;
 }
 
 const UserMessage = memo(function UserMessage({
@@ -953,6 +1066,7 @@ const UserMessage = memo(function UserMessage({
   timestamp,
   appType,
   model,
+  searchQuery = '',
 }: UserMessageProps) {
   // 检查是否需要特殊解析
   const needsSpecialParsing = hasSpecialParser(appType);
@@ -980,7 +1094,7 @@ const UserMessage = memo(function UserMessage({
         </div>
         <div className="bg-primary/5 rounded-lg p-3 text-sm space-y-2">
           {parsedContents.map((item, index) => (
-            <ParsedContentBlock key={index} item={item} />
+            <ParsedContentBlock key={index} item={item} searchQuery={searchQuery} />
           ))}
         </div>
       </div>
@@ -990,9 +1104,10 @@ const UserMessage = memo(function UserMessage({
 
 interface ParsedContentBlockProps {
   item: ParsedContent;
+  searchQuery?: string;
 }
 
-function ParsedContentBlock({ item }: ParsedContentBlockProps) {
+function ParsedContentBlock({ item, searchQuery: _searchQuery = '' }: ParsedContentBlockProps) {
   if (item.type === 'file') {
     return (
       <FileAttachment
@@ -1064,6 +1179,7 @@ interface AssistantMessageProps {
   timestamp: string;
   appType?: string;
   model?: string;
+  searchQuery?: string;
 }
 
 const AssistantMessage = memo(function AssistantMessage({
@@ -1072,6 +1188,7 @@ const AssistantMessage = memo(function AssistantMessage({
   timestamp,
   appType = 'claude',
   model,
+  searchQuery: _searchQuery = '',
 }: AssistantMessageProps) {
   const assistantName = APP_LABELS[appType as AppType] || APP_LABELS.claude;
   const [isExpanded, setIsExpanded] = useState(false);
@@ -1169,6 +1286,7 @@ interface ToolCallBlockProps {
   toolUse: SessionMessage | null;
   toolResult: SessionMessage | null;
   onViewSubAgentSession?: (sessionId: string, appType: string) => void;
+  searchQuery?: string;
 }
 
 interface ClaudeCodeXMLViewerProps {
@@ -1360,7 +1478,12 @@ function getLanguageFromPath(path: string): string {
   return langMap[ext || ''] || 'text';
 }
 
-function ToolCallBlock({ toolUse, toolResult, onViewSubAgentSession }: ToolCallBlockProps) {
+function ToolCallBlock({
+  toolUse,
+  toolResult,
+  onViewSubAgentSession,
+  searchQuery: _searchQuery = '',
+}: ToolCallBlockProps) {
   const { t } = useTranslation();
 
   const toolName = toolUse?.tool_name || toolResult?.tool_name || 'unknown';
