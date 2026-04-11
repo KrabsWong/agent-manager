@@ -1,4 +1,5 @@
-import { Bot, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
+import { Bot, ExternalLink, ChevronUp, Maximize2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import type { SessionMessage } from '@/types/session';
@@ -10,24 +11,38 @@ interface SubAgentCardProps {
   className?: string;
 }
 
+const MAX_OUTPUT_LINES = 20; // 输出超过此行数默认折叠
+
 export function SubAgentCard({ toolUse, toolResult, onViewSession, className }: SubAgentCardProps) {
   const { t } = useTranslation();
+  const [isOutputExpanded, setIsOutputExpanded] = useState(false);
 
   const toolName = toolUse?.tool_name || toolResult?.tool_name || 'Agent';
   const toolInput = toolUse?.tool_input || {};
   const childSessionId = toolResult?.metadata?.childSessionId;
   const childSessionAppType = toolResult?.metadata?.childSessionAppType || 'codebuddy';
 
-  // Extract description from tool input
+  // Extract description and subagent type from tool input
   const description =
     (toolInput.description as string) ||
     (toolInput.task as string) ||
     (toolInput.prompt as string) ||
     t('sessions.subAgentDefaultDesc', 'Sub-agent task');
+  const subAgentType = (toolInput.subagent_type as string) || (toolInput.type as string);
 
   // Determine status based on whether we have a result
   const hasResult = !!toolResult;
   const status = hasResult ? 'completed' : 'running';
+
+  // Extract output content
+  const outputContent = toolResult?.tool_output?.output || '';
+  const outputLines = outputContent.split('\n');
+  const totalOutputLines = outputLines.length;
+  const shouldCollapseOutput = totalOutputLines > MAX_OUTPUT_LINES;
+  const displayOutput =
+    shouldCollapseOutput && !isOutputExpanded
+      ? outputLines.slice(0, MAX_OUTPUT_LINES).join('\n') + '\n\n...'
+      : outputContent;
 
   return (
     <div
@@ -42,6 +57,11 @@ export function SubAgentCard({ toolUse, toolResult, onViewSession, className }: 
         <span className="font-medium text-sm text-purple-700 dark:text-purple-300">
           {t('sessions.subAgent', 'Sub Agent')}
         </span>
+        {subAgentType && (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-purple-200 dark:bg-purple-800 text-purple-700 dark:text-purple-300">
+            {subAgentType}
+          </span>
+        )}
         <span
           className={cn(
             'text-xs px-1.5 py-0.5 rounded-full ml-auto',
@@ -57,7 +77,7 @@ export function SubAgentCard({ toolUse, toolResult, onViewSession, className }: 
       </div>
 
       {/* Content */}
-      <div className="p-3 space-y-2">
+      <div className="p-3 space-y-3">
         {/* Description */}
         <div className="text-sm text-foreground">
           <span className="text-muted-foreground text-xs uppercase tracking-wider block mb-1">
@@ -65,6 +85,36 @@ export function SubAgentCard({ toolUse, toolResult, onViewSession, className }: 
           </span>
           <p className="line-clamp-3">{description}</p>
         </div>
+
+        {/* Output content */}
+        {hasResult && outputContent && (
+          <div className="border-t border-purple-200/50 dark:border-purple-800/50 pt-3">
+            <span className="text-muted-foreground text-xs uppercase tracking-wider block mb-2">
+              {t('sessions.output', 'Output')}
+            </span>
+            <pre className="text-xs font-mono bg-muted/50 rounded p-2 whitespace-pre-wrap break-all">
+              {displayOutput}
+            </pre>
+            {shouldCollapseOutput && (
+              <button
+                onClick={() => setIsOutputExpanded(!isOutputExpanded)}
+                className="flex items-center gap-1.5 mt-2 text-xs text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors"
+              >
+                {isOutputExpanded ? (
+                  <>
+                    <ChevronUp className="h-3.5 w-3.5" />
+                    {t('sessions.collapse', 'Collapse')}
+                  </>
+                ) : (
+                  <>
+                    <Maximize2 className="h-3.5 w-3.5" />
+                    {t('sessions.expandAll')} ({totalOutputLines} {t('sessions.lines', 'lines')})
+                  </>
+                )}
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Tool name if available */}
         {toolName !== 'Agent' && (
@@ -82,13 +132,6 @@ export function SubAgentCard({ toolUse, toolResult, onViewSession, className }: 
             <ExternalLink className="h-3.5 w-3.5" />
             {t('sessions.viewSubAgentSession', 'View Sub-Agent Session')}
           </button>
-        )}
-
-        {/* No session ID warning */}
-        {!childSessionId && hasResult && (
-          <div className="text-xs text-amber-600 dark:text-amber-400 mt-2">
-            {t('sessions.subAgentSessionNotFound', 'Sub-agent session ID not found in output')}
-          </div>
         )}
       </div>
     </div>

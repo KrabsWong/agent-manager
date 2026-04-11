@@ -399,6 +399,9 @@ const enTranslations = {
     commandOutput: 'Command Output',
     system: 'System',
     inputNotAvailable: 'Input not available',
+    output: 'Output',
+    collapse: 'Collapse',
+    lines: 'lines',
   },
 };
 
@@ -794,6 +797,9 @@ const zhTranslations = {
     commandOutput: '命令输出',
     system: '系统',
     inputNotAvailable: '输入不可用',
+    output: '输出',
+    collapse: '收起',
+    lines: '行',
   },
 };
 
