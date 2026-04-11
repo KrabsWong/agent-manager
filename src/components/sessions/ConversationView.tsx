@@ -768,6 +768,7 @@ const ConversationTurn = memo(function ConversationTurn({
               content={sysMsg.content || ''}
               timestamp={sysMsg.timestamp}
               metadata={sysMsg.metadata}
+              model={sysMsg.model}
             />
           ))}
         </div>
@@ -779,6 +780,7 @@ const ConversationTurn = memo(function ConversationTurn({
           content={turn.userMessage.content}
           timestamp={turn.userMessage.timestamp}
           appType={appType}
+          model={turn.userMessage.model}
         />
       )}
 
@@ -803,6 +805,7 @@ const ConversationTurn = memo(function ConversationTurn({
           reasoningContent={turn.assistantMessage.reasoning_content}
           timestamp={turn.assistantMessage.timestamp}
           appType={appType}
+          model={turn.assistantMessage.model}
         />
       )}
     </div>
@@ -813,12 +816,14 @@ interface SystemMessageProps {
   content: string;
   timestamp: string;
   metadata?: { subtype?: string; command?: string };
+  model?: string;
 }
 
 const SystemMessage = memo(function SystemMessage({
   content,
   timestamp,
   metadata,
+  model,
 }: SystemMessageProps) {
   // Auto-detect subtype from content if not provided
   const detectSubtype = (): string | undefined => {
@@ -919,6 +924,14 @@ const SystemMessage = memo(function SystemMessage({
       <div className="flex items-center gap-2 px-3 py-1.5">
         {config.icon}
         <span className={`text-xs font-medium ${config.textColor}`}>{config.label}</span>
+        {model && (
+          <span
+            className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+            title="AI Model"
+          >
+            {model}
+          </span>
+        )}
         <span className="text-xs text-muted-foreground/60 ml-auto">
           {formatTimestamp(timestamp)}
         </span>
@@ -932,9 +945,15 @@ interface UserMessageProps {
   content: string;
   timestamp: string;
   appType?: string;
+  model?: string;
 }
 
-const UserMessage = memo(function UserMessage({ content, timestamp, appType }: UserMessageProps) {
+const UserMessage = memo(function UserMessage({
+  content,
+  timestamp,
+  appType,
+  model,
+}: UserMessageProps) {
   // 检查是否需要特殊解析
   const needsSpecialParsing = hasSpecialParser(appType);
   const parsedContents = needsSpecialParsing
@@ -949,6 +968,14 @@ const UserMessage = memo(function UserMessage({ content, timestamp, appType }: U
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <span className="font-medium text-sm">You</span>
+          {model && (
+            <span
+              className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+              title="AI Model"
+            >
+              {model}
+            </span>
+          )}
           <span className="text-xs text-muted-foreground">{formatTimestamp(timestamp)}</span>
         </div>
         <div className="bg-primary/5 rounded-lg p-3 text-sm space-y-2">
@@ -1036,6 +1063,7 @@ interface AssistantMessageProps {
   reasoningContent?: string;
   timestamp: string;
   appType?: string;
+  model?: string;
 }
 
 const AssistantMessage = memo(function AssistantMessage({
@@ -1043,6 +1071,7 @@ const AssistantMessage = memo(function AssistantMessage({
   reasoningContent,
   timestamp,
   appType = 'claude',
+  model,
 }: AssistantMessageProps) {
   const assistantName = APP_LABELS[appType as AppType] || APP_LABELS.claude;
   const [isExpanded, setIsExpanded] = useState(false);
@@ -1067,6 +1096,14 @@ const AssistantMessage = memo(function AssistantMessage({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <span className="font-medium text-sm">{assistantName}</span>
+          {model && (
+            <span
+              className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+              title="AI Model"
+            >
+              {model}
+            </span>
+          )}
           <span className="text-xs text-muted-foreground">{formatTimestamp(timestamp)}</span>
         </div>
         <div className={content && reasoningContent ? 'space-y-2' : undefined}>
@@ -1351,6 +1388,14 @@ function ToolCallBlock({ toolUse, toolResult, onViewSubAgentSession }: ToolCallB
         <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 border-b">
           {getToolIcon(toolType)}
           <span className="font-medium text-sm">{getToolDisplayName(toolName)}</span>
+          {toolResult?.model && (
+            <span
+              className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+              title="AI Model"
+            >
+              {toolResult.model}
+            </span>
+          )}
           {summary && (
             <span
               className="text-xs text-muted-foreground ml-auto truncate max-w-[200px]"
@@ -1386,6 +1431,14 @@ function ToolCallBlock({ toolUse, toolResult, onViewSubAgentSession }: ToolCallB
       <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 border-b">
         {getToolIcon(toolType)}
         <span className="font-medium text-sm">{getToolDisplayName(toolName)}</span>
+        {(toolUse?.model || toolResult?.model) && (
+          <span
+            className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+            title="AI Model"
+          >
+            {toolUse?.model || toolResult?.model}
+          </span>
+        )}
         {summary && (
           <span
             className="text-xs text-muted-foreground ml-auto truncate max-w-[200px]"

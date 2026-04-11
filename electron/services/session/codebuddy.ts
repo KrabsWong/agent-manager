@@ -61,6 +61,7 @@ interface CodebuddyMessageEntry {
     text: string;
   };
   status?: string;
+  model?: string; // AI model used for this message
 }
 
 export class CodebuddySessionService {
@@ -402,6 +403,7 @@ export class CodebuddySessionService {
       const messages: SessionMessage[] = [];
       let firstMessage = '';
       let lastMessage = '';
+      let currentModel: string | undefined;
 
       // Track pending tool calls to match with results
       const pendingToolCalls = new Map<
@@ -413,6 +415,11 @@ export class CodebuddySessionService {
         try {
           const entry = JSON.parse(line) as CodebuddyMessageEntry;
 
+          // Track model changes
+          if (entry.model) {
+            currentModel = entry.model;
+          }
+
           if (entry.type === 'message' && entry.role === 'user') {
             const text = entry.content?.[0]?.text || '';
             if (!firstMessage) firstMessage = text.substring(0, 100);
@@ -422,6 +429,7 @@ export class CodebuddySessionService {
               type: 'user',
               timestamp: new Date(entry.timestamp).toISOString(),
               content: text,
+              model: currentModel,
             });
           } else if (entry.type === 'message' && entry.role === 'assistant') {
             // Assistant response - content is an array with output_text items
@@ -441,6 +449,7 @@ export class CodebuddySessionService {
               type: 'assistant',
               timestamp: new Date(entry.timestamp).toISOString(),
               content: text,
+              model: currentModel,
             });
           } else if (entry.type === 'function_call') {
             // Parse tool arguments from the arguments JSON string
@@ -492,6 +501,7 @@ export class CodebuddySessionService {
               tool_name: entry.name || 'tool',
               tool_input: toolInput,
               content: toolContent,
+              model: currentModel,
             });
           } else if (entry.type === 'function_call_result') {
             // Tool execution result
@@ -545,6 +555,7 @@ export class CodebuddySessionService {
                     childSessionAppType,
                   }
                 : undefined,
+              model: currentModel,
             });
           }
           // Skip: file-history-snapshot, topic - these are metadata not for display

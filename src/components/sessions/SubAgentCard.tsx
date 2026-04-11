@@ -22,13 +22,16 @@ export function SubAgentCard({ toolUse, toolResult, onViewSession, className }: 
   const childSessionId = toolResult?.metadata?.childSessionId;
   const childSessionAppType = toolResult?.metadata?.childSessionAppType || 'codebuddy';
 
-  // Extract description and subagent type from tool input
+  // Extract description, subagent type and model from tool input
   const description =
     (toolInput.description as string) ||
     (toolInput.task as string) ||
     (toolInput.prompt as string) ||
     t('sessions.subAgentDefaultDesc', 'Sub-agent task');
   const subAgentType = (toolInput.subagent_type as string) || (toolInput.type as string);
+  // Try to get model from tool input or tool result metadata
+  const subAgentModel: string | undefined =
+    (toolInput.model as string) || (toolResult?.metadata?.model as string) || toolResult?.model;
 
   // Determine status based on whether we have a result
   const hasResult = !!toolResult;
@@ -60,6 +63,14 @@ export function SubAgentCard({ toolUse, toolResult, onViewSession, className }: 
         {subAgentType && (
           <span className="text-xs px-2 py-0.5 rounded-full bg-purple-200 dark:bg-purple-800 text-purple-700 dark:text-purple-300">
             {subAgentType}
+          </span>
+        )}
+        {subAgentModel && (
+          <span
+            className="text-xs px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 ml-1"
+            title="AI Model"
+          >
+            {subAgentModel}
           </span>
         )}
         <span

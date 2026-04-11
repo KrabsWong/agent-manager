@@ -402,6 +402,7 @@ const enTranslations = {
     output: 'Output',
     collapse: 'Collapse',
     lines: 'lines',
+    model: 'Model',
   },
 };
 
@@ -800,6 +801,7 @@ const zhTranslations = {
     output: '输出',
     collapse: '收起',
     lines: '行',
+    model: '模型',
   },
 };
 

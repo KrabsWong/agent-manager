@@ -25,6 +25,7 @@ export interface SessionMessage {
     childSessionAppType?: string; // The app type of the child session
     [key: string]: unknown;
   };
+  model?: string; // AI model used for this message (e.g., 'claude-3-opus', 'gpt-4')
 }
 
 export interface Session {

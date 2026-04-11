@@ -173,16 +173,27 @@ export class OpenCodeSessionService {
         }
       }
 
+      let currentModel: string | undefined;
       const messages: SessionMessage[] = messageRows.map((row) => {
         try {
           const data = JSON.parse(row.data);
           const parts = partsByMessage.get(row.id) || [];
-          return this.parseMessage(row.id, data, parts, row.time_created);
+          // Track model changes - handle both string and object format
+          if (data.model) {
+            currentModel = this.extractModelString(data.model);
+          }
+          const parsedMsg = this.parseMessage(row.id, data, parts, row.time_created, currentModel);
+          // Inherit model if not set
+          if (!parsedMsg.model && currentModel) {
+            parsedMsg.model = currentModel;
+          }
+          return parsedMsg;
         } catch {
           return {
             type: 'assistant',
             timestamp: new Date(row.time_created).toISOString(),
             content: '[Failed to parse message]',
+            model: currentModel,
           } as SessionMessage;
         }
       });
@@ -207,16 +218,41 @@ export class OpenCodeSessionService {
   }
 
   /**
+   * Extract model string from various formats
+   * OpenCode may store model as string or object {providerID, modelID}
+   */
+  private extractModelString(model: unknown): string | undefined {
+    if (typeof model === 'string') {
+      return model;
+    }
+    if (typeof model === 'object' && model !== null) {
+      const modelObj = model as Record<string, unknown>;
+      // Handle {providerID, modelID} format
+      if (modelObj.modelID) {
+        return String(modelObj.modelID);
+      }
+      // Handle {model: string} format
+      if (modelObj.model) {
+        return String(modelObj.model);
+      }
+    }
+    return undefined;
+  }
+
+  /**
    * Parse OpenCode message format to SessionMessage
    */
   private parseMessage(
     _messageId: string,
     data: Record<string, unknown>,
     parts: Array<Record<string, unknown>>,
-    timestamp: number
+    timestamp: number,
+    sessionModel?: string
   ): SessionMessage {
     const role = data.role as string;
     const timeStr = new Date(timestamp).toISOString();
+    // Extract model from message data or use session model
+    const messageModel = this.extractModelString(data.model) || sessionModel;
 
     // Extract content from all part types
     const contents: string[] = [];
@@ -272,6 +308,7 @@ export class OpenCodeSessionService {
           ((toolCalls[0].state as Record<string, unknown>)?.input as Record<string, unknown>) || {},
         content,
         reasoning_content: reasoningContent || undefined,
+        model: messageModel,
       } as SessionMessage;
     }
 
@@ -280,6 +317,7 @@ export class OpenCodeSessionService {
       timestamp: timeStr,
       content,
       reasoning_content: reasoningContent || undefined,
+      model: messageModel,
     } as SessionMessage;
   }
 

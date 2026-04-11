@@ -39,11 +39,13 @@ interface ProjectMessage {
     }>;
     thinking?: string;
     reasoning_content?: string;
+    model?: string; // Model used for this message
   };
   parentUuid?: string | null;
   promptId?: string;
   toolUseResult?: string;
   sourceToolAssistantUUID?: string;
+  model?: string; // Model info at message level
 }
 
 export class ClaudeSessionService {
@@ -340,16 +342,40 @@ export class ClaudeSessionService {
       const content = fs.readFileSync(filePath, 'utf-8');
       const lines = content.split('\n').filter((line) => line.trim());
 
+      // First pass: collect all messages and track model changes
       const rawMessages: SessionMessage[] = [];
+      const modelsByIndex: (string | undefined)[] = [];
+      let currentModel: string | undefined;
+
       for (const line of lines) {
         try {
           const msg = JSON.parse(line) as ProjectMessage;
-          const parsedMsg = this.parseNewProjectMessage(msg);
+          // Track model changes at session level - check multiple locations
+          const msgModel = this.extractModelFromMessage(msg);
+          if (msgModel) {
+            currentModel = msgModel;
+          }
+          const parsedMsg = this.parseNewProjectMessage(msg, currentModel);
           if (parsedMsg) {
+            // Store the model that was active when this message was processed
+            modelsByIndex.push(currentModel);
             rawMessages.push(parsedMsg);
           }
         } catch (error) {
           log.warn('Failed to parse message:', error);
+        }
+      }
+
+      // Backward pass: fill in missing models for user messages
+      // User messages before the first assistant message should inherit from the first assistant message's model
+      let lastKnownModel: string | undefined;
+      for (let i = rawMessages.length - 1; i >= 0; i--) {
+        const msg = rawMessages[i];
+        if (msg.model) {
+          lastKnownModel = msg.model;
+        } else if (lastKnownModel && !msg.model) {
+          // Fill in missing model for messages (especially user messages)
+          msg.model = lastKnownModel;
         }
       }
 
@@ -423,12 +449,52 @@ export class ClaudeSessionService {
   }
 
   /**
+   * Extract model string from various formats
+   * Handle cases where model may be string or object
+   */
+  private extractModelString(model: unknown): string | undefined {
+    if (typeof model === 'string') {
+      return model;
+    }
+    if (typeof model === 'object' && model !== null) {
+      const modelObj = model as Record<string, unknown>;
+      // Handle {providerID, modelID} format
+      if (modelObj.modelID) {
+        return String(modelObj.modelID);
+      }
+      // Handle {model: string} format
+      if (modelObj.model) {
+        return String(modelObj.model);
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Extract model from message with multiple fallback locations
+   */
+  private extractModelFromMessage(msg: ProjectMessage, sessionModel?: string): string | undefined {
+    // Try multiple possible locations for model info
+    return (
+      this.extractModelString(msg.message?.model) ||
+      this.extractModelString(msg.model) ||
+      this.extractModelString((msg as unknown as Record<string, unknown>).metadata) ||
+      sessionModel
+    );
+  }
+
+  /**
    * Parse new format project message
    */
-  private parseNewProjectMessage(msg: ProjectMessage): SessionMessage | null {
+  private parseNewProjectMessage(
+    msg: ProjectMessage,
+    sessionModel?: string
+  ): SessionMessage | null {
     if (!msg.type) return null;
 
     const timestamp = msg.timestamp || new Date().toISOString();
+    // Extract model from message with multiple fallback locations
+    const messageModel = this.extractModelFromMessage(msg, sessionModel);
 
     if (msg.type === 'user') {
       let content = '';
@@ -452,6 +518,7 @@ export class ClaudeSessionService {
           timestamp,
           content: caveatText,
           metadata: { subtype: 'caveat' },
+          model: messageModel,
         } as SessionMessage;
       }
 
@@ -463,6 +530,7 @@ export class ClaudeSessionService {
           timestamp,
           content: stdoutText,
           metadata: { subtype: 'command_output' },
+          model: messageModel,
         } as SessionMessage;
       }
 
@@ -480,6 +548,7 @@ export class ClaudeSessionService {
           timestamp,
           content: `${cmdName} ${cmdMsg} ${cmdArgs}`.trim(),
           metadata: { subtype: 'command', command: cmdName },
+          model: messageModel,
         } as SessionMessage;
       }
 
@@ -487,6 +556,7 @@ export class ClaudeSessionService {
         type: 'user',
         timestamp,
         content,
+        model: messageModel,
       };
     }
 
@@ -514,6 +584,7 @@ export class ClaudeSessionService {
             timestamp,
             content: '', // Empty content for thinking-only messages
             reasoning_content: reasoningContent,
+            model: messageModel,
           };
         }
 
@@ -535,6 +606,7 @@ export class ClaudeSessionService {
             tool_name: toolCalls[0].name,
             tool_input: toolCalls[0].input,
             content,
+            model: messageModel,
           };
         }
 
@@ -544,6 +616,7 @@ export class ClaudeSessionService {
           type: 'assistant',
           timestamp,
           content,
+          model: messageModel,
         };
       }
 
@@ -553,6 +626,7 @@ export class ClaudeSessionService {
           type: 'assistant',
           timestamp,
           content: msg.message.content,
+          model: messageModel,
         };
       }
 
@@ -561,6 +635,7 @@ export class ClaudeSessionService {
         type: 'assistant',
         timestamp,
         content: '',
+        model: messageModel,
       };
     }
 
@@ -586,6 +661,7 @@ export class ClaudeSessionService {
         tool_output: {
           output: outputText,
         },
+        model: messageModel,
       };
     }
 
