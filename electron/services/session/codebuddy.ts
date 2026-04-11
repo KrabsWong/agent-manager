@@ -218,7 +218,8 @@ export class CodebuddySessionService {
         }
       }
 
-      const sessions: Session[] = [];
+      // Use a Map to deduplicate sessions by ID, keeping the one with most content
+      const sessionMap = new Map<string, Session & { contentSize: number }>();
       const projectDirs = fs.readdirSync(PROJECTS_DIR);
 
       for (const projectDirName of projectDirs) {
@@ -241,12 +242,22 @@ export class CodebuddySessionService {
           // Check if it's a .jsonl file (session transcript)
           if (entry.endsWith('.jsonl') && fs.statSync(entryPath).isFile()) {
             const sessionId = entry.replace('.jsonl', '');
+            const stats = fs.statSync(entryPath);
             const jsonlData = this.readSessionJsonl(entryPath);
 
             // Check if this is the active session
             const isActiveSession = activeSession && activeSession.sessionId === sessionId;
 
-            sessions.push({
+            // Skip if we already have this session with more content
+            const existingSession = sessionMap.get(sessionId);
+            if (existingSession && existingSession.contentSize >= stats.size) {
+              log.debug(
+                `[CodeBuddy] Skipping duplicate session ${sessionId} at ${entryPath} (${stats.size} bytes), keeping ${existingSession.filePath} (${existingSession.contentSize} bytes)`
+              );
+              continue;
+            }
+
+            sessionMap.set(sessionId, {
               id: sessionId,
               appType: 'codebuddy',
               fileName:
@@ -266,6 +277,7 @@ export class CodebuddySessionService {
                   ? activeSession!.meta.currentTopic
                   : jsonlData.lastMessage,
               uuid: sessionId,
+              contentSize: stats.size,
             });
           }
 
@@ -276,9 +288,19 @@ export class CodebuddySessionService {
               if (subEntry.endsWith('.jsonl')) {
                 const subEntryPath = path.join(entryPath, subEntry);
                 const sessionId = subEntry.replace('.jsonl', '');
+                const stats = fs.statSync(subEntryPath);
                 const jsonlData = this.readSessionJsonl(subEntryPath);
 
-                sessions.push({
+                // Skip if we already have this session with more content
+                const existingSession = sessionMap.get(sessionId);
+                if (existingSession && existingSession.contentSize >= stats.size) {
+                  log.debug(
+                    `[CodeBuddy] Skipping duplicate subagent session ${sessionId} at ${subEntryPath} (${stats.size} bytes)`
+                  );
+                  continue;
+                }
+
+                sessionMap.set(sessionId, {
                   id: sessionId,
                   appType: 'codebuddy',
                   fileName:
@@ -291,6 +313,7 @@ export class CodebuddySessionService {
                   firstMessage: jsonlData.firstMessage,
                   lastMessage: jsonlData.lastMessage,
                   uuid: sessionId,
+                  contentSize: stats.size,
                 });
               }
             }
@@ -298,10 +321,12 @@ export class CodebuddySessionService {
         }
       }
 
-      // Sort by updatedAt desc
+      // Convert map to array and sort by updatedAt desc
+      const sessions = Array.from(sessionMap.values());
       sessions.sort((a, b) => b.updatedAt - a.updatedAt);
 
-      return sessions;
+      // Remove the contentSize field before returning
+      return sessions.map(({ contentSize: _, ...session }) => session);
     } catch (error) {
       log.error('Failed to get Codebuddy sessions:', error);
       return [];
@@ -319,7 +344,7 @@ export class CodebuddySessionService {
       }
 
       const projectDirs = fs.readdirSync(PROJECTS_DIR);
-      let foundSession: { path: string; projectCwd: string } | null = null;
+      const foundSessions: { path: string; projectCwd: string; size: number }[] = [];
 
       for (const projectDirName of projectDirs) {
         const projectPath = path.join(PROJECTS_DIR, projectDirName);
@@ -332,11 +357,13 @@ export class CodebuddySessionService {
         const entries = fs.readdirSync(projectPath);
         for (const entry of entries) {
           if (entry === `${sessionId}.jsonl`) {
-            foundSession = {
-              path: path.join(projectPath, entry),
+            const filePath = path.join(projectPath, entry);
+            const stats = fs.statSync(filePath);
+            foundSessions.push({
+              path: filePath,
               projectCwd: this.decodeProjectDir(projectDirName),
-            };
-            break;
+              size: stats.size,
+            });
           }
 
           // Check subdirectories
@@ -344,21 +371,29 @@ export class CodebuddySessionService {
           if (fs.statSync(entryPath).isDirectory()) {
             const subEntries = fs.readdirSync(entryPath);
             if (subEntries.includes(`${sessionId}.jsonl`)) {
-              foundSession = {
-                path: path.join(entryPath, `${sessionId}.jsonl`),
+              const filePath = path.join(entryPath, `${sessionId}.jsonl`);
+              const stats = fs.statSync(filePath);
+              foundSessions.push({
+                path: filePath,
                 projectCwd: this.decodeProjectDir(projectDirName),
-              };
-              break;
+                size: stats.size,
+              });
             }
           }
         }
-
-        if (foundSession) break;
       }
 
-      if (!foundSession) {
+      if (foundSessions.length === 0) {
         return null;
       }
+
+      // Sort by size desc and pick the largest one (to avoid empty files)
+      foundSessions.sort((a, b) => b.size - a.size);
+      const foundSession = foundSessions[0];
+
+      log.info(
+        `[CodeBuddy] Found ${foundSessions.length} files for session ${sessionId}, using: ${foundSession.path} (${foundSession.size} bytes)`
+      );
 
       // Read and parse the session file
       const content = fs.readFileSync(foundSession.path, 'utf-8');
