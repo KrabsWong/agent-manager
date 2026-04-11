@@ -76,6 +76,24 @@ export function SessionsPage() {
     setSelectedSession(session);
   };
 
+  // Handle sub-agent session navigation
+  const handleViewSubAgentSession = (sessionId: string, _appType: string) => {
+    // First, try to find in current sessions list
+    const subAgentSession = sessions?.find((s) => s.id === sessionId);
+
+    if (subAgentSession) {
+      // If found in current list, select it
+      setSelectedSession(subAgentSession);
+    } else {
+      // If not found, show a notification that session needs to be loaded
+      // In a real implementation, you might want to:
+      // 1. Search across all app types
+      // 2. Show a "not found" message
+      // 3. Or load the session directly via API
+      alert(`Sub-agent session not found in current list: ${sessionId}`);
+    }
+  };
+
   // Get all unique dates from sessions for expand/collapse all
   const allDates = sessions
     ? Array.from(
@@ -294,8 +312,10 @@ export function SessionsPage() {
                       : selectedSession.fileName || 'Untitled Session'}
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    {formatDate(selectedSession.updatedAt)} · {selectedSession.messageCount}{' '}
-                    {t('sessions.messages') || 'messages'}
+                    {formatDate(selectedSession.updatedAt)} ·{' '}
+                    {sessionDetail?.messages
+                      ? `${sessionDetail.messages.length}/${selectedSession.messageCount} messages`
+                      : `${selectedSession.messageCount} messages`}
                   </p>
                   {/* Session ID - always show */}
                   {selectedSession.id && (
@@ -397,7 +417,11 @@ export function SessionsPage() {
                       {t('sessions.loadingConversation') || 'Loading conversation...'}
                     </div>
                   ) : sessionDetail?.messages && sessionDetail.messages.length > 0 ? (
-                    <ConversationView messages={sessionDetail.messages} appType={selectedApp} />
+                    <ConversationView
+                      messages={sessionDetail.messages}
+                      appType={selectedApp}
+                      onViewSubAgentSession={handleViewSubAgentSession}
+                    />
                   ) : (
                     <div className="flex items-center justify-center h-64 text-muted-foreground">
                       {t('sessions.noMessages') || 'No messages found'}

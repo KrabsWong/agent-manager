@@ -564,6 +564,31 @@ export class ClaudeSessionService {
       };
     }
 
+    // Handle tool results (tool_result type messages)
+    if (msg.type === 'tool_result' || msg.toolUseResult) {
+      const output = msg.message?.content || msg.toolUseResult || '';
+      let outputText = '';
+
+      if (typeof output === 'string') {
+        outputText = output;
+      } else if (Array.isArray(output)) {
+        outputText = output
+          .filter((item: { type?: string; text?: string }) => item.type === 'text' || item.text)
+          .map((item: { text?: string }) => item.text || '')
+          .join('\n');
+      }
+
+      return {
+        type: 'tool_result',
+        timestamp,
+        tool_name: msg.message?.role || 'tool',
+        content: outputText.substring(0, 300),
+        tool_output: {
+          output: outputText,
+        },
+      };
+    }
+
     return null;
   }
 

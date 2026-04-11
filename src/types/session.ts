@@ -21,6 +21,8 @@ export interface SessionMessage {
   metadata?: {
     subtype?: string;
     command?: string;
+    childSessionId?: string; // For sub-agent calls, the child session ID
+    childSessionAppType?: string; // The app type of the child session
     [key: string]: unknown;
   };
 }

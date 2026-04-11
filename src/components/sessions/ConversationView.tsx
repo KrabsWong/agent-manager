@@ -10,6 +10,7 @@
  */
 
 import { useMemo, useState, memo, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   User,
   Wrench,
@@ -98,6 +99,7 @@ const tokyoNightTheme: { [key: string]: CSSProperties } = {
 import { getAppIcon, APP_LABELS } from '@/components/AppIcons';
 import { cn } from '@/lib/utils';
 import { parseMessageContent, hasSpecialParser, type ParsedContent } from './parsers';
+import { SubAgentCard } from './SubAgentCard';
 import type { AppType } from '@/types';
 import type { SessionMessage } from '@/types/session';
 
@@ -410,31 +412,78 @@ function groupMessagesIntoTurns(messages: SessionMessage[], appType?: string): M
             toolUse: message,
             toolResult: null,
           });
+        } else {
+          // No current turn - create a tool-only turn (orphaned tool call)
+          turns.push({
+            userMessage: null,
+            toolCalls: [{ toolUse: message, toolResult: null }],
+            assistantMessage: null,
+            systemMessages: [],
+          });
         }
         break;
 
       case 'tool_result':
-        // Match with pending tool_use
-        if (currentTurn) {
-          if (pendingToolCalls.length > 0) {
+        {
+          // Try to find matching tool_use across all turns
+          let matched = false;
+
+          // First try to match in current turn
+          if (currentTurn && pendingToolCalls.length > 0) {
             const pendingIndex = pendingToolCalls.findIndex(
               (tc) => tc.tool_name === message.tool_name
             );
             if (pendingIndex >= 0) {
               currentTurn.toolCalls[pendingIndex].toolResult = message;
               pendingToolCalls.splice(pendingIndex, 1);
+              matched = true;
             } else {
-              // Fallback: match by position
+              // Fallback: match by position (first unmatched tool call)
               const firstPending = currentTurn.toolCalls.find((tc) => !tc.toolResult);
               if (firstPending) {
                 firstPending.toolResult = message;
+                matched = true;
               }
             }
           }
 
+          // If not matched in current turn, search in previous turns (orphaned tool calls)
+          if (!matched) {
+            for (const turn of turns) {
+              const orphanedToolCall = turn.toolCalls.find(
+                (tc) => tc.toolUse && !tc.toolResult && tc.toolUse.tool_name === message.tool_name
+              );
+              if (orphanedToolCall) {
+                orphanedToolCall.toolResult = message;
+                matched = true;
+                break;
+              }
+              // Fallback: match by position if names don't match
+              const firstOrphaned = turn.toolCalls.find((tc) => tc.toolUse && !tc.toolResult);
+              if (firstOrphaned) {
+                firstOrphaned.toolResult = message;
+                matched = true;
+                break;
+              }
+            }
+          }
+
+          // If still not matched, add to current turn or create orphaned turn
+          if (!matched) {
+            if (currentTurn) {
+              currentTurn.toolCalls.push({ toolUse: null, toolResult: message });
+            } else {
+              turns.push({
+                userMessage: null,
+                toolCalls: [{ toolUse: null, toolResult: message }],
+                assistantMessage: null,
+                systemMessages: [],
+              });
+            }
+          }
+
           // For Claude Code only: tool_result outputs are used as assistant messages
-          // Other apps (Codebuddy, etc.) have separate assistant messages
-          if (isClaudeCode && message.tool_output) {
+          if (isClaudeCode && message.tool_output && currentTurn) {
             const output = message.tool_output;
             let content = '';
 
@@ -491,6 +540,14 @@ function groupMessagesIntoTurns(messages: SessionMessage[], appType?: string): M
             turns.push(currentTurn);
             currentTurn = null;
           }
+        } else {
+          // No current turn - create an assistant-only turn (for messages before first user message)
+          turns.push({
+            userMessage: null,
+            toolCalls: [],
+            assistantMessage: message,
+            systemMessages: [],
+          });
         }
         break;
     }
@@ -506,7 +563,7 @@ function groupMessagesIntoTurns(messages: SessionMessage[], appType?: string): M
 
 interface MessageTurn {
   userMessage: SessionMessage | null;
-  toolCalls: { toolUse: SessionMessage; toolResult: SessionMessage | null }[];
+  toolCalls: { toolUse: SessionMessage | null; toolResult: SessionMessage | null }[];
   assistantMessage: SessionMessage | null;
   systemMessages: SessionMessage[];
 }
@@ -531,11 +588,37 @@ function groupMessagesIntoTurnsWithCount(
   return turns.map((turn) => {
     let messageCount = 0;
     if (turn.userMessage) messageCount++;
-    messageCount += turn.toolCalls.length * 2; // tool_use + tool_result
+    // Count actual tool messages (tool_use and tool_result separately)
+    for (const tc of turn.toolCalls) {
+      if (tc.toolUse) messageCount++;
+      if (tc.toolResult) messageCount++;
+    }
     if (turn.assistantMessage) messageCount++;
     messageCount += turn.systemMessages.length;
     return { ...turn, messageCount };
   });
+}
+
+/**
+ * Verify that turns message count matches original messages count
+ */
+function verifyMessageCount(
+  turns: MessageTurnWithCount[],
+  originalMessages: SessionMessage[],
+  appType?: string
+): void {
+  const totalCount = turns.reduce((sum, t) => sum + t.messageCount, 0);
+  if (totalCount !== originalMessages.length) {
+    console.warn(
+      `[ConversationView] Message count verification failed: turns total=${totalCount}, original=${originalMessages.length}, appType=${appType}`
+    );
+    // Log breakdown
+    const typeCounts: Record<string, number> = {};
+    for (const msg of originalMessages) {
+      typeCounts[msg.type] = (typeCounts[msg.type] || 0) + 1;
+    }
+    console.warn('[ConversationView] Original messages breakdown:', typeCounts);
+  }
 }
 
 interface ConversationViewProps {
@@ -543,6 +626,7 @@ interface ConversationViewProps {
   className?: string;
   appType?: string;
   onLoadAll?: () => void;
+  onViewSubAgentSession?: (sessionId: string, appType: string) => void;
 }
 
 export function ConversationView({
@@ -550,11 +634,13 @@ export function ConversationView({
   className,
   appType = 'claude',
   onLoadAll,
+  onViewSubAgentSession,
 }: ConversationViewProps) {
-  const turnsWithCount = useMemo(
-    () => groupMessagesIntoTurnsWithCount(messages, appType),
-    [messages, appType]
-  );
+  const turnsWithCount = useMemo(() => {
+    const turns = groupMessagesIntoTurnsWithCount(messages, appType);
+    verifyMessageCount(turns, messages, appType);
+    return turns;
+  }, [messages, appType]);
   const [displayedTurns, setDisplayedTurns] = useState<MessageTurnWithCount[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [remainingCount, setRemainingCount] = useState(0);
@@ -564,6 +650,13 @@ export function ConversationView({
     let count = 0;
     let index = 0;
     const totalMessages = turnsWithCount.reduce((sum, t) => sum + t.messageCount, 0);
+
+    // Debug: verify message count consistency
+    if (totalMessages !== messages.length) {
+      console.warn(
+        `[ConversationView] Message count mismatch: turns count=${totalMessages}, messages.length=${messages.length}`
+      );
+    }
 
     // Find how many turns we can display within the limit
     for (const turn of turnsWithCount) {
@@ -577,7 +670,7 @@ export function ConversationView({
     setDisplayedTurns(turnsWithCount.slice(0, index));
     setHasMore(index < turnsWithCount.length);
     setRemainingCount(totalMessages - count);
-  }, [turnsWithCount]);
+  }, [turnsWithCount, messages.length]);
 
   const handleLoadMore = () => {
     const currentCount = displayedTurns.reduce((sum, t) => sum + t.messageCount, 0);
@@ -616,7 +709,12 @@ export function ConversationView({
   return (
     <div className={cn('space-y-6', className)}>
       {displayedTurns.map((turn, index) => (
-        <ConversationTurn key={index} turn={turn} appType={appType} />
+        <ConversationTurn
+          key={index}
+          turn={turn}
+          appType={appType}
+          onViewSubAgentSession={onViewSubAgentSession}
+        />
       ))}
       {/* Load more buttons at BOTTOM */}
       {shouldPaginate && hasMore && (
@@ -651,9 +749,14 @@ export function ConversationView({
 interface ConversationTurnProps {
   turn: MessageTurn;
   appType: string;
+  onViewSubAgentSession?: (sessionId: string, appType: string) => void;
 }
 
-const ConversationTurn = memo(function ConversationTurn({ turn, appType }: ConversationTurnProps) {
+const ConversationTurn = memo(function ConversationTurn({
+  turn,
+  appType,
+  onViewSubAgentSession,
+}: ConversationTurnProps) {
   return (
     <div className="space-y-3">
       {/* System Messages */}
@@ -687,6 +790,7 @@ const ConversationTurn = memo(function ConversationTurn({ turn, appType }: Conve
               key={index}
               toolUse={toolCall.toolUse}
               toolResult={toolCall.toolResult}
+              onViewSubAgentSession={onViewSubAgentSession}
             />
           ))}
         </div>
@@ -716,16 +820,52 @@ const SystemMessage = memo(function SystemMessage({
   timestamp,
   metadata,
 }: SystemMessageProps) {
+  // Auto-detect subtype from content if not provided
+  const detectSubtype = (): string | undefined => {
+    if (metadata?.subtype) return metadata.subtype;
+
+    // Check for pasted content indicator
+    if (content.match(/\[Pasted ~?\d+ lines?\]/i)) {
+      return 'pasted';
+    }
+    // Check for system reminder / caveat
+    if (
+      content.match(/system-reminder|caveat/i) ||
+      content.includes('DO NOT respond to these messages')
+    ) {
+      return 'caveat';
+    }
+    // Check for command output
+    if (content.match(/local-command-stdout|command-name/i)) {
+      return 'command_output';
+    }
+    // Check for command input
+    if (content.match(/^[\w-]+\s+\S+/)) {
+      return 'command';
+    }
+    return undefined;
+  };
+
   // Get icon and style based on subtype
   const getSubtypeConfig = () => {
-    switch (metadata?.subtype) {
+    const subtype = detectSubtype();
+
+    switch (subtype) {
       case 'caveat':
         return {
-          icon: <Info className="h-3.5 w-3.5 text-blue-500" />,
-          label: 'Info',
-          bgColor: 'bg-blue-50/50 dark:bg-blue-900/20',
-          borderColor: 'border-blue-200 dark:border-blue-800',
-          textColor: 'text-blue-700 dark:text-blue-400',
+          icon: <Info className="h-3.5 w-3.5 text-amber-500" />,
+          label: 'Caveat',
+          bgColor: 'bg-amber-50/50 dark:bg-amber-900/20',
+          borderColor: 'border-amber-200 dark:border-amber-800',
+          textColor: 'text-amber-700 dark:text-amber-400',
+        };
+      case 'pasted':
+        return {
+          icon: <FileText className="h-3.5 w-3.5 text-green-500" />,
+          label: 'Pasted',
+          bgColor: 'bg-green-50/50 dark:bg-green-900/20',
+          borderColor: 'border-green-200 dark:border-green-800',
+          textColor: 'text-green-700 dark:text-green-400',
         };
       case 'command':
         return {
@@ -738,7 +878,7 @@ const SystemMessage = memo(function SystemMessage({
       case 'command_output':
         return {
           icon: <Terminal className="h-3.5 w-3.5 text-gray-500" />,
-          label: 'Output',
+          label: 'Command Output',
           bgColor: 'bg-gray-50/50 dark:bg-gray-900/20',
           borderColor: 'border-gray-200 dark:border-gray-800',
           textColor: 'text-gray-700 dark:text-gray-400',
@@ -756,6 +896,24 @@ const SystemMessage = memo(function SystemMessage({
 
   const config = getSubtypeConfig();
 
+  // Clean up content for display
+  const cleanContent = content
+    .replace(/\[Pasted ~?(\d+) lines?\]/gi, 'Pasted $1 lines')
+    .replace(/<<?system-reminder>?>/gi, '')
+    .replace(/<<?\/system-reminder>?>/gi, '')
+    .replace(/<local-command-stdout>/gi, '')
+    .replace(/<\/local-command-stdout>/gi, '')
+    .replace(/<command-name>/gi, 'Command: ')
+    .replace(/<\/command-name>/gi, '')
+    .replace(/<local-command-stderr>/gi, 'Error: ')
+    .replace(/<\/local-command-stderr>/gi, '')
+    .trim();
+
+  // Skip rendering if content is empty after cleaning
+  if (!cleanContent) {
+    return null;
+  }
+
   return (
     <div className={`rounded-lg border ${config.borderColor} ${config.bgColor} overflow-hidden`}>
       <div className="flex items-center gap-2 px-3 py-1.5">
@@ -765,7 +923,7 @@ const SystemMessage = memo(function SystemMessage({
           {formatTimestamp(timestamp)}
         </span>
       </div>
-      <div className={`px-3 pb-2 text-sm ${config.textColor} opacity-80`}>{content}</div>
+      <div className={`px-3 pb-2 text-sm ${config.textColor} opacity-80`}>{cleanContent}</div>
     </div>
   );
 });
@@ -971,8 +1129,9 @@ const AssistantMessage = memo(function AssistantMessage({
 });
 
 interface ToolCallBlockProps {
-  toolUse: SessionMessage;
+  toolUse: SessionMessage | null;
   toolResult: SessionMessage | null;
+  onViewSubAgentSession?: (sessionId: string, appType: string) => void;
 }
 
 interface ClaudeCodeXMLViewerProps {
@@ -1164,10 +1323,62 @@ function getLanguageFromPath(path: string): string {
   return langMap[ext || ''] || 'text';
 }
 
-function ToolCallBlock({ toolUse, toolResult }: ToolCallBlockProps) {
-  const toolName = toolUse.tool_name || 'unknown';
+function ToolCallBlock({ toolUse, toolResult, onViewSubAgentSession }: ToolCallBlockProps) {
+  const { t } = useTranslation();
+
+  const toolName = toolUse?.tool_name || toolResult?.tool_name || 'unknown';
   const toolType = getToolType(toolName);
-  const summary = getToolSummary(toolName, toolUse.tool_input);
+
+  // Use SubAgentCard for sub-agent calls
+  if (toolType === 'subagent') {
+    return (
+      <SubAgentCard
+        toolUse={toolUse}
+        toolResult={toolResult}
+        onViewSession={onViewSubAgentSession}
+      />
+    );
+  }
+
+  // Handle tool result without tool_use (may be due to turn matching issues)
+  // Display normally but with a subtle indicator
+  if (!toolUse && toolResult) {
+    const summary = getToolSummary(toolName, undefined);
+
+    return (
+      <div className="border rounded-lg overflow-hidden bg-muted/30">
+        {/* Tool Header */}
+        <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 border-b">
+          {getToolIcon(toolType)}
+          <span className="font-medium text-sm">{getToolDisplayName(toolName)}</span>
+          {summary && (
+            <span
+              className="text-xs text-muted-foreground ml-auto truncate max-w-[200px]"
+              title={summary}
+            >
+              {summary}
+            </span>
+          )}
+          <span
+            className="text-[10px] text-amber-500/70 ml-1"
+            title={t('sessions.inputNotAvailable', 'Input not available')}
+          >
+            ※
+          </span>
+        </div>
+
+        {/* Tool Output */}
+        {toolResult?.tool_output && (
+          <div className="px-3 py-2">
+            <div className="text-xs text-muted-foreground mb-1">Output</div>
+            <ToolOutputDisplay output={toolResult.tool_output} />
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const summary = getToolSummary(toolName, toolUse?.tool_input);
 
   return (
     <div className="border rounded-lg overflow-hidden bg-muted/30">
@@ -1186,10 +1397,12 @@ function ToolCallBlock({ toolUse, toolResult }: ToolCallBlockProps) {
       </div>
 
       {/* Tool Input */}
-      <div className="px-3 py-2 border-b border-dashed">
-        <div className="text-xs text-muted-foreground mb-1">Input</div>
-        <ToolInputDisplay input={toolUse.tool_input} />
-      </div>
+      {toolUse?.tool_input && (
+        <div className="px-3 py-2 border-b border-dashed">
+          <div className="text-xs text-muted-foreground mb-1">Input</div>
+          <ToolInputDisplay input={toolUse.tool_input} />
+        </div>
+      )}
 
       {/* Tool Output */}
       {toolResult?.tool_output && (
@@ -1351,40 +1564,70 @@ function ToolInputDisplay({ input }: { input?: Record<string, unknown> }) {
   );
 }
 
+const MAX_TOOL_OUTPUT_LINES = 20; // 工具输出超过此行数默认折叠
+
 function ToolOutputDisplay({ output }: { output: SessionMessage['tool_output'] }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   if (!output) {
     return <span className="text-xs text-muted-foreground">No output</span>;
   }
 
-  // Handle different output formats
+  // Extract text content
+  let text = '';
   if (typeof output.output === 'string') {
+    text = output.output;
+  } else if (output.content && Array.isArray(output.content)) {
+    text = output.content
+      .filter((item) => item.type === 'text')
+      .map((item) => item.text)
+      .join('\n');
+  }
+
+  // If no text, show JSON
+  if (!text) {
     return (
       <pre className="text-xs font-mono bg-muted/50 rounded p-2 whitespace-pre-wrap break-all">
-        {output.output}
+        {JSON.stringify(output, null, 2)}
       </pre>
     );
   }
 
-  if (output.content && Array.isArray(output.content)) {
-    const text = output.content
-      .filter((item) => item.type === 'text')
-      .map((item) => item.text)
-      .join('\n');
+  // Calculate lines
+  const lines = text.split('\n');
+  const totalLines = lines.length;
+  const shouldCollapse = totalLines > MAX_TOOL_OUTPUT_LINES;
+  const displayText =
+    shouldCollapse && !isExpanded
+      ? lines.slice(0, MAX_TOOL_OUTPUT_LINES).join('\n') + '\n\n...'
+      : text;
 
-    if (text) {
-      return (
-        <pre className="text-xs font-mono bg-muted/50 rounded p-2 whitespace-pre-wrap break-all">
-          {text}
-        </pre>
-      );
-    }
-  }
-
-  // Fallback: show JSON
   return (
-    <pre className="text-xs font-mono bg-muted/50 rounded p-2 whitespace-pre-wrap break-all">
-      {JSON.stringify(output, null, 2)}
-    </pre>
+    <div className="relative">
+      <pre className="text-xs font-mono bg-muted/50 rounded p-2 whitespace-pre-wrap break-all">
+        {displayText}
+      </pre>
+      {shouldCollapse && (
+        <div className="flex justify-center mt-2">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex items-center gap-1.5 px-3 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors border border-border/50 rounded-full bg-background/50 hover:bg-background"
+          >
+            {isExpanded ? (
+              <>
+                <ChevronDown className="h-3.5 w-3.5" />
+                收起
+              </>
+            ) : (
+              <>
+                <Maximize2 className="h-3.5 w-3.5" />
+                展开全部 ({totalLines} 行)
+              </>
+            )}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 

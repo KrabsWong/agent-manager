@@ -112,6 +112,49 @@ const claudeCodeParser: ContentParser = (content: string) => {
 };
 
 /**
+ * Codebuddy 内容解析器
+ * 处理 Codebuddy 的特殊消息格式
+ */
+const codebuddyParser: ContentParser = (content: string) => {
+  // 清理系统生成的文本
+  const patterns = [
+    // 粘贴提示
+    /\[Pasted ~\d+ lines?\]/g,
+    // system-reminder 标签及其内容
+    /<<?system-reminder>?>.*?<<?\/system-reminder>?>/gis,
+    // local-command 相关标签
+    /<local-command-stdout>.*?<\/local-command-stdout>/gis,
+    /<local-command-stderr>.*?<\/local-command-stderr>/gis,
+    /<command-name>.*?<\/command-name>/gis,
+    // 清理空标签
+    /<\w+><\/\w+>/g,
+  ];
+
+  let cleanedContent = content;
+  for (const pattern of patterns) {
+    cleanedContent = cleanedContent.replace(pattern, '');
+  }
+  cleanedContent = cleanedContent.replace(/\n{3,}/g, '\n\n').trim();
+
+  // 如果没有实质内容，返回空文本标记
+  if (!cleanedContent || cleanedContent.length < 3) {
+    return [
+      {
+        type: 'text',
+        content: '', // 返回空内容，让上层组件决定如何展示
+      },
+    ];
+  }
+
+  return [
+    {
+      type: 'text',
+      content: cleanedContent,
+    },
+  ];
+};
+
+/**
  * 默认解析器 - 将内容作为纯文本处理
  */
 const defaultParser: ContentParser = (content: string) => [
@@ -128,6 +171,7 @@ const defaultParser: ContentParser = (content: string) => [
 const parserRegistry: Map<string, ContentParser> = new Map([
   ['opencode', opencodeFileParser],
   ['claude', claudeCodeParser],
+  ['codebuddy', codebuddyParser],
 ]);
 
 /**

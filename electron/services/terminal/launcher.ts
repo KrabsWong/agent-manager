@@ -44,6 +44,10 @@ export function buildResumeCommand(
       // OpenCode: opencode -s <SESSION_ID>
       return { command: 'opencode', args: ['-s', sessionId] };
 
+    case 'codebuddy':
+      // CodeBuddy: codebuddy --resume=<SESSION_ID>
+      return { command: 'codebuddy', args: [`--resume=${sessionId}`] };
+
     default:
       throw new Error(`Resume not supported for app type: ${appType}`);
   }

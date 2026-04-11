@@ -96,6 +96,7 @@ export class CodebuddySessionService {
 
   /**
    * Read session .jsonl file and get message count and last message
+   * Only counts displayable message types (user, assistant, function_call, function_call_result)
    */
   private readSessionJsonl(filePath: string): {
     count: number;
@@ -149,8 +150,37 @@ export class CodebuddySessionService {
         lastMessage = entry.content?.[0]?.text?.substring(0, 100) || '';
       }
 
+      // Count only displayable message types (matching getSessionDetail logic)
+      let displayableCount = 0;
+      const typeCounts: Record<string, number> = {};
+      for (const line of lines) {
+        try {
+          const entry = JSON.parse(line) as CodebuddyMessageEntry;
+          const key = `${entry.type}${entry.role ? `:${entry.role}` : ''}`;
+          typeCounts[key] = (typeCounts[key] || 0) + 1;
+          // Only count types that are displayed in the UI
+          if (
+            (entry.type === 'message' && (entry.role === 'user' || entry.role === 'assistant')) ||
+            entry.type === 'function_call' ||
+            entry.type === 'function_call_result'
+          ) {
+            displayableCount++;
+          }
+        } catch {
+          // Skip invalid lines
+        }
+      }
+
+      // Debug log for message count mismatch investigation
+      if (lines.length > 100) {
+        log.debug(
+          `[CodeBuddy] Session file: ${path.basename(filePath)}, Total lines: ${lines.length}, Displayable: ${displayableCount}, Type breakdown:`,
+          typeCounts
+        );
+      }
+
       return {
-        count: lines.length,
+        count: displayableCount,
         lastMessage,
         firstMessage,
         createdAt: firstEntry.timestamp || Date.now(),
@@ -338,6 +368,12 @@ export class CodebuddySessionService {
       let firstMessage = '';
       let lastMessage = '';
 
+      // Track pending tool calls to match with results
+      const pendingToolCalls = new Map<
+        string,
+        { sessionId?: string; appType?: string; toolInput?: Record<string, unknown> }
+      >();
+
       for (const line of lines) {
         try {
           const entry = JSON.parse(line) as CodebuddyMessageEntry;
@@ -375,6 +411,7 @@ export class CodebuddySessionService {
             // Parse tool arguments from the arguments JSON string
             let toolInput: Record<string, unknown> = {};
             let toolContent = `Tool: ${entry.name}`;
+            let childSessionId: string | undefined;
 
             if (entry.arguments) {
               try {
@@ -390,6 +427,11 @@ export class CodebuddySessionService {
                   toolContent = `⚡ Bash: ${toolInput.command}`;
                 } else if (entry.name === 'Agent' && toolInput.description) {
                   toolContent = `🤖 Agent: ${toolInput.description}`;
+                  // For Agent calls, try to extract child session ID from parameters
+                  childSessionId =
+                    (toolInput.sessionId as string) ||
+                    (toolInput.subAgentSessionId as string) ||
+                    (toolInput.childSessionId as string);
                 } else if (entry.name) {
                   toolContent = `🔧 ${entry.name}`;
                 }
@@ -397,6 +439,16 @@ export class CodebuddySessionService {
                 // If parsing fails, use raw arguments
                 toolContent = `🔧 ${entry.name}: ${entry.arguments?.substring(0, 100)}`;
               }
+            }
+
+            // Track this tool call with its session ID
+            const callId = entry.callId || entry.id || `call_${messages.length}`;
+            if (entry.name?.toLowerCase().includes('agent')) {
+              pendingToolCalls.set(callId, {
+                sessionId: childSessionId,
+                appType: 'codebuddy',
+                toolInput,
+              });
             }
 
             messages.push({
@@ -412,6 +464,38 @@ export class CodebuddySessionService {
             const truncatedOutput =
               outputText.length > 300 ? outputText.substring(0, 300) + '...' : outputText;
 
+            // Try to find matching tool call and get session ID
+            let childSessionId: string | undefined;
+            let childSessionAppType: string | undefined;
+
+            // Match by callId if available
+            const callId = entry.callId;
+            if (callId && pendingToolCalls.has(callId)) {
+              const pending = pendingToolCalls.get(callId)!;
+              childSessionId = pending.sessionId;
+              childSessionAppType = pending.appType;
+              pendingToolCalls.delete(callId);
+            }
+
+            // If no session ID from tool call, try to extract from output
+            if (!childSessionId && entry.name?.toLowerCase().includes('agent')) {
+              try {
+                const outputJson = JSON.parse(outputText);
+                childSessionId =
+                  outputJson.sessionId || outputJson.subAgentSessionId || outputJson.childSessionId;
+                childSessionAppType = outputJson.appType || 'codebuddy';
+              } catch {
+                // Not JSON, check if output contains session ID pattern
+                const sessionIdMatch = outputText.match(
+                  /session["']?\s*[:=]\s*["']?([a-f0-9-]{36})/i
+                );
+                if (sessionIdMatch) {
+                  childSessionId = sessionIdMatch[1];
+                  childSessionAppType = 'codebuddy';
+                }
+              }
+            }
+
             messages.push({
               type: 'tool_result',
               timestamp: new Date(entry.timestamp).toISOString(),
@@ -420,6 +504,12 @@ export class CodebuddySessionService {
               tool_output: {
                 output: outputText,
               },
+              metadata: childSessionId
+                ? {
+                    childSessionId,
+                    childSessionAppType,
+                  }
+                : undefined,
             });
           }
           // Skip: file-history-snapshot, topic - these are metadata not for display
@@ -430,6 +520,11 @@ export class CodebuddySessionService {
 
       const firstEntry = JSON.parse(lines[0]) as CodebuddyMessageEntry;
       const lastEntry = JSON.parse(lines[lines.length - 1]) as CodebuddyMessageEntry;
+
+      // Debug log for message count in getSessionDetail
+      log.debug(
+        `[CodeBuddy] getSessionDetail: ${sessionId}, Total lines: ${lines.length}, Parsed messages: ${messages.length}`
+      );
 
       return {
         id: sessionId,
