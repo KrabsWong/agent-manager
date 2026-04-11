@@ -9,7 +9,7 @@
  * - MCP calls and sub-agent calls (identified by tool_name patterns)
  */
 
-import { useMemo, useState, memo, useRef, useEffect, useCallback } from 'react';
+import { useMemo, useState, memo, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   User,
@@ -100,7 +100,6 @@ import { getAppIcon, APP_LABELS } from '@/components/AppIcons';
 import { cn } from '@/lib/utils';
 import { parseMessageContent, hasSpecialParser, type ParsedContent } from './parsers';
 import { SubAgentCard } from './SubAgentCard';
-import { SearchBar } from './SearchBar';
 import { HighlightedText } from './HighlightedText';
 import type { AppType } from '@/types';
 import type { SessionMessage } from '@/types/session';
@@ -629,6 +628,7 @@ interface ConversationViewProps {
   appType?: string;
   onLoadAll?: () => void;
   onViewSubAgentSession?: (sessionId: string, appType: string) => void;
+  searchQuery?: string;
 }
 
 export function ConversationView({
@@ -637,6 +637,7 @@ export function ConversationView({
   appType = 'claude',
   onLoadAll,
   onViewSubAgentSession,
+  searchQuery = '',
 }: ConversationViewProps) {
   const turnsWithCount = useMemo(() => {
     const turns = groupMessagesIntoTurnsWithCount(messages, appType);
@@ -646,20 +647,6 @@ export function ConversationView({
   const [displayedTurns, setDisplayedTurns] = useState<MessageTurnWithCount[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [remainingCount, setRemainingCount] = useState(0);
-
-  // Search state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isLoadingAll, setIsLoadingAll] = useState(false);
-
-  // Debounced search query
-  const [debouncedQuery, setDebouncedQuery] = useState('');
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedQuery(searchQuery);
-    }, 150);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
 
   // Initialize displayed turns based on message count limit
   useEffect(() => {
@@ -722,7 +709,7 @@ export function ConversationView({
 
   // Filter turns based on search
   const filteredTurns = useMemo(() => {
-    if (!debouncedQuery.trim()) {
+    if (!searchQuery.trim()) {
       return displayedTurns;
     }
 
@@ -730,7 +717,7 @@ export function ConversationView({
       // Check user message
       if (
         turn.userMessage?.content &&
-        turn.userMessage.content.toLowerCase().includes(debouncedQuery.toLowerCase())
+        turn.userMessage.content.toLowerCase().includes(searchQuery.toLowerCase())
       ) {
         return true;
       }
@@ -738,14 +725,14 @@ export function ConversationView({
       // Check assistant message
       if (
         turn.assistantMessage?.content &&
-        turn.assistantMessage.content.toLowerCase().includes(debouncedQuery.toLowerCase())
+        turn.assistantMessage.content.toLowerCase().includes(searchQuery.toLowerCase())
       ) {
         return true;
       }
 
       if (
         turn.assistantMessage?.reasoning_content &&
-        turn.assistantMessage.reasoning_content.toLowerCase().includes(debouncedQuery.toLowerCase())
+        turn.assistantMessage.reasoning_content.toLowerCase().includes(searchQuery.toLowerCase())
       ) {
         return true;
       }
@@ -758,92 +745,64 @@ export function ConversationView({
           tc.toolResult?.tool_output ? JSON.stringify(tc.toolResult.tool_output) : '',
         ].join(' ');
 
-        if (toolContent.toLowerCase().includes(debouncedQuery.toLowerCase())) {
+        if (toolContent.toLowerCase().includes(searchQuery.toLowerCase())) {
           return true;
         }
       }
 
       // Check system messages
       for (const sysMsg of turn.systemMessages) {
-        if (sysMsg.content?.toLowerCase().includes(debouncedQuery.toLowerCase())) {
+        if (sysMsg.content?.toLowerCase().includes(searchQuery.toLowerCase())) {
           return true;
         }
       }
 
       return false;
     });
-  }, [displayedTurns, debouncedQuery]);
+  }, [displayedTurns, searchQuery]);
 
-  // Calculate match count for display
-  const matchCount = useMemo(() => {
-    if (!debouncedQuery.trim()) return 0;
-    return filteredTurns.length;
-  }, [filteredTurns, debouncedQuery]);
-
-  // Handle load all
-  const handleLoadAllSearch = useCallback(async () => {
-    setIsLoadingAll(true);
-    if (handleLoadAll) {
-      handleLoadAll();
-    }
-    setTimeout(() => setIsLoadingAll(false), 500);
-  }, [handleLoadAll]);
+  // Note: match count is now calculated in parent component (SessionsPage)
+  // and displayed in the search bar there
 
   const shouldPaginate = turnsWithCount.length > displayedTurns.length;
 
   return (
-    <div className={cn('flex flex-col h-full', className)}>
-      {/* Search Bar */}
-      <SearchBar
-        query={searchQuery}
-        onQueryChange={setSearchQuery}
-        matchCount={matchCount}
-        totalMessages={turnsWithCount.reduce((sum, t) => sum + t.messageCount, 0)}
-        loadedMessages={displayedTurns.reduce((sum, t) => sum + t.messageCount, 0)}
-        onLoadAll={hasMore ? handleLoadAllSearch : undefined}
-        isLoadingAll={isLoadingAll}
-      />
-
-      {/* Messages Container */}
-      <div className="flex-1 relative overflow-hidden">
-        <div className="absolute inset-0 overflow-y-auto p-4 space-y-6">
-          {filteredTurns.map((turn, index) => (
-            <ConversationTurn
-              key={index}
-              turn={turn}
-              appType={appType}
-              onViewSubAgentSession={onViewSubAgentSession}
-              searchQuery={debouncedQuery}
-            />
-          ))}
-          {/* Load more buttons at BOTTOM */}
-          {shouldPaginate && hasMore && !searchQuery && (
-            <div className="flex justify-center items-center gap-4 py-3">
-              <button
-                onClick={handleLoadMore}
-                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <ChevronDown className="h-3.5 w-3.5" />
-                加载更多 ({remainingCount} 条)
-              </button>
-              <span className="text-border">|</span>
-              <button
-                onClick={handleLoadAll}
-                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Maximize2 className="h-3.5 w-3.5" />
-                加载全部
-              </button>
-            </div>
-          )}
-          {/* End of session indicator */}
-          {!hasMore && displayedTurns.length > 0 && (
-            <div className="flex justify-center py-4">
-              <span className="text-xs text-muted-foreground/50">— 已加载全部内容 —</span>
-            </div>
-          )}
+    <div className={cn('space-y-6', className)}>
+      {filteredTurns.map((turn, index) => (
+        <ConversationTurn
+          key={index}
+          turn={turn}
+          appType={appType}
+          onViewSubAgentSession={onViewSubAgentSession}
+          searchQuery={searchQuery}
+        />
+      ))}
+      {/* Load more buttons at BOTTOM */}
+      {shouldPaginate && hasMore && !searchQuery && (
+        <div className="flex justify-center items-center gap-4 py-3">
+          <button
+            onClick={handleLoadMore}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ChevronDown className="h-3.5 w-3.5" />
+            加载更多 ({remainingCount} 条)
+          </button>
+          <span className="text-border">|</span>
+          <button
+            onClick={handleLoadAll}
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Maximize2 className="h-3.5 w-3.5" />
+            加载全部
+          </button>
         </div>
-      </div>
+      )}
+      {/* End of session indicator */}
+      {!hasMore && displayedTurns.length > 0 && (
+        <div className="flex justify-center py-4">
+          <span className="text-xs text-muted-foreground/50">— 已加载全部内容 —</span>
+        </div>
+      )}
     </div>
   );
 }

@@ -4,7 +4,7 @@
  * View and browse local conversation sessions from AI applications
  */
 
-import { useState, createContext, useEffect } from 'react';
+import { useState, createContext, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AlertCircle,
@@ -15,6 +15,8 @@ import {
   History,
   ChevronUp,
   ExternalLink,
+  Search,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
@@ -46,6 +48,10 @@ export function SessionsPage() {
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [copied, setCopied] = useState(false);
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+
   // Collapse state for session list
   const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set());
 
@@ -74,7 +80,33 @@ export function SessionsPage() {
 
   const handleSessionSelect = (session: Session) => {
     setSelectedSession(session);
+    // Clear search when switching sessions
+    setSearchQuery('');
   };
+
+  // Calculate matching messages count for search display
+  const matchCount = useMemo(() => {
+    if (!searchQuery.trim() || !sessionDetail?.messages) return 0;
+
+    const query = searchQuery.toLowerCase();
+    let count = 0;
+
+    sessionDetail.messages.forEach((msg) => {
+      const searchableContent = [
+        msg.content,
+        msg.reasoning_content,
+        msg.tool_name,
+        msg.tool_input ? JSON.stringify(msg.tool_input) : '',
+        msg.tool_output ? JSON.stringify(msg.tool_output) : '',
+      ].join(' ');
+
+      if (searchableContent.toLowerCase().includes(query)) {
+        count++;
+      }
+    });
+
+    return count;
+  }, [searchQuery, sessionDetail?.messages]);
 
   // Handle sub-agent session navigation
   const handleViewSubAgentSession = (sessionId: string, _appType: string) => {
@@ -353,47 +385,108 @@ export function SessionsPage() {
                     </div>
                   )}
                 </div>
-                {/* Resume Button */}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="inline-block">
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            if (!selectedSession.directory) return;
-                            resumeMutation.mutate({
-                              sessionId: selectedSession.id,
-                              appType: selectedApp,
-                              workingDir: selectedSession.directory,
-                            });
-                          }}
-                          disabled={resumeMutation.isPending || !selectedSession.directory}
-                          className="flex items-center gap-1.5"
-                        >
-                          {!selectedSession.directory ? (
-                            <AlertTriangle className="h-3.5 w-3.5" />
-                          ) : (
-                            <Play className="h-3.5 w-3.5" />
+                {/* Search and Resume Buttons */}
+                <div className="flex items-center gap-2">
+                  {/* Search Toggle */}
+                  {!isSearchExpanded ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsSearchExpanded(true)}
+                      className="h-8 w-8 p-0"
+                      title={t('search.placeholder')}
+                    >
+                      <Search className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex items-center gap-2">
+                        <div className="relative">
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                          <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder={t('search.placeholder')}
+                            className="pl-8 pr-7 h-8 w-40 text-sm bg-background border rounded-md focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/60"
+                            autoFocus
+                          />
+                          {searchQuery && (
+                            <button
+                              onClick={() => setSearchQuery('')}
+                              className="absolute right-2 top-1/2 -translate-y-1/2"
+                            >
+                              <X className="h-3 w-3 text-muted-foreground" />
+                            </button>
                           )}
-                          {resumeMutation.isPending
-                            ? t('sessions.resuming') || 'Opening...'
-                            : t('sessions.resume') || 'Resume'}
-                        </Button>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>
-                        {!selectedSession.directory
-                          ? t('sessions.noWorkingDir') ||
-                            'Cannot resume: working directory not found'
-                          : terminalInfo?.ghosttyInstalled
-                            ? 'Open in Ghostty'
-                            : 'Open in Terminal'}
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                        </div>
+                        {/* Match count */}
+                        {searchQuery && (
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">
+                            {matchCount > 0 ? (
+                              <span className="text-foreground font-medium">{matchCount} 条</span>
+                            ) : (
+                              <span>{t('search.noMatches')}</span>
+                            )}
+                          </span>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setIsSearchExpanded(false);
+                          setSearchQuery('');
+                        }}
+                        className="h-8 w-8 p-0"
+                      >
+                        <X className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Resume Button */}
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="inline-block">
+                          <Button
+                            size="sm"
+                            onClick={() => {
+                              if (!selectedSession.directory) return;
+                              resumeMutation.mutate({
+                                sessionId: selectedSession.id,
+                                appType: selectedApp,
+                                workingDir: selectedSession.directory,
+                              });
+                            }}
+                            disabled={resumeMutation.isPending || !selectedSession.directory}
+                            className="flex items-center gap-1.5"
+                          >
+                            {!selectedSession.directory ? (
+                              <AlertTriangle className="h-3.5 w-3.5" />
+                            ) : (
+                              <Play className="h-3.5 w-3.5" />
+                            )}
+                            {resumeMutation.isPending
+                              ? t('sessions.resuming') || 'Opening...'
+                              : t('sessions.resume') || 'Resume'}
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          {!selectedSession.directory
+                            ? t('sessions.noWorkingDir') ||
+                              'Cannot resume: working directory not found'
+                            : terminalInfo?.ghosttyInstalled
+                              ? 'Open in Ghostty'
+                              : 'Open in Terminal'}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
               </div>
 
               {/* Conversation */}
@@ -421,6 +514,7 @@ export function SessionsPage() {
                       messages={sessionDetail.messages}
                       appType={selectedApp}
                       onViewSubAgentSession={handleViewSubAgentSession}
+                      searchQuery={searchQuery}
                     />
                   ) : (
                     <div className="flex items-center justify-center h-64 text-muted-foreground">
