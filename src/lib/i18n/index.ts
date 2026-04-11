@@ -404,6 +404,15 @@ const enTranslations = {
     lines: 'lines',
     model: 'Model',
   },
+  search: {
+    placeholder: 'Search in conversation...',
+    noMatches: 'No matches found',
+    matchesCount: '{{count}} matches',
+    loadAll: 'Load all messages to search',
+    loadingAll: 'Loading all messages...',
+    clear: 'Clear search',
+    shortcut: 'Press {{key}} to search',
+  },
 };
 
 // Chinese translations
@@ -802,6 +811,15 @@ const zhTranslations = {
     collapse: '收起',
     lines: '行',
     model: '模型',
+  },
+  search: {
+    placeholder: '在对话中搜索...',
+    noMatches: '未找到匹配内容',
+    matchesCount: '{{count}} 个匹配',
+    loadAll: '加载全部消息以搜索',
+    loadingAll: '正在加载全部消息...',
+    clear: '清除搜索',
+    shortcut: '按 {{key}} 开始搜索',
   },
 };
 
