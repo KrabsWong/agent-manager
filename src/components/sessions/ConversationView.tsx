@@ -653,7 +653,6 @@ export function ConversationView({
   // New content notification state
   const [newContentCount, setNewContentCount] = useState(0);
   const [showNewContentTip, setShowNewContentTip] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
   const prevMessagesLengthRef = useRef(messages.length);
   const isAtBottomRef = useRef(true);
 
@@ -728,18 +727,24 @@ export function ConversationView({
     onLoadAll?.();
   };
 
+  // Get the scroll container from parent (conversation-scroll-container)
+  const getScrollContainer = () => {
+    return document.getElementById('conversation-scroll-container');
+  };
+
   // Check if scroll is at bottom
   const checkIsAtBottom = () => {
-    if (!containerRef.current) return true;
-    const container = containerRef.current;
-    const threshold = 50; // pixels from bottom to consider "at bottom"
+    const container = getScrollContainer();
+    if (!container) return true;
+    const threshold = 100; // pixels from bottom to consider "at bottom"
     return container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
   };
 
   // Scroll to bottom
   const scrollToBottom = () => {
-    if (!containerRef.current) return;
-    containerRef.current.scrollTop = containerRef.current.scrollHeight;
+    const container = getScrollContainer();
+    if (!container) return;
+    container.scrollTop = container.scrollHeight;
   };
 
   // Handle new content tip click - load all and scroll to bottom
@@ -772,7 +777,7 @@ export function ConversationView({
 
   // Track scroll position
   useEffect(() => {
-    const container = containerRef.current;
+    const container = getScrollContainer();
     if (!container) return;
 
     const handleScroll = () => {
@@ -849,7 +854,7 @@ export function ConversationView({
 
   return (
     <>
-      <div ref={containerRef} className={cn('space-y-6 relative', className)}>
+      <div className={cn('space-y-6 relative', className)}>
         {filteredTurns.map((turn, index) => (
           <ConversationTurn
             key={index}
@@ -891,7 +896,7 @@ export function ConversationView({
       {showNewContentTip && newContentCount > 0 && (
         <button
           onClick={handleNewContentClick}
-          className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-all animate-in fade-in slide-in-from-bottom-2"
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-all animate-in fade-in slide-in-from-bottom-2"
         >
           <span className="flex h-2 w-2 relative">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-foreground opacity-75"></span>
