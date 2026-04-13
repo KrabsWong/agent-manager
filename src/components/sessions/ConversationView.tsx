@@ -657,8 +657,19 @@ export function ConversationView({
   const prevMessagesLengthRef = useRef(messages.length);
   const isAtBottomRef = useRef(true);
 
+  // Track if user has loaded all content
+  const hasLoadedAllRef = useRef(false);
+
   // Initialize displayed turns based on message count limit
   useEffect(() => {
+    // If user has loaded all content previously, keep showing all
+    if (hasLoadedAllRef.current) {
+      setDisplayedTurns(turnsWithCount);
+      setHasMore(false);
+      setRemainingCount(0);
+      return;
+    }
+
     let count = 0;
     let index = 0;
     const totalMessages = turnsWithCount.reduce((sum, t) => sum + t.messageCount, 0);
@@ -710,6 +721,7 @@ export function ConversationView({
   };
 
   const handleLoadAll = () => {
+    hasLoadedAllRef.current = true;
     setDisplayedTurns(turnsWithCount);
     setHasMore(false);
     setRemainingCount(0);
@@ -1560,6 +1572,7 @@ function ToolCallBlock({
       'exitplanmode',
       'multiedit',
       'task',
+      'taskoutput',
     ].includes(toolNameLower);
 
   // Default collapsed state based on setting (only for collapsible tools)
