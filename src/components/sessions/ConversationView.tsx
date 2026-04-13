@@ -1459,23 +1459,12 @@ function ToolCallBlock({
   const toolName = toolUse?.tool_name || toolResult?.tool_name || 'unknown';
   const toolType = getToolType(toolName);
 
-  // Determine if this tool should be collapsible (bash, read, write, edit, search, etc.)
-  const collapsibleTools = [
-    'bash',
-    'read',
-    'write',
-    'edit',
-    'glob',
-    'grep',
-    'ls',
-    'mkdir',
-    'fetch',
-    'search',
-    'websearch',
-    'mcp_fetch',
-    'mcp_search',
-  ];
-  const isCollapsibleTool = collapsibleTools.includes(toolName.toLowerCase());
+  // Determine if this tool should be collapsible (bash, read, write, edit, search, mcp, etc.)
+  const toolNameLower = toolName.toLowerCase();
+  const isCollapsibleTool =
+    ['bash', 'read', 'write', 'edit', 'glob', 'grep', 'ls', 'mkdir'].includes(toolNameLower) ||
+    toolNameLower.startsWith('mcp_') ||
+    ['fetch', 'search', 'websearch'].includes(toolNameLower);
 
   // Default collapsed state based on setting (only for collapsible tools)
   const shouldDefaultCollapse = isCollapsibleTool && collapseBashBlocks;
