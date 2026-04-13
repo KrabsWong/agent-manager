@@ -200,7 +200,7 @@
       </div>
       <p class="loading-text">正在加载中...</p>
     </div>
-    <div class="version">v4.0.0</div>
+    <div class="version" id="version">v4.0.0</div>
 
     <script>
       // 颜色配置表
@@ -821,6 +821,13 @@
       const urlParams = new URLSearchParams(window.location.search);
       const colorId = urlParams.get('color') || 'default';
       const theme = urlParams.get('theme') || 'system';
+      const version = urlParams.get('version') || '4.0.0';
+
+      // 更新版本号显示
+      const versionEl = document.getElementById('version');
+      if (versionEl) {
+        versionEl.textContent = 'v' + version;
+      }
 
       // 应用配色
       applyColorScheme(colorId, theme);

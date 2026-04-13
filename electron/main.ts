@@ -20,6 +20,10 @@ import { registerSessionsHandlers } from './handlers/sessions';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Load package.json for version info
+const packageJsonPath = path.join(__dirname, '..', '..', 'package.json');
+const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+
 log.initialize();
 
 // Keep a global reference of the window object
@@ -55,6 +59,7 @@ const createSplashWindow = () => {
   const splashUrl = new URL(`file://${splashPath}`);
   splashUrl.searchParams.set('color', accentColor);
   splashUrl.searchParams.set('theme', theme);
+  splashUrl.searchParams.set('version', packageJson.version);
 
   splashWindow.loadURL(splashUrl.toString());
 
@@ -209,16 +214,9 @@ const initializeApp = () => {
 
 // Register application-level IPC handlers
 const registerAppHandlers = () => {
-  // App version - read directly from package.json
+  // App version - use already loaded package.json
   ipcRegistry.register('app:getVersion', () => {
-    try {
-      const packageJsonPath = path.join(__dirname, '..', '..', 'package.json');
-      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-      return packageJson.version;
-    } catch (error) {
-      log.error('Failed to read version from package.json:', error);
-      return app.getVersion(); // fallback
-    }
+    return packageJson.version;
   });
 
   // Get settings
