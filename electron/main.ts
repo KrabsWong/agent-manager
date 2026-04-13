@@ -20,11 +20,29 @@ import { registerSessionsHandlers } from './handlers/sessions';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load package.json for version info
-const packageJsonPath = path.join(__dirname, '..', '..', 'package.json');
-const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
-
 log.initialize();
+
+// Load package.json for version info (lazy load after app is ready)
+let packageJsonCache: { version: string } | null = null;
+const getPackageJson = (): { version: string } => {
+  if (!packageJsonCache) {
+    try {
+      // Try development path first
+      const devPath = path.join(__dirname, '..', '..', 'package.json');
+      if (fs.existsSync(devPath)) {
+        packageJsonCache = JSON.parse(fs.readFileSync(devPath, 'utf-8'));
+      } else {
+        // Production path
+        const prodPath = path.join(app.getAppPath(), 'package.json');
+        packageJsonCache = JSON.parse(fs.readFileSync(prodPath, 'utf-8'));
+      }
+    } catch (error) {
+      log.error('Failed to load package.json:', error);
+      packageJsonCache = { version: '4.1.0' };
+    }
+  }
+  return packageJsonCache ?? { version: '4.1.0' };
+};
 
 // Keep a global reference of the window object
 let mainWindow: BrowserWindow | null = null;
@@ -59,7 +77,7 @@ const createSplashWindow = () => {
   const splashUrl = new URL(`file://${splashPath}`);
   splashUrl.searchParams.set('color', accentColor);
   splashUrl.searchParams.set('theme', theme);
-  splashUrl.searchParams.set('version', packageJson.version);
+  splashUrl.searchParams.set('version', getPackageJson().version);
 
   splashWindow.loadURL(splashUrl.toString());
 
@@ -216,7 +234,7 @@ const initializeApp = () => {
 const registerAppHandlers = () => {
   // App version - use already loaded package.json
   ipcRegistry.register('app:getVersion', () => {
-    return packageJson.version;
+    return getPackageJson().version;
   });
 
   // Get settings
