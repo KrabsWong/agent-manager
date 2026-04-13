@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import fs from 'fs';
 import log from 'electron-log';
 import { dbManager } from './database';
 import { configStore } from './utils/config-store';
@@ -208,9 +209,16 @@ const initializeApp = () => {
 
 // Register application-level IPC handlers
 const registerAppHandlers = () => {
-  // App version
+  // App version - read directly from package.json
   ipcRegistry.register('app:getVersion', () => {
-    return app.getVersion();
+    try {
+      const packageJsonPath = path.join(__dirname, '..', '..', 'package.json');
+      const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
+      return packageJson.version;
+    } catch (error) {
+      log.error('Failed to read version from package.json:', error);
+      return app.getVersion(); // fallback
+    }
   });
 
   // Get settings
