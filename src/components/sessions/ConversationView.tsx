@@ -1465,9 +1465,17 @@ function ToolCallBlock({
     ['bash', 'read', 'write', 'edit', 'glob', 'grep', 'ls', 'mkdir'].includes(toolNameLower) ||
     toolNameLower.startsWith('mcp_') ||
     ['fetch', 'search', 'websearch'].includes(toolNameLower) ||
-    ['deferexecutetool', 'toolsearch', 'enterplanmode', 'askuserquestion', 'todowrite'].includes(
-      toolNameLower
-    );
+    [
+      'deferexecutetool',
+      'toolsearch',
+      'enterplanmode',
+      'askuserquestion',
+      'todowrite',
+      'taskupdate',
+      'taskcreate',
+      'exitplanmode',
+      'multiedit',
+    ].includes(toolNameLower);
 
   // Default collapsed state based on setting (only for collapsible tools)
   const shouldDefaultCollapse = isCollapsibleTool && collapseBashBlocks;
