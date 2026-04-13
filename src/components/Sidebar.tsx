@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { useSidebarStore } from '@/stores/sidebar';
 import { useNavigationStore, type NavItem } from '@/stores/navigation';
+import { useVersion } from '@/hooks/useVersion';
 
 // 所有可用的导航项
 const allNavigation: {
@@ -22,6 +23,7 @@ export function Sidebar() {
   const { t } = useTranslation();
   const { isCollapsed, toggle } = useSidebarStore();
   const { enabledItems } = useNavigationStore();
+  const version = useVersion();
 
   // 根据启用的导航项过滤
   const mainNavigation = allNavigation.filter((item) => enabledItems.includes(item.id));
@@ -146,6 +148,18 @@ export function Sidebar() {
               </>
             )}
           </button>
+        </div>
+      )}
+
+      {/* 版本号 */}
+      {version && (
+        <div
+          className={cn(
+            'text-center text-xs text-muted-foreground/50 pb-3',
+            isCollapsed ? 'px-1' : 'px-4'
+          )}
+        >
+          <span className={cn(isCollapsed ? 'hidden' : 'inline')}>v{version}</span>
         </div>
       )}
     </div>
