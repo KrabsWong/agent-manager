@@ -323,7 +323,12 @@
     "switchToClaude": "Switch to Claude Code",
     "loadingConversation": "Loading conversation...",
     "noMessages": "No messages found",
-    "messages": "messages"
+    "messages": "messages",
+    "viewByDate": "View by Date",
+    "viewByDirectory": "View by Directory",
+    "date": "Date",
+    "directory": "Directory",
+    "unknownDirectory": "Unknown"
   },
   "settings": {
     "title": "Settings",

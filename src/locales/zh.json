@@ -323,7 +323,12 @@
     "switchToClaude": "切换到 Claude Code",
     "loadingConversation": "正在加载对话...",
     "noMessages": "未找到消息",
-    "messages": "条消息"
+    "messages": "条消息",
+    "viewByDate": "按日期查看",
+    "viewByDirectory": "按目录查看",
+    "date": "日期",
+    "directory": "目录",
+    "unknownDirectory": "未知目录"
   },
   "settings": {
     "title": "设置",

@@ -4,7 +4,7 @@
  * View and browse local conversation sessions from AI applications
  */
 
-import { useState, createContext, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AlertCircle,
@@ -30,7 +30,7 @@ import {
   useTerminalInfo,
 } from '@/hooks/useSessions';
 import { ConversationView } from '@/components/sessions/ConversationView';
-import { VirtualSessionList } from '@/components/sessions/VirtualSessionList';
+import { VirtualSessionList, type ViewMode } from '@/components/sessions/VirtualSessionList';
 import { APP_LABELS, getAppIcon, APP_COLORS, APP_WEBSITES } from '@/components/AppIcons';
 import type { AppType, Session } from '@/types';
 
@@ -52,8 +52,9 @@ export function SessionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
-  // Collapse state for session list
-  const [collapsedDates, setCollapsedDates] = useState<Set<string>>(new Set());
+  // View mode and collapse state for session list
+  const [viewMode, setViewMode] = useState<ViewMode>('date');
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   const { data: sessions, isLoading, error } = useSessions(selectedApp);
   const { data: stats } = useSessionStats(selectedApp);
@@ -126,9 +127,13 @@ export function SessionsPage() {
     }
   };
 
-  // Get all unique dates from sessions for expand/collapse all
-  const allDates = sessions
-    ? Array.from(
+  // Get all unique group keys from sessions for expand/collapse all
+  const allGroupKeys = useMemo(() => {
+    if (!sessions) return [];
+
+    if (viewMode === 'date') {
+      // Group by date
+      return Array.from(
         new Set(
           sessions.map((s) => {
             const date = new Date(s.updatedAt);
@@ -139,31 +144,55 @@ export function SessionsPage() {
             });
           })
         )
-      )
-    : [];
+      );
+    } else {
+      // Group by directory
+      return Array.from(
+        new Set(
+          sessions.map((s) => {
+            let dir = s.directory || '';
+            if (!dir && s.filePath) {
+              const lastSlashIndex = s.filePath.lastIndexOf('/');
+              if (lastSlashIndex > 0) {
+                dir = s.filePath.substring(0, lastSlashIndex);
+              } else {
+                dir = '/';
+              }
+            }
+            return dir || t('sessions.unknownDirectory', 'Unknown');
+          })
+        )
+      );
+    }
+  }, [sessions, viewMode, t]);
 
-  const toggleDate = (dateKey: string) => {
-    setCollapsedDates((prev) => {
+  const toggleGroup = (groupKey: string) => {
+    setCollapsedGroups((prev) => {
       const next = new Set(prev);
-      if (next.has(dateKey)) {
-        next.delete(dateKey);
+      if (next.has(groupKey)) {
+        next.delete(groupKey);
       } else {
-        next.add(dateKey);
+        next.add(groupKey);
       }
       return next;
     });
   };
 
   const expandAll = () => {
-    setCollapsedDates(new Set());
+    setCollapsedGroups(new Set());
   };
 
   const collapseAll = () => {
-    setCollapsedDates(new Set(allDates));
+    setCollapsedGroups(new Set(allGroupKeys));
   };
 
-  const allExpanded = collapsedDates.size === 0;
-  const allCollapsed = collapsedDates.size === allDates.length;
+  const allExpanded = collapsedGroups.size === 0;
+  const allCollapsed = collapsedGroups.size === allGroupKeys.length;
+
+  // Reset collapsed groups when switching view mode
+  useEffect(() => {
+    setCollapsedGroups(new Set());
+  }, [viewMode]);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -248,88 +277,86 @@ export function SessionsPage() {
       {/* Main Content */}
       <div className="grid grid-cols-[360px_1fr] gap-4 flex-1 min-h-0 mt-6">
         {/* Session List */}
-        <CollapseContext.Provider
-          value={{ collapsedDates, toggleDate, expandAll, collapseAll, allExpanded, allCollapsed }}
-        >
-          <div className="flex flex-col min-h-0 border rounded-lg bg-card overflow-hidden w-[360px]">
-            {isLoading ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="text-muted-foreground">
-                  {t('sessions.loading') || 'Loading sessions...'}
-                </div>
+        <div className="flex flex-col min-h-0 border rounded-lg bg-card overflow-hidden w-[360px]">
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-muted-foreground">
+                {t('sessions.loading') || 'Loading sessions...'}
               </div>
-            ) : error ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="text-destructive flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5" />
-                  {t('sessions.error') || 'Failed to load sessions'}
-                </div>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-destructive flex items-center gap-2">
+                <AlertCircle className="h-5 w-5" />
+                {t('sessions.error') || 'Failed to load sessions'}
               </div>
-            ) : !isSupported ? (
-              <div className="flex flex-col items-center justify-center h-64 space-y-4">
-                <div className="text-muted-foreground text-center">
-                  <p className="text-lg font-medium mb-2">
-                    {t('sessions.comingSoon') || 'Coming Soon'}
-                  </p>
-                  <p className="text-sm">
-                    {t('sessions.unsupportedApp') ||
-                      `Session viewing is not yet supported for ${APP_LABELS[selectedApp]}.`}
-                  </p>
-                </div>
-                <Button variant="outline" onClick={() => setSelectedApp('claude')}>
-                  {t('sessions.switchToClaude') || 'Switch to Claude Code'}
-                </Button>
+            </div>
+          ) : !isSupported ? (
+            <div className="flex flex-col items-center justify-center h-64 space-y-4">
+              <div className="text-muted-foreground text-center">
+                <p className="text-lg font-medium mb-2">
+                  {t('sessions.comingSoon') || 'Coming Soon'}
+                </p>
+                <p className="text-sm">
+                  {t('sessions.unsupportedApp') ||
+                    `Session viewing is not yet supported for ${APP_LABELS[selectedApp]}.`}
+                </p>
               </div>
-            ) : !supportStatus?.isAvailable ? (
-              <div className="flex flex-col items-center justify-center h-64 space-y-4">
-                <div className="text-muted-foreground text-center">
-                  <p className="text-lg font-medium mb-2">
-                    {t('sessions.notInstalled') || 'Not Installed'}
-                  </p>
-                  <p className="text-sm">
-                    {t('sessions.notInstalledDesc', { app: APP_LABELS[selectedApp] }) ||
-                      `Install ${APP_LABELS[selectedApp]} to view your conversation history.`}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  onClick={() => window.open(APP_WEBSITES[selectedApp], '_blank')}
-                  className="flex items-center gap-2"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  {t('sessions.visitWebsite') || 'Visit Website'}
-                </Button>
+              <Button variant="outline" onClick={() => setSelectedApp('claude')}>
+                {t('sessions.switchToClaude') || 'Switch to Claude Code'}
+              </Button>
+            </div>
+          ) : !supportStatus?.isAvailable ? (
+            <div className="flex flex-col items-center justify-center h-64 space-y-4">
+              <div className="text-muted-foreground text-center">
+                <p className="text-lg font-medium mb-2">
+                  {t('sessions.notInstalled') || 'Not Installed'}
+                </p>
+                <p className="text-sm">
+                  {t('sessions.notInstalledDesc', { app: APP_LABELS[selectedApp] }) ||
+                    `Install ${APP_LABELS[selectedApp]} to view your conversation history.`}
+                </p>
               </div>
-            ) : sessions?.length === 0 ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="text-muted-foreground text-center">
-                  <p className="text-lg font-medium mb-2">
-                    {t('sessions.noSessions') || 'No Sessions Found'}
-                  </p>
-                  <p className="text-sm">
-                    {t('sessions.noSessionsDesc') ||
-                      'No conversation history found for this application.'}
-                  </p>
-                </div>
+              <Button
+                variant="outline"
+                onClick={() => window.open(APP_WEBSITES[selectedApp], '_blank')}
+                className="flex items-center gap-2"
+              >
+                <ExternalLink className="h-4 w-4" />
+                {t('sessions.visitWebsite') || 'Visit Website'}
+              </Button>
+            </div>
+          ) : sessions?.length === 0 ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-muted-foreground text-center">
+                <p className="text-lg font-medium mb-2">
+                  {t('sessions.noSessions') || 'No Sessions Found'}
+                </p>
+                <p className="text-sm">
+                  {t('sessions.noSessionsDesc') ||
+                    'No conversation history found for this application.'}
+                </p>
               </div>
-            ) : (
-              <div className="flex-1 min-h-0 p-2">
-                <VirtualSessionList
-                  sessions={sessions || []}
-                  selectedSession={selectedSession}
-                  onSelect={handleSessionSelect}
-                  t={t}
-                  collapsedDates={collapsedDates}
-                  toggleDate={toggleDate}
-                  expandAll={expandAll}
-                  collapseAll={collapseAll}
-                  allExpanded={allExpanded}
-                  allCollapsed={allCollapsed}
-                />
-              </div>
-            )}
-          </div>
-        </CollapseContext.Provider>
+            </div>
+          ) : (
+            <div className="flex-1 min-h-0 p-2">
+              <VirtualSessionList
+                sessions={sessions || []}
+                selectedSession={selectedSession}
+                onSelect={handleSessionSelect}
+                t={t as (key: string, defaultValue?: string) => string}
+                collapsedGroups={collapsedGroups}
+                toggleGroup={toggleGroup}
+                expandAll={expandAll}
+                collapseAll={collapseAll}
+                allExpanded={allExpanded}
+                allCollapsed={allCollapsed}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+              />
+            </div>
+          )}
+        </div>
 
         {/* Session Detail */}
         <div className="border rounded-lg bg-card overflow-hidden flex flex-col h-full min-h-0">
@@ -583,20 +610,3 @@ export function SessionsPage() {
     </div>
   );
 }
-
-// Create a context for collapse state
-const CollapseContext = createContext<{
-  collapsedDates: Set<string>;
-  toggleDate: (dateKey: string) => void;
-  expandAll: () => void;
-  collapseAll: () => void;
-  allExpanded: boolean;
-  allCollapsed: boolean;
-}>({
-  collapsedDates: new Set(),
-  toggleDate: () => {},
-  expandAll: () => {},
-  collapseAll: () => {},
-  allExpanded: true,
-  allCollapsed: false,
-});

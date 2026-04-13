@@ -407,6 +407,11 @@ const enTranslations = {
     collapse: 'Collapse',
     lines: 'lines',
     model: 'Model',
+    viewByDate: 'View by Date',
+    viewByDirectory: 'View by Directory',
+    date: 'Date',
+    directory: 'Directory',
+    unknownDirectory: 'Unknown',
   },
   search: {
     placeholder: 'Search in conversation...',
@@ -819,6 +824,11 @@ const zhTranslations = {
     collapse: '收起',
     lines: '行',
     model: '模型',
+    viewByDate: '按日期查看',
+    viewByDirectory: '按目录查看',
+    date: '日期',
+    directory: '目录',
+    unknownDirectory: '未知目录',
   },
   search: {
     placeholder: '在对话中搜索...',
