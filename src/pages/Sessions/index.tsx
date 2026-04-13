@@ -17,6 +17,7 @@ import {
   ExternalLink,
   Search,
   X,
+  RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
@@ -59,10 +60,11 @@ export function SessionsPage() {
   const { data: sessions, isLoading, error } = useSessions(selectedApp);
   const { data: stats } = useSessionStats(selectedApp);
   const { data: supportStatus } = useSessionSupportStatus(selectedApp);
-  const { data: sessionDetail, isLoading: isLoadingDetail } = useSessionDetail(
-    selectedSession?.id || '',
-    selectedApp
-  );
+  const {
+    data: sessionDetail,
+    isLoading: isLoadingDetail,
+    isFetching: isFetchingDetail,
+  } = useSessionDetail(selectedSession?.id || '', selectedApp);
   const { data: terminalInfo } = useTerminalInfo();
   const resumeMutation = useResumeSession();
 
@@ -370,11 +372,19 @@ export function SessionsPage() {
                       ? truncateText(selectedSession.firstMessage, 100)
                       : selectedSession.fileName || 'Untitled Session'}
                   </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {formatDate(selectedSession.updatedAt)} ·{' '}
-                    {sessionDetail?.messages
-                      ? `${sessionDetail.messages.length}/${selectedSession.messageCount} messages`
-                      : `${selectedSession.messageCount} messages`}
+                  <p className="text-sm text-muted-foreground flex items-center gap-2">
+                    <span>
+                      {formatDate(selectedSession.updatedAt)} ·{' '}
+                      {sessionDetail?.messages
+                        ? `${sessionDetail.messages.length}/${selectedSession.messageCount} messages`
+                        : `${selectedSession.messageCount} messages`}
+                    </span>
+                    {isFetchingDetail && !isLoadingDetail && (
+                      <span className="inline-flex items-center gap-1 text-xs text-primary">
+                        <RefreshCw className="h-3 w-3 animate-spin" />
+                        updating...
+                      </span>
+                    )}
                   </p>
                   {/* Session ID - always show */}
                   {selectedSession.id && (

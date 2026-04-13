@@ -33,12 +33,16 @@ export function useSessions(appType: AppType) {
 
 /**
  * Hook to fetch session detail
+ * Auto-refetches every 5 seconds to show real-time updates from CLI
  */
 export function useSessionDetail(sessionId: string, appType: AppType) {
   return useQuery({
     queryKey: sessionsKeys.detail(sessionId),
     queryFn: () => sessionsApi.getDetail(sessionId, appType),
     enabled: !!sessionId && !!appType,
+    refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
+    refetchIntervalInBackground: false, // Don't refetch when tab is in background
+    refetchOnWindowFocus: true, // Refetch when window regains focus
   });
 }
 
