@@ -96,6 +96,72 @@ export class CodebuddySessionService {
   }
 
   /**
+   * Stream read session file to find first user message without loading entire file
+   * Uses 8KB buffer similar to BuddyViewer for memory efficiency
+   */
+  private streamReadFirstUserMessage(filePath: string): Promise<{
+    firstMessage: string;
+    createdAt: number;
+  }> {
+    return new Promise((resolve) => {
+      const stream = fs.createReadStream(filePath, { encoding: 'utf-8', highWaterMark: 8192 });
+      let leftover = '';
+
+      stream.on('data', (chunk: string | Buffer) => {
+        const data = leftover + chunk.toString();
+        const lines = data.split('\n');
+
+        // Keep the last incomplete line for next chunk
+        leftover = lines.pop() || '';
+
+        // Process complete lines
+        for (const line of lines) {
+          if (!line.trim()) continue;
+
+          try {
+            const entry = JSON.parse(line) as CodebuddyMessageEntry;
+            if (entry.type === 'message' && entry.role === 'user') {
+              const firstMessage = entry.content?.[0]?.text?.substring(0, 100) || '';
+              stream.destroy();
+              resolve({
+                firstMessage,
+                createdAt: entry.timestamp || Date.now(),
+              });
+              return;
+            }
+          } catch {
+            // Skip invalid lines, continue searching
+          }
+        }
+      });
+
+      stream.on('end', () => {
+        // Try leftover at the end
+        if (leftover.trim()) {
+          try {
+            const entry = JSON.parse(leftover) as CodebuddyMessageEntry;
+            if (entry.type === 'message' && entry.role === 'user') {
+              const firstMessage = entry.content?.[0]?.text?.substring(0, 100) || '';
+              resolve({
+                firstMessage,
+                createdAt: entry.timestamp || Date.now(),
+              });
+              return;
+            }
+          } catch {
+            // Invalid JSON in leftover
+          }
+        }
+        resolve({ firstMessage: '', createdAt: 0 });
+      });
+
+      stream.on('error', () => {
+        resolve({ firstMessage: '', createdAt: 0 });
+      });
+    });
+  }
+
+  /**
    * Read session .jsonl file and get message count and last message
    * Only counts displayable message types (user, assistant, function_call, function_call_result)
    */
@@ -196,6 +262,7 @@ export class CodebuddySessionService {
   /**
    * Get all sessions from projects directory
    * Each .jsonl file in a project is a separate session
+   * Optimized: uses stream reading for large files (>100KB) to get first message efficiently
    */
   async getAllSessions(): Promise<Session[]> {
     try {
@@ -244,7 +311,6 @@ export class CodebuddySessionService {
           if (entry.endsWith('.jsonl') && fs.statSync(entryPath).isFile()) {
             const sessionId = entry.replace('.jsonl', '');
             const stats = fs.statSync(entryPath);
-            const jsonlData = this.readSessionJsonl(entryPath);
 
             // Check if this is the active session
             const isActiveSession = activeSession && activeSession.sessionId === sessionId;
@@ -256,6 +322,25 @@ export class CodebuddySessionService {
                 `[CodeBuddy] Skipping duplicate session ${sessionId} at ${entryPath} (${stats.size} bytes), keeping ${existingSession.filePath} (${existingSession.contentSize} bytes)`
               );
               continue;
+            }
+
+            // For large files (>100KB), use stream reading to get first message efficiently
+            // This avoids loading entire large files into memory just for listing
+            let jsonlData: ReturnType<typeof this.readSessionJsonl>;
+            if (stats.size > 100 * 1024) {
+              log.debug(
+                `[CodeBuddy] Large file detected (${stats.size} bytes), using stream read: ${entry}`
+              );
+              const { firstMessage, createdAt } = await this.streamReadFirstUserMessage(entryPath);
+              jsonlData = {
+                count: 0, // Will be loaded on demand
+                firstMessage,
+                lastMessage: firstMessage,
+                createdAt,
+                updatedAt: stats.mtime.getTime(),
+              };
+            } else {
+              jsonlData = this.readSessionJsonl(entryPath);
             }
 
             sessionMap.set(sessionId, {
