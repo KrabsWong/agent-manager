@@ -476,6 +476,11 @@ export class CodebuddySessionService {
                     (toolInput.sessionId as string) ||
                     (toolInput.subAgentSessionId as string) ||
                     (toolInput.childSessionId as string);
+                } else if (entry.name === 'EnterPlanMode') {
+                  toolContent =
+                    '📋 Entering Plan Mode - AI will create a step-by-step plan before execution';
+                } else if (entry.name === 'ExitPlanMode') {
+                  toolContent = '✅ Exiting Plan Mode - AI will proceed with execution';
                 } else if (entry.name) {
                   toolContent = `🔧 ${entry.name}`;
                 }

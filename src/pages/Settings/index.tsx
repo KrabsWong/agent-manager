@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { History, Puzzle, Palette, RotateCcw, Type } from 'lucide-react';
+import { History, Puzzle, Palette, RotateCcw, Type, Terminal } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { ColorPicker } from '@/components/ColorPicker';
@@ -138,7 +138,8 @@ export function SettingsPage() {
 // 体验特性设置组件
 function ExperienceSettings() {
   const { t } = useTranslation();
-  const { enableTitleMarquee, toggleTitleMarquee } = useExperienceStore();
+  const { enableTitleMarquee, toggleTitleMarquee, collapseBashBlocks, toggleCollapseBashBlocks } =
+    useExperienceStore();
 
   return (
     <Card className="border-border/60">
@@ -151,7 +152,7 @@ function ExperienceSettings() {
             'Optional features to enhance your browsing experience'}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-2">
         <button
           onClick={toggleTitleMarquee}
           className={cn(
@@ -190,6 +191,49 @@ function ExperienceSettings() {
               className={cn(
                 'absolute top-1 w-3 h-3 rounded-full bg-white transition-transform',
                 enableTitleMarquee ? 'translate-x-5' : 'translate-x-1'
+              )}
+            />
+          </div>
+        </button>
+
+        <button
+          onClick={toggleCollapseBashBlocks}
+          className={cn(
+            'w-full flex items-center gap-3 p-2.5 rounded-md border transition-all text-left',
+            collapseBashBlocks
+              ? 'border-primary/50 bg-primary/5'
+              : 'border-border/60 hover:border-primary/30 hover:bg-accent/50'
+          )}
+        >
+          <div
+            className={cn(
+              'flex items-center justify-center w-8 h-8 rounded-md transition-colors shrink-0',
+              collapseBashBlocks
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground'
+            )}
+          >
+            <Terminal className="h-4 w-4" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-medium text-sm">
+              {t('settings.collapseBashBlocks') || 'Collapse Bash Output by Default'}
+            </div>
+            <div className="text-xs text-muted-foreground leading-tight">
+              {t('settings.collapseBashBlocksDesc') ||
+                'Automatically collapse bash command output blocks to save space'}
+            </div>
+          </div>
+          <div
+            className={cn(
+              'w-9 h-5 rounded-full transition-colors relative shrink-0',
+              collapseBashBlocks ? 'bg-primary' : 'bg-muted'
+            )}
+          >
+            <div
+              className={cn(
+                'absolute top-1 w-3 h-3 rounded-full bg-white transition-transform',
+                collapseBashBlocks ? 'translate-x-5' : 'translate-x-1'
               )}
             />
           </div>

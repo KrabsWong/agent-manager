@@ -174,6 +174,10 @@ const enTranslations = {
     experienceDescription: 'Optional features to enhance your browsing experience',
     titleMarquee: 'Title Marquee Effect',
     titleMarqueeDesc: 'Hover over long session titles to auto-scroll and see full text',
+    displayTitle: 'Display Settings',
+    displayDescription: 'Configure how session content is displayed',
+    collapseBashBlocks: 'Collapse Bash Output by Default',
+    collapseBashBlocksDesc: 'Automatically collapse bash command output blocks to save space',
     accentColor: 'Accent Color',
     selectAccentColor: 'Select Accent Color',
     colors: {
@@ -583,6 +587,10 @@ const zhTranslations = {
     experienceDescription: '可选功能，增强您的浏览体验',
     titleMarquee: '标题跑马灯效果',
     titleMarqueeDesc: '鼠标悬停在长会话标题上时自动滚动显示完整文本',
+    displayTitle: '显示设置',
+    displayDescription: '配置会话内容的显示方式',
+    collapseBashBlocks: '默认收起 Bash 输出',
+    collapseBashBlocksDesc: '自动收起 Bash 命令输出块以节省空间',
     accentColor: '主色调',
     selectAccentColor: '选择主色调',
     colors: {

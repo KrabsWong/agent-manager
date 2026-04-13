@@ -183,6 +183,9 @@ export interface AppSettings {
   // Backup
   autoBackup: boolean;
   backupRetention: number;
+
+  // Display
+  collapseBashBlocks: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -199,6 +202,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   githubToken: undefined,
   autoBackup: true,
   backupRetention: 10,
+  collapseBashBlocks: true,
 };
 
 // ============ IPC Channel Types ============

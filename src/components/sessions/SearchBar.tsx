@@ -122,14 +122,10 @@ export function SearchBar({
         )}
       </div>
 
-      {/* Match count */}
-      {query && (
+      {/* Match count - only show when there are matches */}
+      {query && matchCount > 0 && (
         <div className="text-xs text-muted-foreground whitespace-nowrap">
-          {matchCount > 0 ? (
-            <span className="text-foreground font-medium">{matchCount} 条</span>
-          ) : (
-            <span className="text-muted-foreground">{t('search.noMatches')}</span>
-          )}
+          <span className="text-foreground font-medium">{matchCount} 条</span>
         </div>
       )}
 

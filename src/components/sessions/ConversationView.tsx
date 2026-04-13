@@ -11,6 +11,7 @@
 
 import { useMemo, useState, memo, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useExperienceStore } from '@/stores/experience';
 import {
   User,
   Wrench,
@@ -24,6 +25,7 @@ import {
   Sparkles,
   Info,
   Folder,
+  ListTodo,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -1452,9 +1454,32 @@ function ToolCallBlock({
   searchQuery = '',
 }: ToolCallBlockProps) {
   const { t } = useTranslation();
+  const { collapseBashBlocks } = useExperienceStore();
 
   const toolName = toolUse?.tool_name || toolResult?.tool_name || 'unknown';
   const toolType = getToolType(toolName);
+
+  // Determine if this tool should be collapsible (bash, read, write, edit, search, etc.)
+  const collapsibleTools = [
+    'bash',
+    'read',
+    'write',
+    'edit',
+    'glob',
+    'grep',
+    'ls',
+    'mkdir',
+    'fetch',
+    'search',
+    'websearch',
+    'mcp_fetch',
+    'mcp_search',
+  ];
+  const isCollapsibleTool = collapsibleTools.includes(toolName.toLowerCase());
+
+  // Default collapsed state based on setting (only for collapsible tools)
+  const shouldDefaultCollapse = isCollapsibleTool && collapseBashBlocks;
+  const [isExpanded, setIsExpanded] = useState(!shouldDefaultCollapse);
 
   // Use SubAgentCard for sub-agent calls
   if (toolType === 'subagent') {
@@ -1474,8 +1499,14 @@ function ToolCallBlock({
 
     return (
       <div className="border rounded-lg overflow-hidden bg-muted/30">
-        {/* Tool Header */}
-        <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 border-b">
+        {/* Tool Header - Clickable to expand/collapse for collapsible tools */}
+        <button
+          onClick={() => isCollapsibleTool && setIsExpanded(!isExpanded)}
+          className={cn(
+            'w-full flex items-center gap-2 px-3 py-2 bg-muted/50 border-b text-left',
+            isCollapsibleTool && 'cursor-pointer hover:bg-muted/70 transition-colors'
+          )}
+        >
           {getToolIcon(toolType)}
           <span className="font-medium text-sm">{getToolDisplayName(toolName)}</span>
           {toolResult?.model && (
@@ -1488,22 +1519,31 @@ function ToolCallBlock({
           )}
           {summary && (
             <span
-              className="text-xs text-muted-foreground ml-auto truncate max-w-[200px]"
+              className="text-xs text-muted-foreground ml-auto truncate flex-1 text-right mr-2"
               title={summary}
             >
               {summary}
             </span>
           )}
+          {isCollapsibleTool && (
+            <div className="flex-shrink-0">
+              {isExpanded ? (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
+          )}
           <span
-            className="text-[10px] text-amber-500/70 ml-1"
+            className="text-[10px] text-amber-500/70 flex-shrink-0"
             title={t('sessions.inputNotAvailable', 'Input not available')}
           >
             ※
           </span>
-        </div>
+        </button>
 
         {/* Tool Output */}
-        {toolResult?.tool_output && (
+        {(!isCollapsibleTool || isExpanded) && toolResult?.tool_output && (
           <div className="px-3 py-2">
             <div className="text-xs text-muted-foreground mb-1">Output</div>
             <ToolOutputDisplay output={toolResult.tool_output} searchQuery={searchQuery} />
@@ -1517,8 +1557,14 @@ function ToolCallBlock({
 
   return (
     <div className="border rounded-lg overflow-hidden bg-muted/30">
-      {/* Tool Header */}
-      <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 border-b">
+      {/* Tool Header - Clickable to expand/collapse for collapsible tools */}
+      <button
+        onClick={() => isCollapsibleTool && setIsExpanded(!isExpanded)}
+        className={cn(
+          'w-full flex items-center gap-2 px-3 py-2 bg-muted/50 border-b text-left',
+          isCollapsibleTool && 'cursor-pointer hover:bg-muted/70 transition-colors'
+        )}
+      >
         {getToolIcon(toolType)}
         <span className="font-medium text-sm">{getToolDisplayName(toolName)}</span>
         {(toolUse?.model || toolResult?.model) && (
@@ -1531,16 +1577,25 @@ function ToolCallBlock({
         )}
         {summary && (
           <span
-            className="text-xs text-muted-foreground ml-auto truncate max-w-[200px]"
+            className="text-xs text-muted-foreground ml-auto truncate flex-1 text-right mr-2"
             title={summary}
           >
             {summary}
           </span>
         )}
-      </div>
+        {isCollapsibleTool && (
+          <div className="flex-shrink-0">
+            {isExpanded ? (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
+        )}
+      </button>
 
       {/* Tool Input */}
-      {toolUse?.tool_input && (
+      {(!isCollapsibleTool || isExpanded) && toolUse?.tool_input && (
         <div className="px-3 py-2 border-b border-dashed">
           <div className="text-xs text-muted-foreground mb-1">Input</div>
           <ToolInputDisplay input={toolUse.tool_input} searchQuery={searchQuery} />
@@ -1548,17 +1603,21 @@ function ToolCallBlock({
       )}
 
       {/* Tool Output */}
-      {toolResult?.tool_output && (
+      {(!isCollapsibleTool || isExpanded) && toolResult?.tool_output && (
         <div className="px-3 py-2">
           <div className="text-xs text-muted-foreground mb-1">Output</div>
-          <ToolOutputDisplay output={toolResult.tool_output} searchQuery={searchQuery} />
+          <ToolOutputDisplay
+            output={toolResult.tool_output}
+            searchQuery={searchQuery}
+            toolName={toolName}
+          />
         </div>
       )}
     </div>
   );
 }
 
-type ToolType = 'mcp' | 'filesystem' | 'search' | 'code' | 'subagent' | 'generic';
+type ToolType = 'mcp' | 'filesystem' | 'search' | 'code' | 'subagent' | 'plan' | 'generic';
 
 function getToolType(toolName: string): ToolType {
   const name = toolName.toLowerCase();
@@ -1571,6 +1630,11 @@ function getToolType(toolName: string): ToolType {
   // Sub-agent calls
   if (name.includes('agent') || name.includes('spawn') || name.includes('delegate')) {
     return 'subagent';
+  }
+
+  // Plan mode operations
+  if (name.includes('planmode') || name === 'enterplanmode' || name === 'exitplanmode') {
+    return 'plan';
   }
 
   // Filesystem operations
@@ -1605,6 +1669,8 @@ function getToolIcon(toolType: ToolType) {
       return <Terminal className={cn(className, 'text-orange-500')} />;
     case 'subagent':
       return <Bot className={cn(className, 'text-purple-500')} />;
+    case 'plan':
+      return <ListTodo className={cn(className, 'text-indigo-500')} />;
     default:
       return <Wrench className={cn(className, 'text-gray-500')} />;
   }
@@ -1621,6 +1687,8 @@ function getToolDisplayName(toolName: string): string {
     mkdir: 'Create Directory',
     bash: 'Execute Command',
     skill: 'MCP Skill',
+    EnterPlanMode: 'Enter Plan Mode',
+    ExitPlanMode: 'Exit Plan Mode',
   };
 
   return displayNames[toolName] || toolName.charAt(0).toUpperCase() + toolName.slice(1);
@@ -1726,10 +1794,16 @@ const MAX_TOOL_OUTPUT_LINES = 20; // 工具输出超过此行数默认折叠
 interface ToolOutputDisplayProps {
   output: SessionMessage['tool_output'];
   searchQuery?: string;
+  toolName?: string;
 }
 
-function ToolOutputDisplay({ output, searchQuery = '' }: ToolOutputDisplayProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+function ToolOutputDisplay({ output, searchQuery = '', toolName = '' }: ToolOutputDisplayProps) {
+  const { collapseBashBlocks } = useExperienceStore();
+  const isBashTool = toolName.toLowerCase() === 'bash';
+  // For bash tools, use the setting to determine default expanded state
+  // For other tools, default to expanded (not collapsed)
+  const shouldDefaultCollapse = isBashTool && collapseBashBlocks;
+  const [isExpanded, setIsExpanded] = useState(!shouldDefaultCollapse);
 
   if (!output) {
     return <span className="text-xs text-muted-foreground">No output</span>;

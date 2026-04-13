@@ -420,14 +420,10 @@ export function SessionsPage() {
                             </button>
                           )}
                         </div>
-                        {/* Match count */}
-                        {searchQuery && (
+                        {/* Match count - only show when there are matches */}
+                        {searchQuery && matchCount > 0 && (
                           <span className="text-xs text-muted-foreground whitespace-nowrap">
-                            {matchCount > 0 ? (
-                              <span className="text-foreground font-medium">{matchCount} 条</span>
-                            ) : (
-                              <span>{t('search.noMatches')}</span>
-                            )}
+                            <span className="text-foreground font-medium">{matchCount} 条</span>
                           </span>
                         )}
                       </div>
@@ -510,12 +506,21 @@ export function SessionsPage() {
                       {t('sessions.loadingConversation') || 'Loading conversation...'}
                     </div>
                   ) : sessionDetail?.messages && sessionDetail.messages.length > 0 ? (
-                    <ConversationView
-                      messages={sessionDetail.messages}
-                      appType={selectedApp}
-                      onViewSubAgentSession={handleViewSubAgentSession}
-                      searchQuery={searchQuery}
-                    />
+                    searchQuery && matchCount === 0 ? (
+                      <div className="flex items-center justify-center h-64 text-muted-foreground">
+                        <div className="text-center">
+                          <Search className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                          <p>{t('search.noMatches')}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <ConversationView
+                        messages={sessionDetail.messages}
+                        appType={selectedApp}
+                        onViewSubAgentSession={handleViewSubAgentSession}
+                        searchQuery={searchQuery}
+                      />
+                    )
                   ) : (
                     <div className="flex items-center justify-center h-64 text-muted-foreground">
                       {t('sessions.noMessages') || 'No messages found'}

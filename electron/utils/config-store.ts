@@ -43,6 +43,7 @@ const schema = {
       webdavSyncInterval: { type: 'number', default: 30 },
       autoBackup: { type: 'boolean', default: true },
       backupRetention: { type: 'number', default: 10 },
+      collapseBashBlocks: { type: 'boolean', default: true },
     },
     default: DEFAULT_SETTINGS,
   },

@@ -30,8 +30,11 @@ export function SubAgentCard({ toolUse, toolResult, onViewSession, className }: 
     t('sessions.subAgentDefaultDesc', 'Sub-agent task');
   const subAgentType = (toolInput.subagent_type as string) || (toolInput.type as string);
   // Try to get model from tool input or tool result metadata
-  const subAgentModel: string | undefined =
+  // Filter out "default" as it's not a real model name
+  const rawModel =
     (toolInput.model as string) || (toolResult?.metadata?.model as string) || toolResult?.model;
+  const subAgentModel: string | undefined =
+    rawModel && rawModel !== 'default' ? rawModel : undefined;
 
   // Determine status based on whether we have a result
   const hasResult = !!toolResult;
