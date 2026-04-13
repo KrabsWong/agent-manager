@@ -96,16 +96,25 @@ export class CodebuddySessionService {
   }
 
   /**
-   * Stream read session file to find first user message without loading entire file
-   * Uses 8KB buffer similar to BuddyViewer for memory efficiency
+   * Stream read session file to get message count and first/last user messages
+   * Uses 8KB buffer for memory efficiency with large files
    */
-  private streamReadFirstUserMessage(filePath: string): Promise<{
+  private streamReadSessionInfo(filePath: string): Promise<{
+    count: number;
     firstMessage: string;
+    lastMessage: string;
     createdAt: number;
+    updatedAt: number;
   }> {
     return new Promise((resolve) => {
       const stream = fs.createReadStream(filePath, { encoding: 'utf-8', highWaterMark: 8192 });
       let leftover = '';
+      let count = 0;
+      let firstMessage = '';
+      let lastMessage = '';
+      let createdAt = 0;
+      let firstTimestamp = 0;
+      let lastTimestamp = 0;
 
       stream.on('data', (chunk: string | Buffer) => {
         const data = leftover + chunk.toString();
@@ -120,43 +129,82 @@ export class CodebuddySessionService {
 
           try {
             const entry = JSON.parse(line) as CodebuddyMessageEntry;
+
+            // Track timestamps
+            if (entry.timestamp) {
+              if (!firstTimestamp) {
+                firstTimestamp = entry.timestamp;
+              }
+              lastTimestamp = entry.timestamp;
+            }
+
+            // Count displayable message types
+            if (
+              (entry.type === 'message' && (entry.role === 'user' || entry.role === 'assistant')) ||
+              entry.type === 'function_call' ||
+              entry.type === 'function_call_result'
+            ) {
+              count++;
+            }
+
+            // Extract first user message
+            if (!firstMessage && entry.type === 'message' && entry.role === 'user') {
+              firstMessage = entry.content?.[0]?.text?.substring(0, 100) || '';
+              createdAt = entry.timestamp || Date.now();
+            }
+
+            // Track last user message (will be updated as we read)
             if (entry.type === 'message' && entry.role === 'user') {
-              const firstMessage = entry.content?.[0]?.text?.substring(0, 100) || '';
-              stream.destroy();
-              resolve({
-                firstMessage,
-                createdAt: entry.timestamp || Date.now(),
-              });
-              return;
+              lastMessage = entry.content?.[0]?.text?.substring(0, 100) || '';
             }
           } catch {
-            // Skip invalid lines, continue searching
+            // Skip invalid lines
           }
         }
       });
 
       stream.on('end', () => {
-        // Try leftover at the end
+        // Process leftover
         if (leftover.trim()) {
           try {
             const entry = JSON.parse(leftover) as CodebuddyMessageEntry;
+
+            if (entry.timestamp) {
+              lastTimestamp = entry.timestamp;
+            }
+
+            if (
+              (entry.type === 'message' && (entry.role === 'user' || entry.role === 'assistant')) ||
+              entry.type === 'function_call' ||
+              entry.type === 'function_call_result'
+            ) {
+              count++;
+            }
+
+            if (!firstMessage && entry.type === 'message' && entry.role === 'user') {
+              firstMessage = entry.content?.[0]?.text?.substring(0, 100) || '';
+              createdAt = entry.timestamp || Date.now();
+            }
+
             if (entry.type === 'message' && entry.role === 'user') {
-              const firstMessage = entry.content?.[0]?.text?.substring(0, 100) || '';
-              resolve({
-                firstMessage,
-                createdAt: entry.timestamp || Date.now(),
-              });
-              return;
+              lastMessage = entry.content?.[0]?.text?.substring(0, 100) || '';
             }
           } catch {
             // Invalid JSON in leftover
           }
         }
-        resolve({ firstMessage: '', createdAt: 0 });
+
+        resolve({
+          count,
+          firstMessage,
+          lastMessage: lastMessage || firstMessage,
+          createdAt: createdAt || firstTimestamp,
+          updatedAt: lastTimestamp || createdAt || Date.now(),
+        });
       });
 
       stream.on('error', () => {
-        resolve({ firstMessage: '', createdAt: 0 });
+        resolve({ count: 0, firstMessage: '', lastMessage: '', createdAt: 0, updatedAt: 0 });
       });
     });
   }
@@ -324,21 +372,14 @@ export class CodebuddySessionService {
               continue;
             }
 
-            // For large files (>100KB), use stream reading to get first message efficiently
+            // For large files (>100KB), use stream reading to efficiently get session info
             // This avoids loading entire large files into memory just for listing
             let jsonlData: ReturnType<typeof this.readSessionJsonl>;
             if (stats.size > 100 * 1024) {
               log.debug(
                 `[CodeBuddy] Large file detected (${stats.size} bytes), using stream read: ${entry}`
               );
-              const { firstMessage, createdAt } = await this.streamReadFirstUserMessage(entryPath);
-              jsonlData = {
-                count: 0, // Will be loaded on demand
-                firstMessage,
-                lastMessage: firstMessage,
-                createdAt,
-                updatedAt: stats.mtime.getTime(),
-              };
+              jsonlData = await this.streamReadSessionInfo(entryPath);
             } else {
               jsonlData = this.readSessionJsonl(entryPath);
             }
