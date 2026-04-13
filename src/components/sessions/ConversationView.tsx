@@ -650,6 +650,13 @@ export function ConversationView({
   const [hasMore, setHasMore] = useState(false);
   const [remainingCount, setRemainingCount] = useState(0);
 
+  // New content notification state
+  const [newContentCount, setNewContentCount] = useState(0);
+  const [showNewContentTip, setShowNewContentTip] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const prevMessagesLengthRef = useRef(messages.length);
+  const isAtBottomRef = useRef(true);
+
   // Initialize displayed turns based on message count limit
   useEffect(() => {
     let count = 0;
@@ -708,6 +715,66 @@ export function ConversationView({
     setRemainingCount(0);
     onLoadAll?.();
   };
+
+  // Check if scroll is at bottom
+  const checkIsAtBottom = () => {
+    if (!containerRef.current) return true;
+    const container = containerRef.current;
+    const threshold = 50; // pixels from bottom to consider "at bottom"
+    return container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+  };
+
+  // Scroll to bottom
+  const scrollToBottom = () => {
+    if (!containerRef.current) return;
+    containerRef.current.scrollTop = containerRef.current.scrollHeight;
+  };
+
+  // Handle new content tip click - load all and scroll to bottom
+  const handleNewContentClick = () => {
+    handleLoadAll();
+    setShowNewContentTip(false);
+    setNewContentCount(0);
+    // Scroll after content is rendered
+    setTimeout(scrollToBottom, 100);
+  };
+
+  // Detect new messages and show tip if not at bottom
+  useEffect(() => {
+    const currentMessagesLength = messages.length;
+    const prevMessagesLength = prevMessagesLengthRef.current;
+
+    if (currentMessagesLength > prevMessagesLength) {
+      const newCount = currentMessagesLength - prevMessagesLength;
+      const isAtBottom = checkIsAtBottom();
+
+      if (!isAtBottom) {
+        // User is not at bottom, show tip
+        setNewContentCount((prev) => prev + newCount);
+        setShowNewContentTip(true);
+      }
+    }
+
+    prevMessagesLengthRef.current = currentMessagesLength;
+  }, [messages.length]);
+
+  // Track scroll position
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      isAtBottomRef.current = checkIsAtBottom();
+      // Hide tip if user scrolls to bottom
+      if (isAtBottomRef.current && showNewContentTip) {
+        setShowNewContentTip(false);
+        setNewContentCount(0);
+      }
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [showNewContentTip]);
 
   // Filter turns based on search
   const filteredTurns = useMemo(() => {
@@ -769,43 +836,60 @@ export function ConversationView({
   const shouldPaginate = turnsWithCount.length > displayedTurns.length;
 
   return (
-    <div className={cn('space-y-6', className)}>
-      {filteredTurns.map((turn, index) => (
-        <ConversationTurn
-          key={index}
-          turn={turn}
-          appType={appType}
-          onViewSubAgentSession={onViewSubAgentSession}
-          searchQuery={searchQuery}
-        />
-      ))}
-      {/* Load more buttons at BOTTOM */}
-      {shouldPaginate && hasMore && !searchQuery && (
-        <div className="flex justify-center items-center gap-4 py-3">
-          <button
-            onClick={handleLoadMore}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ChevronDown className="h-3.5 w-3.5" />
-            加载更多 ({remainingCount} 条)
-          </button>
-          <span className="text-border">|</span>
-          <button
-            onClick={handleLoadAll}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Maximize2 className="h-3.5 w-3.5" />
-            加载全部
-          </button>
-        </div>
+    <>
+      <div ref={containerRef} className={cn('space-y-6 relative', className)}>
+        {filteredTurns.map((turn, index) => (
+          <ConversationTurn
+            key={index}
+            turn={turn}
+            appType={appType}
+            onViewSubAgentSession={onViewSubAgentSession}
+            searchQuery={searchQuery}
+          />
+        ))}
+        {/* Load more buttons at BOTTOM */}
+        {shouldPaginate && hasMore && !searchQuery && (
+          <div className="flex justify-center items-center gap-4 py-3">
+            <button
+              onClick={handleLoadMore}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ChevronDown className="h-3.5 w-3.5" />
+              加载更多 ({remainingCount} 条)
+            </button>
+            <span className="text-border">|</span>
+            <button
+              onClick={handleLoadAll}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Maximize2 className="h-3.5 w-3.5" />
+              加载全部
+            </button>
+          </div>
+        )}
+        {/* End of session indicator */}
+        {!hasMore && displayedTurns.length > 0 && (
+          <div className="flex justify-center py-4">
+            <span className="text-xs text-muted-foreground/50">— 已加载全部内容 —</span>
+          </div>
+        )}
+      </div>
+
+      {/* New content notification */}
+      {showNewContentTip && newContentCount > 0 && (
+        <button
+          onClick={handleNewContentClick}
+          className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-all animate-in fade-in slide-in-from-bottom-2"
+        >
+          <span className="flex h-2 w-2 relative">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-foreground opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary-foreground"></span>
+          </span>
+          <span className="text-sm font-medium">{newContentCount} 条新内容</span>
+          <ChevronDown className="h-4 w-4" />
+        </button>
       )}
-      {/* End of session indicator */}
-      {!hasMore && displayedTurns.length > 0 && (
-        <div className="flex justify-center py-4">
-          <span className="text-xs text-muted-foreground/50">— 已加载全部内容 —</span>
-        </div>
-      )}
-    </div>
+    </>
   );
 }
 
@@ -1475,6 +1559,7 @@ function ToolCallBlock({
       'taskcreate',
       'exitplanmode',
       'multiedit',
+      'task',
     ].includes(toolNameLower);
 
   // Default collapsed state based on setting (only for collapsible tools)
