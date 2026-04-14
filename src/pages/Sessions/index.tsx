@@ -186,7 +186,11 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
     sessions.forEach((session) => {
       const groupKey =
         viewMode === 'date'
-          ? new Date(session.updatedAt).toLocaleDateString()
+          ? new Date(session.updatedAt).toLocaleDateString('zh-CN', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+            })
           : session.directory || t('sessions.noDirectoryGroup', '— No Directory —');
       allGroups.add(groupKey);
     });
@@ -200,7 +204,11 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
         new Set(
           sessions.map((s) =>
             viewMode === 'date'
-              ? new Date(s.updatedAt).toLocaleDateString()
+              ? new Date(s.updatedAt).toLocaleDateString('zh-CN', {
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                })
               : s.directory || t('sessions.noDirectoryGroup', '— No Directory —')
           )
         ).size
