@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Settings } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
-import { useVersion } from '@/hooks/useVersion';
 import { SettingsDialog } from './SettingsDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { APP_LABELS, getAppIcon, APP_COLORS } from './AppIcons';
@@ -15,7 +14,6 @@ interface HeaderProps {
 
 export function Header({ selectedApp, onAppChange }: HeaderProps) {
   const { t } = useTranslation();
-  const version = useVersion();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
@@ -27,7 +25,6 @@ export function Header({ selectedApp, onAppChange }: HeaderProps) {
           <img src="./logo.png" alt="Yes Sessions Logo" className="w-8 h-8 rounded-lg shadow-md" />
           <div className="flex items-baseline gap-2">
             <span className="font-semibold text-base">Yes, Sessions</span>
-            {version && <span className="text-[10px] text-muted-foreground">v{version}</span>}
           </div>
         </div>
 
@@ -41,7 +38,7 @@ export function Header({ selectedApp, onAppChange }: HeaderProps) {
               </div>
             </SelectTrigger>
             <SelectContent className="min-w-[12rem] app-no-drag">
-              {(['claude', 'opencode', 'codebuddy', 'codex', 'gemini'] as AppType[]).map((app) => {
+              {(['codebuddy', 'claude', 'opencode', 'codex', 'gemini'] as AppType[]).map((app) => {
                 const isSupported = app === 'claude' || app === 'opencode' || app === 'codebuddy';
                 return (
                   <SelectItem

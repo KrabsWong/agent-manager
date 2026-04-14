@@ -5,7 +5,7 @@ import { SessionsPage } from '@/pages/Sessions';
 import type { AppType } from '@/types';
 
 export function Layout() {
-  const [selectedApp, setSelectedApp] = useState<AppType>('claude');
+  const [selectedApp, setSelectedApp] = useState<AppType>('codebuddy');
 
   return (
     <div className="flex flex-col h-screen bg-background">

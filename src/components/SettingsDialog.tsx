@@ -4,6 +4,7 @@ import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { ColorPicker } from '@/components/ColorPicker';
 import { useTheme } from '@/components/ThemeProvider';
+import { useVersion } from '@/hooks/useVersion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
@@ -17,6 +18,7 @@ interface SettingsDialogProps {
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const { t } = useTranslation();
   const { accentColor, setAccentColor } = useTheme();
+  const version = useVersion();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -42,6 +44,11 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
           <ExperienceSettings />
         </div>
+
+        {/* Version */}
+        {version && (
+          <div className="text-center pt-4 text-[10px] text-muted-foreground">v{version}</div>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -482,9 +482,9 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
-                          variant="outline"
+                          variant="default"
                           size="sm"
-                          className="flex items-center gap-1.5 shrink-0"
+                          className="flex items-center gap-1.5 shrink-0 bg-foreground text-background hover:bg-foreground/90"
                           onClick={handleResumeSession}
                           disabled={!canResume || resumeMutation.isPending}
                         >

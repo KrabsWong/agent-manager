@@ -147,7 +147,7 @@ const createWindow = () => {
         // Could show welcome dialog here
         configStore.setFirstRunComplete();
       }
-    }, 2500);
+    }, 1500);
   });
 
   // Load app
