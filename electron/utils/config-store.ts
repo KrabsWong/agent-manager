@@ -21,7 +21,6 @@ interface StoreSchema {
     maximized?: boolean;
   };
   firstRun: boolean;
-  lastBackupAt?: number;
 }
 
 const schema = {
@@ -33,16 +32,6 @@ const schema = {
       accentColor: { type: 'string', default: 'default' },
       autoStart: { type: 'boolean', default: false },
       lightweightMode: { type: 'boolean', default: false },
-      proxyEnabled: { type: 'boolean', default: false },
-      proxyPort: { type: 'number', default: 15721 },
-      proxyHost: { type: 'string', default: '127.0.0.1' },
-      webdavUrl: { type: 'string' },
-      webdavUsername: { type: 'string' },
-      webdavPassword: { type: 'string' },
-      webdavAutoSync: { type: 'boolean', default: false },
-      webdavSyncInterval: { type: 'number', default: 30 },
-      autoBackup: { type: 'boolean', default: true },
-      backupRetention: { type: 'number', default: 10 },
       collapseBashBlocks: { type: 'boolean', default: true },
     },
     default: DEFAULT_SETTINGS,
@@ -65,9 +54,6 @@ const schema = {
   firstRun: {
     type: 'boolean',
     default: true,
-  },
-  lastBackupAt: {
-    type: 'number',
   },
 } as const;
 
@@ -125,16 +111,6 @@ class ConfigStore {
   setFirstRunComplete(): void {
     this.store.set('firstRun', false);
     log.info('First run marked as complete');
-  }
-
-  // ============ Backup ============
-
-  getLastBackupAt(): number | undefined {
-    return this.store.get('lastBackupAt');
-  }
-
-  setLastBackupAt(timestamp: number): void {
-    this.store.set('lastBackupAt', timestamp);
   }
 
   // ============ Import/Export ============

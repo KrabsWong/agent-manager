@@ -182,16 +182,7 @@ class DatabaseManager {
 
     const stats: Record<string, number> = {};
 
-    const tables = [
-      'providers',
-      'mcp_servers',
-      'mcp_server_apps',
-      'prompts',
-      'skills',
-      'skill_apps',
-      'proxy_usage_logs',
-      'usage_daily_rollups',
-    ];
+    const tables = ['settings'];
 
     for (const table of tables) {
       try {

@@ -6,14 +6,6 @@ import log from 'electron-log';
 import { dbManager } from './database';
 import { configStore } from './utils/config-store';
 import { ipcRegistry } from './ipc/registry';
-import { registerProviderHandlers } from './handlers/providers';
-import { registerMcpHandlers } from './handlers/mcp';
-import { registerSkillsHandlers } from './handlers/skills';
-import { registerPromptHandlers } from './handlers/prompts';
-import { initializePromptService } from './services/prompt/crud';
-import { registerProxyHandlers } from './handlers/proxy';
-import { initializeProxyServer } from './services/proxy/server';
-import { initializeUsageTracker } from './services/proxy/usage-tracker';
 import { performanceMonitor } from './services/performance/monitor';
 import { registerSessionsHandlers } from './handlers/sessions';
 
@@ -192,32 +184,15 @@ const initializeApp = () => {
     // Log startup time after database initialization
     performanceMonitor.logStartupTime();
 
-    // Initialize prompt service with database
-    const db = dbManager.getDatabase();
-    if (db) {
-      initializePromptService(db);
-      log.info('Prompt service initialized');
-
-      // Initialize proxy services
-      initializeUsageTracker(db);
-      initializeProxyServer();
-      log.info('Proxy services initialized');
-    }
-
     // Log database stats
     const stats = dbManager.getStats();
     log.info('Database stats:', stats);
 
     // Register core IPC handlers first
-    registerProviderHandlers();
-    registerMcpHandlers();
     registerAppHandlers();
 
     // Register remaining handlers asynchronously to speed up startup
     setImmediate(() => {
-      registerSkillsHandlers();
-      registerPromptHandlers();
-      registerProxyHandlers();
       registerSessionsHandlers();
       log.info('All IPC handlers registered');
     });

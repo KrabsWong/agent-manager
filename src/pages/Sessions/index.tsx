@@ -249,29 +249,27 @@ export function SessionsPage() {
             </div>
           </SelectTrigger>
           <SelectContent className="min-w-[12rem]">
-            {(['claude', 'opencode', 'codebuddy', 'codex', 'gemini', 'openclaw'] as AppType[]).map(
-              (app) => {
-                const isSupported = app === 'claude' || app === 'opencode' || app === 'codebuddy';
-                return (
-                  <SelectItem
-                    key={app}
-                    value={app}
-                    disabled={!isSupported}
-                    className={!isSupported ? 'opacity-50 cursor-not-allowed' : ''}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className={APP_COLORS[app]}>{getAppIcon(app)}</span>
-                      <span>{APP_LABELS[app]}</span>
-                      {!isSupported && (
-                        <span className="text-xs text-muted-foreground ml-2">
-                          ({t('sessions.comingSoon')})
-                        </span>
-                      )}
-                    </div>
-                  </SelectItem>
-                );
-              }
-            )}
+            {(['claude', 'opencode', 'codebuddy', 'codex', 'gemini'] as AppType[]).map((app) => {
+              const isSupported = app === 'claude' || app === 'opencode' || app === 'codebuddy';
+              return (
+                <SelectItem
+                  key={app}
+                  value={app}
+                  disabled={!isSupported}
+                  className={!isSupported ? 'opacity-50 cursor-not-allowed' : ''}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={APP_COLORS[app]}>{getAppIcon(app)}</span>
+                    <span>{APP_LABELS[app]}</span>
+                    {!isSupported && (
+                      <span className="text-xs text-muted-foreground ml-2">
+                        ({t('sessions.comingSoon')})
+                      </span>
+                    )}
+                  </div>
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
       </div>

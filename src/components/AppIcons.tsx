@@ -15,7 +15,6 @@ const APP_ICON_URLS: Record<AppType, string> = {
   codex: `${LOBE_ICONS_CDN}/openai.svg`,
   gemini: `${LOBE_ICONS_CDN}/gemini.svg`,
   opencode: `${LOBE_ICONS_CDN}/opencode.svg`,
-  openclaw: `${LOBE_ICONS_CDN}/openclaw.svg`,
   codebuddy: '', // Codebuddy uses inline SVG below
 };
 
@@ -71,7 +70,6 @@ export const APP_COLORS: Record<AppType, string> = {
   codex: 'text-emerald-600',
   gemini: 'text-blue-500',
   opencode: 'text-indigo-500',
-  openclaw: 'text-purple-600',
   codebuddy: 'text-slate-700 dark:text-slate-300', // Monochrome style for consistency
 };
 
@@ -120,19 +118,11 @@ export const APP_LABELS: Record<AppType, string> = {
   codex: 'Codex CLI',
   gemini: 'Gemini CLI',
   opencode: 'OpenCode',
-  openclaw: 'OpenClaw',
   codebuddy: 'Codebuddy',
 };
 
 // All app types
-export const APP_TYPES: AppType[] = [
-  'claude',
-  'codex',
-  'codebuddy',
-  'gemini',
-  'opencode',
-  'openclaw',
-];
+export const APP_TYPES: AppType[] = ['claude', 'codex', 'codebuddy', 'gemini', 'opencode'];
 
 // App official websites
 export const APP_WEBSITES: Record<AppType, string> = {
@@ -140,6 +130,5 @@ export const APP_WEBSITES: Record<AppType, string> = {
   codex: 'https://github.com/openai/codex',
   gemini: 'https://ai.google.dev/gemini-cli',
   opencode: 'https://opencode.com',
-  openclaw: 'https://github.com/openclaw/cli',
   codebuddy: 'https://codebuddy.ai',
 };

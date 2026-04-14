@@ -4,134 +4,9 @@
  */
 
 // ============ App Types ============
-export type AppType = 'claude' | 'codex' | 'gemini' | 'opencode' | 'openclaw' | 'codebuddy';
+export type AppType = 'claude' | 'codex' | 'gemini' | 'opencode' | 'codebuddy';
 
-export const APP_TYPES: AppType[] = [
-  'claude',
-  'codex',
-  'codebuddy',
-  'gemini',
-  'opencode',
-  'openclaw',
-];
-
-// ============ Provider Types ============
-export type ProviderCategory =
-  | 'official'
-  | 'cn_official'
-  | 'aggregator'
-  | 'third_party'
-  | 'cloud_provider'
-  | 'custom';
-
-export interface Provider {
-  id: string;
-  appType: AppType;
-  name: string;
-  settingsConfig: Record<string, unknown>;
-  websiteUrl?: string;
-  category?: ProviderCategory;
-  createdAt: number;
-  sortIndex: number;
-  isCurrent: boolean;
-  inFailoverQueue: boolean;
-  notes?: string;
-  icon?: string;
-  iconColor?: string;
-}
-
-export interface CreateProviderInput {
-  appType: AppType;
-  name: string;
-  settingsConfig: Record<string, unknown>;
-  websiteUrl?: string;
-  category?: ProviderCategory;
-  sortIndex?: number;
-  notes?: string;
-  icon?: string;
-  iconColor?: string;
-}
-
-export interface UpdateProviderInput extends Partial<CreateProviderInput> {
-  id: string;
-}
-
-export interface SwitchProviderResult {
-  success: boolean;
-  providerId: string;
-  previousProviderId?: string;
-  error?: string;
-}
-
-// ============ MCP Types ============
-export type McpTransportType = 'stdio' | 'http' | 'sse';
-
-export interface McpServer {
-  id: string;
-  name: string;
-  transport: McpTransportType;
-  command?: string;
-  args?: string[];
-  env?: Record<string, string>;
-  url?: string;
-  description?: string;
-  enabledApps: {
-    claude: boolean;
-    codex: boolean;
-    codebuddy: boolean;
-    gemini: boolean;
-    opencode: boolean;
-    openclaw: boolean;
-  };
-}
-
-export interface CreateMcpServerInput {
-  name: string;
-  transport: McpTransportType;
-  command?: string;
-  args?: string[];
-  env?: Record<string, string>;
-  url?: string;
-  description?: string;
-}
-
-// ============ Prompt Types ============
-export interface Prompt {
-  id: string;
-  appType: AppType;
-  name: string;
-  content: string;
-  description?: string;
-  isActive: boolean;
-  createdAt: number;
-  updatedAt: number;
-}
-
-export interface CreatePromptInput {
-  appType: AppType;
-  name: string;
-  content: string;
-  description?: string;
-}
-
-// ============ Skill Types ============
-export interface Skill {
-  id: string;
-  name: string;
-  description?: string;
-  repoOwner?: string;
-  repoName?: string;
-  directory: string;
-  installedAt: number;
-  enabledApps: {
-    claude: boolean;
-    codex: boolean;
-    codebuddy: boolean;
-    gemini: boolean;
-    opencode: boolean;
-    openclaw: boolean;
-  };
-}
+export const APP_TYPES: AppType[] = ['claude', 'codex', 'codebuddy', 'gemini', 'opencode'];
 
 // ============ Settings Types ============
 export type AccentColor =
@@ -165,25 +40,6 @@ export interface AppSettings {
   autoStart: boolean;
   lightweightMode: boolean;
 
-  // Proxy
-  proxyEnabled: boolean;
-  proxyPort: number;
-  proxyHost: string;
-
-  // WebDAV
-  webdavUrl?: string;
-  webdavUsername?: string;
-  webdavPassword?: string;
-  webdavAutoSync: boolean;
-  webdavSyncInterval: number;
-
-  // GitHub
-  githubToken?: string;
-
-  // Backup
-  autoBackup: boolean;
-  backupRetention: number;
-
   // Display
   collapseBashBlocks: boolean;
 }
@@ -194,61 +50,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
   accentColor: 'default',
   autoStart: false,
   lightweightMode: false,
-  proxyEnabled: false,
-  proxyPort: 15721,
-  proxyHost: '127.0.0.1',
-  webdavAutoSync: false,
-  webdavSyncInterval: 30,
-  githubToken: undefined,
-  autoBackup: true,
-  backupRetention: 10,
   collapseBashBlocks: true,
 };
 
 // ============ IPC Channel Types ============
 export type IpcChannel =
-  // Providers
-  | 'providers:getAll'
-  | 'providers:getById'
-  | 'providers:create'
-  | 'providers:update'
-  | 'providers:delete'
-  | 'providers:switch'
-  | 'providers:reorder'
-  | 'providers:deactivate'
-  // MCP
-  | 'mcp:getAll'
-  | 'mcp:getById'
-  | 'mcp:getByApp'
-  | 'mcp:create'
-  | 'mcp:update'
-  | 'mcp:delete'
-  | 'mcp:toggleApp'
-  | 'mcp:syncAll'
-  | 'mcp:openConfigFolder'
-  // Prompts
-  | 'prompts:getAll'
-  | 'prompts:getById'
-  | 'prompts:create'
-  | 'prompts:update'
-  | 'prompts:delete'
-  | 'prompts:setActive'
-  | 'prompts:getActive'
-  | 'prompts:importFromApp'
-  | 'prompts:syncAll'
-  | 'prompts:openConfigFolder'
-  // Skills
-  | 'skills:getAll'
-  | 'skills:getInstalled'
-  | 'skills:install'
-  | 'skills:installLocal'
-  | 'skills:uninstall'
-  | 'skills:toggleApp'
-  | 'skills:scanRepo'
-  | 'skills:getRepoInfo'
-  | 'skills:openFolder'
-  | 'skills:selectFolder'
-  | 'skills:syncAll'
   // Sessions
   | 'sessions:getAll'
   | 'sessions:getDetail'
@@ -256,18 +62,6 @@ export type IpcChannel =
   | 'sessions:getSupportStatus'
   | 'sessions:resume'
   | 'sessions:getTerminalInfo'
-  // Proxy
-  | 'proxy:getStatus'
-  | 'proxy:start'
-  | 'proxy:stop'
-  | 'proxy:getCircuitBreakerStats'
-  | 'proxy:resetCircuitBreaker'
-  | 'proxy:getFailoverStatus'
-  | 'proxy:resetFailover'
-  | 'proxy:getUsageStats'
-  | 'proxy:getTodayStats'
-  | 'proxy:getStatsByProvider'
-  | 'proxy:getRecentLogs'
   // Settings
   | 'settings:get'
   | 'settings:update'
@@ -315,27 +109,6 @@ export interface AppError {
   details?: unknown;
   stack?: string;
 }
-
-// ============ Event Types ============
-export interface ProviderSwitchEvent {
-  type: 'provider:switched';
-  payload: {
-    appType: AppType;
-    providerId: string;
-    previousProviderId?: string;
-  };
-}
-
-export interface ProxyStatusEvent {
-  type: 'proxy:statusChanged';
-  payload: {
-    isRunning: boolean;
-    port?: number;
-    error?: string;
-  };
-}
-
-export type AppEvent = ProviderSwitchEvent | ProxyStatusEvent;
 
 // ============ Session Types ============
 export type {

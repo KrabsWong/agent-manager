@@ -111,12 +111,6 @@ export function registerSessionsHandlers(): void {
         status: 'full',
         isAvailable: opencodeSessionService.isAvailable(),
       },
-      openclaw: {
-        supported: false,
-        status: 'coming_soon',
-        isAvailable: false,
-        notAvailableReason: 'coming_soon',
-      },
       codebuddy: {
         supported: true,
         status: 'full',
