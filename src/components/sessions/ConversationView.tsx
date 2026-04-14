@@ -631,6 +631,7 @@ interface ConversationViewProps {
   onLoadAll?: () => void;
   onViewSubAgentSession?: (sessionId: string, appType: string) => void;
   searchQuery?: string;
+  onNewMessages?: (count: number) => void;
 }
 
 export function ConversationView({
@@ -640,6 +641,7 @@ export function ConversationView({
   onLoadAll,
   onViewSubAgentSession,
   searchQuery = '',
+  onNewMessages,
 }: ConversationViewProps) {
   const turnsWithCount = useMemo(() => {
     const turns = groupMessagesIntoTurnsWithCount(messages, appType);
@@ -650,11 +652,8 @@ export function ConversationView({
   const [hasMore, setHasMore] = useState(false);
   const [remainingCount, setRemainingCount] = useState(0);
 
-  // New content notification state
-  const [newContentCount, setNewContentCount] = useState(0);
-  const [showNewContentTip, setShowNewContentTip] = useState(false);
+  // New content notification
   const prevMessagesLengthRef = useRef(messages.length);
-  const isAtBottomRef = useRef(true);
 
   // Track if user has loaded all content
   const hasLoadedAllRef = useRef(false);
@@ -740,23 +739,7 @@ export function ConversationView({
     return container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
   };
 
-  // Scroll to bottom
-  const scrollToBottom = () => {
-    const container = getScrollContainer();
-    if (!container) return;
-    container.scrollTop = container.scrollHeight;
-  };
-
-  // Handle new content tip click - load all and scroll to bottom
-  const handleNewContentClick = () => {
-    handleLoadAll();
-    setShowNewContentTip(false);
-    setNewContentCount(0);
-    // Scroll after content is rendered
-    setTimeout(scrollToBottom, 100);
-  };
-
-  // Detect new messages and show tip if not at bottom
+  // Detect new messages and notify parent if not at bottom
   useEffect(() => {
     const currentMessagesLength = messages.length;
     const prevMessagesLength = prevMessagesLengthRef.current;
@@ -765,33 +748,14 @@ export function ConversationView({
       const newCount = currentMessagesLength - prevMessagesLength;
       const isAtBottom = checkIsAtBottom();
 
-      if (!isAtBottom) {
-        // User is not at bottom, show tip
-        setNewContentCount((prev) => prev + newCount);
-        setShowNewContentTip(true);
+      if (!isAtBottom && onNewMessages) {
+        // User is not at bottom, notify parent
+        onNewMessages(newCount);
       }
     }
 
     prevMessagesLengthRef.current = currentMessagesLength;
-  }, [messages.length]);
-
-  // Track scroll position
-  useEffect(() => {
-    const container = getScrollContainer();
-    if (!container) return;
-
-    const handleScroll = () => {
-      isAtBottomRef.current = checkIsAtBottom();
-      // Hide tip if user scrolls to bottom
-      if (isAtBottomRef.current && showNewContentTip) {
-        setShowNewContentTip(false);
-        setNewContentCount(0);
-      }
-    };
-
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, [showNewContentTip]);
+  }, [messages.length, onNewMessages]);
 
   // Filter turns based on search
   const filteredTurns = useMemo(() => {
@@ -891,21 +855,6 @@ export function ConversationView({
           </div>
         )}
       </div>
-
-      {/* New content notification - fixed at bottom center of viewport */}
-      {showNewContentTip && newContentCount > 0 && (
-        <button
-          onClick={handleNewContentClick}
-          className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-all animate-in fade-in slide-in-from-bottom-2"
-        >
-          <span className="flex h-2 w-2 relative">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-foreground opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary-foreground"></span>
-          </span>
-          <span className="text-sm font-medium">{newContentCount} 条新内容</span>
-          <ChevronDown className="h-4 w-4" />
-        </button>
-      )}
     </>
   );
 }

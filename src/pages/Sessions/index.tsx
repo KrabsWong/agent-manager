@@ -64,18 +64,44 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
   const [showScrollToTop, setShowScrollToTop] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Listen to scroll events for scroll-to-top button
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
+  // New messages notification
+  const [newMessagesCount, setNewMessagesCount] = useState(0);
+  const [showNewMessagesTip, setShowNewMessagesTip] = useState(false);
 
-    const handleScroll = () => {
-      setShowScrollToTop(container.scrollTop > 300);
+  // Listen to scroll events for scroll-to-top button and hide new messages tip when at bottom
+  useEffect(() => {
+    const setupScrollListener = () => {
+      const container = scrollContainerRef.current;
+      if (!container) {
+        // Retry after a short delay if ref is not ready
+        setTimeout(setupScrollListener, 100);
+        return;
+      }
+
+      const handleScroll = () => {
+        setShowScrollToTop(container.scrollTop > 300);
+
+        // Hide new messages tip if user scrolls to bottom
+        if (showNewMessagesTip) {
+          const isAtBottom =
+            container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+          if (isAtBottom) {
+            setShowNewMessagesTip(false);
+            setNewMessagesCount(0);
+          }
+        }
+      };
+
+      container.addEventListener('scroll', handleScroll);
+      // Check initial scroll position
+      handleScroll();
+
+      return () => container.removeEventListener('scroll', handleScroll);
     };
 
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, []);
+    const cleanup = setupScrollListener();
+    return cleanup;
+  }, [selectedSession, showNewMessagesTip]); // Re-bind when session or tip visibility changes
 
   const { data: sessions, isLoading, error } = useSessions(selectedApp);
   const { data: stats } = useSessionStats(selectedApp);
@@ -320,7 +346,7 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
         </div>
 
         {/* Session Detail */}
-        <div className="overflow-hidden flex flex-col h-full min-h-0">
+        <div className="overflow-hidden flex flex-col h-full min-h-0 relative">
           {selectedSession ? (
             <>
               {/* Header */}
@@ -499,6 +525,10 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                     messages={sessionDetail.messages}
                     searchQuery={searchQuery}
                     appType={selectedApp}
+                    onNewMessages={(count) => {
+                      setNewMessagesCount((prev) => prev + count);
+                      setShowNewMessagesTip(true);
+                    }}
                   />
                 ) : (
                   <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -510,7 +540,30 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                 )}
               </div>
 
-              {/* Scroll to top button - fixed at bottom right of viewport */}
+              {/* New messages notification - absolute at bottom center */}
+              {showNewMessagesTip && (
+                <button
+                  onClick={() => {
+                    if (scrollContainerRef.current) {
+                      scrollContainerRef.current.scrollTo({
+                        top: scrollContainerRef.current.scrollHeight,
+                        behavior: 'smooth',
+                      });
+                    }
+                    setShowNewMessagesTip(false);
+                    setNewMessagesCount(0);
+                  }}
+                  className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-all"
+                >
+                  <span className="flex h-2 w-2 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-foreground opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary-foreground"></span>
+                  </span>
+                  <span className="text-xs font-medium">{newMessagesCount} 条新内容</span>
+                </button>
+              )}
+
+              {/* Scroll to top button - absolute at bottom right of detail area */}
               {showScrollToTop && (
                 <button
                   onClick={() => {
@@ -518,7 +571,7 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                       scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
                     }
                   }}
-                  className="fixed bottom-6 right-6 p-2.5 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all z-50"
+                  className="absolute bottom-4 right-4 p-2 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all z-50"
                   title={t('common.scrollToTop', 'Scroll to top')}
                 >
                   <ArrowUp className="h-4 w-4" />
