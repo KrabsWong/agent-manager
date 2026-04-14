@@ -632,6 +632,8 @@ interface ConversationViewProps {
   onViewSubAgentSession?: (sessionId: string, appType: string) => void;
   searchQuery?: string;
   onNewMessages?: (count: number) => void;
+  shouldLoadAll?: boolean;
+  onLoadAllComplete?: () => void;
 }
 
 export function ConversationView({
@@ -642,6 +644,8 @@ export function ConversationView({
   onViewSubAgentSession,
   searchQuery = '',
   onNewMessages,
+  shouldLoadAll,
+  onLoadAllComplete,
 }: ConversationViewProps) {
   const turnsWithCount = useMemo(() => {
     const turns = groupMessagesIntoTurnsWithCount(messages, appType);
@@ -725,6 +729,14 @@ export function ConversationView({
     setRemainingCount(0);
     onLoadAll?.();
   };
+
+  // Handle external load all request
+  useEffect(() => {
+    if (shouldLoadAll) {
+      handleLoadAll();
+      onLoadAllComplete?.();
+    }
+  }, [shouldLoadAll, handleLoadAll, onLoadAllComplete]);
 
   // Get the scroll container from parent (conversation-scroll-container)
   const getScrollContainer = () => {

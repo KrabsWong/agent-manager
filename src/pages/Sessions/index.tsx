@@ -67,6 +67,7 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
   // New messages notification
   const [newMessagesCount, setNewMessagesCount] = useState(0);
   const [showNewMessagesTip, setShowNewMessagesTip] = useState(false);
+  const [shouldLoadAll, setShouldLoadAll] = useState(false);
 
   // Listen to scroll events for scroll-to-top button and hide new messages tip when at bottom
   useEffect(() => {
@@ -525,6 +526,11 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                     messages={sessionDetail.messages}
                     searchQuery={searchQuery}
                     appType={selectedApp}
+                    shouldLoadAll={shouldLoadAll}
+                    onLoadAllComplete={() => {
+                      setShouldLoadAll(false);
+                      // Keep the tip visible until user scrolls to bottom
+                    }}
                     onNewMessages={(count) => {
                       setNewMessagesCount((prev) => prev + count);
                       setShowNewMessagesTip(true);
@@ -544,14 +550,17 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
               {showNewMessagesTip && (
                 <button
                   onClick={() => {
-                    if (scrollContainerRef.current) {
-                      scrollContainerRef.current.scrollTo({
-                        top: scrollContainerRef.current.scrollHeight,
-                        behavior: 'smooth',
-                      });
-                    }
-                    setShowNewMessagesTip(false);
-                    setNewMessagesCount(0);
+                    // Trigger load all and scroll to bottom
+                    setShouldLoadAll(true);
+                    // Scroll after a short delay to allow loading
+                    setTimeout(() => {
+                      if (scrollContainerRef.current) {
+                        scrollContainerRef.current.scrollTo({
+                          top: scrollContainerRef.current.scrollHeight,
+                          behavior: 'smooth',
+                        });
+                      }
+                    }, 100);
                   }}
                   className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary/90 transition-all"
                 >
