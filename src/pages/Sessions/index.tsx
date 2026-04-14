@@ -4,7 +4,7 @@
  * View and browse local conversation sessions from AI applications
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AlertCircle,
@@ -62,6 +62,20 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
 
   // Scroll to top button visibility
   const [showScrollToTop, setShowScrollToTop] = useState(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Listen to scroll events for scroll-to-top button
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      setShowScrollToTop(container.scrollTop > 300);
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const { data: sessions, isLoading, error } = useSessions(selectedApp);
   const { data: stats } = useSessionStats(selectedApp);
@@ -469,12 +483,9 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
 
               {/* Messages */}
               <div
+                ref={scrollContainerRef}
                 id="conversation-scroll-container"
                 className="flex-1 overflow-y-auto p-4 min-h-0 relative"
-                onScroll={(e) => {
-                  const container = e.currentTarget;
-                  setShowScrollToTop(container.scrollTop > 300);
-                }}
               >
                 {isLoadingDetail ? (
                   <div className="flex items-center justify-center h-full">
@@ -497,23 +508,22 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                     </div>
                   </div>
                 )}
-
-                {/* Scroll to top button */}
-                {showScrollToTop && (
-                  <button
-                    onClick={() => {
-                      const container = document.getElementById('conversation-scroll-container');
-                      if (container) {
-                        container.scrollTo({ top: 0, behavior: 'smooth' });
-                      }
-                    }}
-                    className="absolute bottom-4 right-4 p-2 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all z-10"
-                    title={t('common.scrollToTop', 'Scroll to top')}
-                  >
-                    <ArrowUp className="h-4 w-4" />
-                  </button>
-                )}
               </div>
+
+              {/* Scroll to top button - fixed at bottom right of viewport */}
+              {showScrollToTop && (
+                <button
+                  onClick={() => {
+                    if (scrollContainerRef.current) {
+                      scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                  }}
+                  className="fixed bottom-6 right-6 p-2.5 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all z-50"
+                  title={t('common.scrollToTop', 'Scroll to top')}
+                >
+                  <ArrowUp className="h-4 w-4" />
+                </button>
+              )}
             </>
           ) : (
             /* Empty State */
