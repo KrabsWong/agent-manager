@@ -5,31 +5,45 @@ import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { ColorPicker } from '@/components/ColorPicker';
 import { useTheme } from '@/components/ThemeProvider';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { useExperienceStore } from '@/stores/experience';
 
-export function SettingsPage() {
+interface SettingsDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const { t } = useTranslation();
   const { accentColor, setAccentColor } = useTheme();
 
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">{t('settings.title')}</h1>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{t('settings.title')}</DialogTitle>
+        </DialogHeader>
 
-      <Card className="border-border/60">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">{t('settings.generalTitle')}</CardTitle>
-          <CardDescription className="text-xs">{t('settings.generalDescription')}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <LanguageSwitcher />
-          <ThemeSwitcher />
-          <ColorPicker value={accentColor} onChange={setAccentColor} />
-        </CardContent>
-      </Card>
+        <div className="space-y-4 pt-2">
+          <Card className="border-border/60">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">{t('settings.generalTitle')}</CardTitle>
+              <CardDescription className="text-xs">
+                {t('settings.generalDescription')}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <LanguageSwitcher />
+              <ThemeSwitcher />
+              <ColorPicker value={accentColor} onChange={setAccentColor} />
+            </CardContent>
+          </Card>
 
-      <ExperienceSettings />
-    </div>
+          <ExperienceSettings />
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

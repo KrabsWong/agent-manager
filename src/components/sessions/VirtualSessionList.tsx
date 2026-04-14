@@ -7,14 +7,7 @@
 
 import { useRef, useMemo, useContext, createContext, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import {
-  ChevronDown,
-  ChevronRight,
-  ChevronsDown,
-  ChevronsUp,
-  Folder,
-  Calendar,
-} from 'lucide-react';
+import { ChevronDown, ChevronRight, ChevronsDown, ChevronsUp, Folder } from 'lucide-react';
 import { MarqueeText } from '@/components/MarqueeText';
 import type { Session } from '@/types';
 
@@ -50,7 +43,6 @@ interface VirtualSessionListProps {
   allExpanded: boolean;
   allCollapsed: boolean;
   viewMode: ViewMode;
-  onViewModeChange: (mode: ViewMode) => void;
 }
 
 /**
@@ -150,8 +142,8 @@ function useDirectoryGroupedSessions(
           dir = '/';
         }
       }
-      // Use 'Unknown' for empty directory
-      const dirKey = dir || t('sessions.unknownDirectory', 'Unknown');
+      // Use special marker for sessions without directory info
+      const dirKey = dir || t('sessions.noDirectoryGroup', '— No Directory —');
 
       if (!groups.has(dirKey)) {
         groups.set(dirKey, []);
@@ -466,46 +458,6 @@ function SessionCard({ session, isSelected, onClick, viewMode }: SessionCardProp
 }
 
 /**
- * View Mode Toggle Component
- */
-interface ViewModeToggleProps {
-  viewMode: ViewMode;
-  onChange: (mode: ViewMode) => void;
-  t: (key: string, defaultValue?: string) => string;
-}
-
-function ViewModeToggle({ viewMode, onChange, t }: ViewModeToggleProps) {
-  return (
-    <div className="flex items-center gap-1 p-1 bg-muted/50 rounded-lg">
-      <button
-        onClick={() => onChange('date')}
-        className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
-          viewMode === 'date'
-            ? 'bg-card text-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-        }`}
-        title={t('sessions.viewByDate', 'View by Date')}
-      >
-        <Calendar className="h-3 w-3" />
-        <span className="hidden sm:inline">{t('sessions.date', 'Date')}</span>
-      </button>
-      <button
-        onClick={() => onChange('directory')}
-        className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
-          viewMode === 'directory'
-            ? 'bg-card text-foreground shadow-sm'
-            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-        }`}
-        title={t('sessions.viewByDirectory', 'View by Directory')}
-      >
-        <Folder className="h-3 w-3" />
-        <span className="hidden sm:inline">{t('sessions.directory', 'Directory')}</span>
-      </button>
-    </div>
-  );
-}
-
-/**
  * Virtual Session List Component
  *
  * Renders a virtualized list of sessions grouped by date or directory
@@ -523,7 +475,6 @@ export function VirtualSessionList({
   allExpanded,
   allCollapsed,
   viewMode,
-  onViewModeChange,
 }: VirtualSessionListProps) {
   const parentRef = useRef<HTMLDivElement>(null);
 
@@ -554,16 +505,6 @@ export function VirtualSessionList({
       value={{ collapsedGroups, toggleGroup, expandAll, collapseAll, allExpanded, allCollapsed }}
     >
       <div className="h-full flex flex-col">
-        {/* View Mode Toggle */}
-        <div className="shrink-0 px-2 pb-2 border-b">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">
-              {sessions.length} {t('sessions.totalSessions', 'sessions')}
-            </span>
-            <ViewModeToggle viewMode={viewMode} onChange={onViewModeChange} t={t} />
-          </div>
-        </div>
-
         {/* Virtual List */}
         <div
           ref={parentRef}

@@ -12,15 +12,14 @@ import {
   Check,
   Play,
   AlertTriangle,
-  History,
   ChevronUp,
   ExternalLink,
   Search,
   X,
   RefreshCw,
+  ArrowUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   useSessions,
@@ -32,8 +31,13 @@ import {
 } from '@/hooks/useSessions';
 import { ConversationView } from '@/components/sessions/ConversationView';
 import { VirtualSessionList, type ViewMode } from '@/components/sessions/VirtualSessionList';
-import { APP_LABELS, getAppIcon, APP_COLORS, APP_WEBSITES } from '@/components/AppIcons';
+import { APP_LABELS, APP_WEBSITES } from '@/components/AppIcons';
 import type { AppType, Session } from '@/types';
+
+interface SessionsPageProps {
+  selectedApp: AppType;
+  onAppChange: (app: AppType) => void;
+}
 
 /**
  * Truncate text to a specific length with ellipsis
@@ -43,9 +47,8 @@ function truncateText(text: string, maxLength: number): string {
   return text.substring(0, maxLength).trim() + '...';
 }
 
-export function SessionsPage() {
+export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
   const { t } = useTranslation();
-  const [selectedApp, setSelectedApp] = useState<AppType>('claude');
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -56,6 +59,9 @@ export function SessionsPage() {
   // View mode and collapse state for session list
   const [viewMode, setViewMode] = useState<ViewMode>('date');
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+  // Scroll to top button visibility
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
 
   const { data: sessions, isLoading, error } = useSessions(selectedApp);
   const { data: stats } = useSessionStats(selectedApp);
@@ -74,6 +80,11 @@ export function SessionsPage() {
       setSelectedSession(sessions[0]);
     }
   }, [sessions, selectedSession]);
+
+  // Reset selected session when app changes
+  useEffect(() => {
+    setSelectedSession(null);
+  }, [selectedApp]);
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleString();
@@ -98,12 +109,14 @@ export function SessionsPage() {
       const searchableContent = [
         msg.content,
         msg.reasoning_content,
-        msg.tool_name,
-        msg.tool_input ? JSON.stringify(msg.tool_input) : '',
-        msg.tool_output ? JSON.stringify(msg.tool_output) : '',
-      ].join(' ');
+        msg.redacted_content,
+        msg.sub_agent_session_id,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
 
-      if (searchableContent.toLowerCase().includes(query)) {
+      if (searchableContent.includes(query)) {
         count++;
       }
     });
@@ -111,63 +124,7 @@ export function SessionsPage() {
     return count;
   }, [searchQuery, sessionDetail?.messages]);
 
-  // Handle sub-agent session navigation
-  const handleViewSubAgentSession = (sessionId: string, _appType: string) => {
-    // First, try to find in current sessions list
-    const subAgentSession = sessions?.find((s) => s.id === sessionId);
-
-    if (subAgentSession) {
-      // If found in current list, select it
-      setSelectedSession(subAgentSession);
-    } else {
-      // If not found, show a notification that session needs to be loaded
-      // In a real implementation, you might want to:
-      // 1. Search across all app types
-      // 2. Show a "not found" message
-      // 3. Or load the session directly via API
-      alert(`Sub-agent session not found in current list: ${sessionId}`);
-    }
-  };
-
-  // Get all unique group keys from sessions for expand/collapse all
-  const allGroupKeys = useMemo(() => {
-    if (!sessions) return [];
-
-    if (viewMode === 'date') {
-      // Group by date
-      return Array.from(
-        new Set(
-          sessions.map((s) => {
-            const date = new Date(s.updatedAt);
-            return date.toLocaleDateString('zh-CN', {
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-            });
-          })
-        )
-      );
-    } else {
-      // Group by directory
-      return Array.from(
-        new Set(
-          sessions.map((s) => {
-            let dir = s.directory || '';
-            if (!dir && s.filePath) {
-              const lastSlashIndex = s.filePath.lastIndexOf('/');
-              if (lastSlashIndex > 0) {
-                dir = s.filePath.substring(0, lastSlashIndex);
-              } else {
-                dir = '/';
-              }
-            }
-            return dir || t('sessions.unknownDirectory', 'Unknown');
-          })
-        )
-      );
-    }
-  }, [sessions, viewMode, t]);
-
+  // Toggle collapse state for a group
   const toggleGroup = (groupKey: string) => {
     setCollapsedGroups((prev) => {
       const next = new Set(prev);
@@ -180,104 +137,95 @@ export function SessionsPage() {
     });
   };
 
-  const expandAll = () => {
-    setCollapsedGroups(new Set());
-  };
-
+  // Expand/collapse all groups
+  const expandAll = () => setCollapsedGroups(new Set());
   const collapseAll = () => {
-    setCollapsedGroups(new Set(allGroupKeys));
+    if (!sessions) return;
+    const allGroups = new Set<string>();
+    sessions.forEach((session) => {
+      const groupKey =
+        viewMode === 'date'
+          ? new Date(session.updatedAt).toLocaleDateString()
+          : session.directory || t('sessions.noDirectoryGroup', '— No Directory —');
+      allGroups.add(groupKey);
+    });
+    setCollapsedGroups(allGroups);
   };
 
   const allExpanded = collapsedGroups.size === 0;
-  const allCollapsed = collapsedGroups.size === allGroupKeys.length;
+  const allCollapsed =
+    sessions && sessions.length > 0
+      ? collapsedGroups.size ===
+        new Set(
+          sessions.map((s) =>
+            viewMode === 'date'
+              ? new Date(s.updatedAt).toLocaleDateString()
+              : s.directory || t('sessions.noDirectoryGroup', '— No Directory —')
+          )
+        ).size
+      : false;
 
-  // Reset collapsed groups when switching view mode
-  useEffect(() => {
-    setCollapsedGroups(new Set());
-  }, [viewMode]);
+  // Handle resuming session
+  const handleResumeSession = async () => {
+    if (!selectedSession) return;
+    await resumeMutation.mutateAsync({
+      sessionId: selectedSession.id,
+      appType: selectedApp,
+      workingDir: selectedSession.directory,
+    });
+  };
+
+  // Check if terminal supports resume
+  const canResume = terminalInfo?.ghosttyInstalled || terminalInfo?.preferred === 'terminal';
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between shrink-0">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">{t('sessions.title') || 'Sessions'}</h1>
-            <span className="text-sm text-muted-foreground">
-              {t('sessions.description') || 'View conversation history from your AI applications'}
-            </span>
-          </div>
-          {/* Stats */}
-          {isSupported && stats && (
-            <div className="flex items-center gap-6 mt-3 text-sm">
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-muted-foreground">
-                  {t('sessions.totalSessions') || 'Total Sessions'}:
-                </span>
-                <span className="font-semibold text-foreground">{stats.totalSessions}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="text-xs text-muted-foreground">
-                  {t('sessions.totalMessages') || 'Total Messages'}:
-                </span>
-                <span className="font-semibold text-foreground">{stats.totalMessages}</span>
-              </div>
-              {stats.lastSessionDate && (
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-muted-foreground">
-                    {t('sessions.lastActivity') || 'Last Activity'}:
-                  </span>
-                  <span className="font-semibold text-foreground">
-                    {new Date(stats.lastSessionDate).toLocaleDateString()}
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-        <Select
-          value={selectedApp}
-          onValueChange={(value) => {
-            setSelectedApp(value as AppType);
-            setSelectedSession(null);
-          }}
-        >
-          <SelectTrigger className="w-48">
-            <div className="flex items-center gap-2">
-              <span className={APP_COLORS[selectedApp]}>{getAppIcon(selectedApp)}</span>
-              <span>{APP_LABELS[selectedApp]}</span>
-            </div>
-          </SelectTrigger>
-          <SelectContent className="min-w-[12rem]">
-            {(['claude', 'opencode', 'codebuddy', 'codex', 'gemini'] as AppType[]).map((app) => {
-              const isSupported = app === 'claude' || app === 'opencode' || app === 'codebuddy';
-              return (
-                <SelectItem
-                  key={app}
-                  value={app}
-                  disabled={!isSupported}
-                  className={!isSupported ? 'opacity-50 cursor-not-allowed' : ''}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className={APP_COLORS[app]}>{getAppIcon(app)}</span>
-                    <span>{APP_LABELS[app]}</span>
-                    {!isSupported && (
-                      <span className="text-xs text-muted-foreground ml-2">
-                        ({t('sessions.comingSoon')})
-                      </span>
-                    )}
-                  </div>
-                </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
-      </div>
-
       {/* Main Content */}
-      <div className="grid grid-cols-[360px_1fr] gap-4 flex-1 min-h-0 mt-6">
+      <div className="grid grid-cols-[320px_1fr] gap-0 flex-1 min-h-0 p-4">
         {/* Session List */}
-        <div className="flex flex-col min-h-0 border rounded-lg bg-card overflow-hidden w-[360px]">
+        <div className="flex flex-col min-h-0 border-r bg-card/50 overflow-hidden w-[320px]">
+          {/* List Header */}
+          <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/40 bg-card">
+            {/* Stats */}
+            {isSupported && stats && (
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                <span>
+                  {stats.totalSessions} {t('sessions.sessionsLabel', 'Sessions')}
+                </span>
+                <span className="text-border">·</span>
+                <span>
+                  {stats.totalMessages} {t('sessions.messagesLabel', 'Messages')}
+                </span>
+              </div>
+            )}
+
+            {/* View Mode Toggle - Icon buttons */}
+            <div className="flex items-center bg-muted/60 rounded-md p-0.5">
+              <button
+                onClick={() => setViewMode('date')}
+                className={`px-2 py-1 text-[10px] font-medium rounded-sm transition-all ${
+                  viewMode === 'date'
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                title={t('sessions.viewByDate', 'Group by date')}
+              >
+                {t('sessions.date', 'Date')}
+              </button>
+              <button
+                onClick={() => setViewMode('directory')}
+                className={`px-2 py-1 text-[10px] font-medium rounded-sm transition-all ${
+                  viewMode === 'directory'
+                    ? 'bg-card text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                title={t('sessions.viewByDirectory', 'Group by directory')}
+              >
+                {t('sessions.directory', 'Directory')}
+              </button>
+            </div>
+          </div>
+
           {isLoading ? (
             <div className="flex items-center justify-center h-64">
               <div className="text-muted-foreground">
@@ -292,7 +240,7 @@ export function SessionsPage() {
               </div>
             </div>
           ) : !isSupported ? (
-            <div className="flex flex-col items-center justify-center h-64 space-y-4">
+            <div className="flex flex-col items-center justify-center h-64 space-y-4 p-4">
               <div className="text-muted-foreground text-center">
                 <p className="text-lg font-medium mb-2">
                   {t('sessions.comingSoon') || 'Coming Soon'}
@@ -302,12 +250,12 @@ export function SessionsPage() {
                     `Session viewing is not yet supported for ${APP_LABELS[selectedApp]}.`}
                 </p>
               </div>
-              <Button variant="outline" onClick={() => setSelectedApp('claude')}>
+              <Button variant="outline" onClick={() => onAppChange('claude')}>
                 {t('sessions.switchToClaude') || 'Switch to Claude Code'}
               </Button>
             </div>
           ) : !supportStatus?.isAvailable ? (
-            <div className="flex flex-col items-center justify-center h-64 space-y-4">
+            <div className="flex flex-col items-center justify-center h-64 space-y-4 p-4">
               <div className="text-muted-foreground text-center">
                 <p className="text-lg font-medium mb-2">
                   {t('sessions.notInstalled') || 'Not Installed'}
@@ -352,14 +300,13 @@ export function SessionsPage() {
                 allExpanded={allExpanded}
                 allCollapsed={allCollapsed}
                 viewMode={viewMode}
-                onViewModeChange={setViewMode}
               />
             </div>
           )}
         </div>
 
         {/* Session Detail */}
-        <div className="border rounded-lg bg-card overflow-hidden flex flex-col h-full min-h-0">
+        <div className="overflow-hidden flex flex-col h-full min-h-0">
           {selectedSession ? (
             <>
               {/* Header */}
@@ -374,8 +321,8 @@ export function SessionsPage() {
                     <span>
                       {formatDate(selectedSession.updatedAt)} ·{' '}
                       {sessionDetail?.messages
-                        ? `${sessionDetail.messages.length}/${selectedSession.messageCount} messages`
-                        : `${selectedSession.messageCount} messages`}
+                        ? `${sessionDetail.messages.length}/${selectedSession.messageCount} ${t('sessions.messages', 'messages')}`
+                        : `${selectedSession.messageCount} ${t('sessions.messages', 'messages')}`}
                     </span>
                     {isFetchingDetail && !isLoadingDetail && (
                       <span className="inline-flex items-center gap-1 text-xs text-primary">
@@ -422,97 +369,97 @@ export function SessionsPage() {
                 </div>
                 {/* Search and Resume Buttons */}
                 <div className="flex items-center gap-2">
-                  {/* Search Toggle */}
-                  {!isSearchExpanded ? (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setIsSearchExpanded(true)}
-                      className="h-8 w-8 p-0"
-                      title={t('search.placeholder')}
-                    >
-                      <Search className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <div className="relative flex items-center gap-2">
+                  {/* Search Input - Compact inline */}
+                  <div className="flex items-center">
+                    {isSearchExpanded ? (
+                      <div className="flex items-center gap-1.5">
                         <div className="relative">
-                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
                           <input
                             type="text"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder={t('search.placeholder')}
-                            className="pl-8 pr-7 h-8 w-40 text-sm bg-background border rounded-md focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground/60"
+                            placeholder={t('search.placeholder', 'Search...')}
+                            className="w-48 pl-7 pr-6 py-1 text-xs border rounded bg-background focus:outline-none focus:ring-1 focus:ring-primary/50"
                             autoFocus
                           />
                           {searchQuery && (
                             <button
                               onClick={() => setSearchQuery('')}
-                              className="absolute right-2 top-1/2 -translate-y-1/2"
+                              className="absolute right-1.5 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
                             >
-                              <X className="h-3 w-3 text-muted-foreground" />
+                              <X className="h-3 w-3" />
                             </button>
                           )}
                         </div>
-                        {/* Match count - only show when there are matches */}
-                        {searchQuery && matchCount > 0 && (
-                          <span className="text-xs text-muted-foreground whitespace-nowrap">
-                            <span className="text-foreground font-medium">{matchCount} 条</span>
+                        <button
+                          onClick={() => {
+                            setIsSearchExpanded(false);
+                            setSearchQuery('');
+                          }}
+                          className="p-1 text-muted-foreground hover:text-foreground rounded"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                        {searchQuery && (
+                          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                            {matchCount} {t('search.matchesShort', 'matches')}
                           </span>
                         )}
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setIsSearchExpanded(false);
-                          setSearchQuery('');
-                        }}
-                        className="h-8 w-8 p-0"
-                      >
-                        <X className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                    </div>
-                  )}
+                    ) : (
+                      <TooltipProvider delayDuration={200}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 shrink-0"
+                              onClick={() => setIsSearchExpanded(true)}
+                            >
+                              <Search className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom">
+                            <p>{t('search.placeholder', 'Search in conversation')}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
 
                   {/* Resume Button */}
-                  <TooltipProvider>
+                  <TooltipProvider delayDuration={200}>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <span className="inline-block">
-                          <Button
-                            size="sm"
-                            onClick={() => {
-                              if (!selectedSession.directory) return;
-                              resumeMutation.mutate({
-                                sessionId: selectedSession.id,
-                                appType: selectedApp,
-                                workingDir: selectedSession.directory,
-                              });
-                            }}
-                            disabled={resumeMutation.isPending || !selectedSession.directory}
-                            className="flex items-center gap-1.5"
-                          >
-                            {!selectedSession.directory ? (
-                              <AlertTriangle className="h-3.5 w-3.5" />
-                            ) : (
-                              <Play className="h-3.5 w-3.5" />
-                            )}
-                            {resumeMutation.isPending
-                              ? t('sessions.resuming') || 'Opening...'
-                              : t('sessions.resume') || 'Resume'}
-                          </Button>
-                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-1.5 shrink-0"
+                          onClick={handleResumeSession}
+                          disabled={!canResume || resumeMutation.isPending}
+                        >
+                          {resumeMutation.isPending ? (
+                            <>
+                              <RefreshCw className="h-4 w-4 animate-spin" />
+                              <span>{t('sessions.opening', 'Opening...')}</span>
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-4 w-4" />
+                              <span>{t('sessions.resume', 'Resume')}</span>
+                            </>
+                          )}
+                        </Button>
                       </TooltipTrigger>
-                      <TooltipContent>
+                      <TooltipContent side="bottom">
                         <p>
-                          {!selectedSession.directory
-                            ? t('sessions.noWorkingDir') ||
-                              'Cannot resume: working directory not found'
-                            : terminalInfo?.ghosttyInstalled
-                              ? 'Open in Ghostty'
-                              : 'Open in Terminal'}
+                          {!canResume
+                            ? t('sessions.installGhosttyTip', 'Install Ghostty for best experience')
+                            : t('sessions.resumeInTerminal', {
+                                terminal:
+                                  terminalInfo?.preferred === 'ghostty' ? 'Ghostty' : 'Terminal',
+                              })}
                         </p>
                       </TooltipContent>
                     </Tooltip>
@@ -520,96 +467,70 @@ export function SessionsPage() {
                 </div>
               </div>
 
-              {/* Conversation */}
-              <div className="flex-1 relative overflow-hidden">
-                <div
-                  id="conversation-scroll-container"
-                  className="h-full overflow-auto p-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent scroll-smooth"
-                  onScroll={(e) => {
-                    const target = e.currentTarget;
-                    const show = target.scrollTop > 300;
-                    const btn = document.getElementById('back-to-top-btn');
-                    if (btn) {
-                      btn.style.opacity = show ? '1' : '0';
-                      btn.style.pointerEvents = show ? 'auto' : 'none';
-                      btn.style.transform = show ? 'translateY(0)' : 'translateY(16px)';
-                    }
-                  }}
-                >
-                  {isLoadingDetail ? (
-                    <div className="flex items-center justify-center h-64 text-muted-foreground">
+              {/* Messages */}
+              <div
+                id="conversation-scroll-container"
+                className="flex-1 overflow-y-auto p-4 min-h-0 relative"
+                onScroll={(e) => {
+                  const container = e.currentTarget;
+                  setShowScrollToTop(container.scrollTop > 300);
+                }}
+              >
+                {isLoadingDetail ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-muted-foreground flex items-center gap-2">
+                      <RefreshCw className="h-5 w-5 animate-spin" />
                       {t('sessions.loadingConversation') || 'Loading conversation...'}
                     </div>
-                  ) : sessionDetail?.messages && sessionDetail.messages.length > 0 ? (
-                    searchQuery && matchCount === 0 ? (
-                      <div className="flex items-center justify-center h-64 text-muted-foreground">
-                        <div className="text-center">
-                          <Search className="h-12 w-12 mx-auto mb-4 opacity-30" />
-                          <p>{t('search.noMatches')}</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <ConversationView
-                        messages={sessionDetail.messages}
-                        appType={selectedApp}
-                        onViewSubAgentSession={handleViewSubAgentSession}
-                        searchQuery={searchQuery}
-                      />
-                    )
-                  ) : (
-                    <div className="flex items-center justify-center h-64 text-muted-foreground">
-                      {t('sessions.noMessages') || 'No messages found'}
+                  </div>
+                ) : sessionDetail?.messages && sessionDetail.messages.length > 0 ? (
+                  <ConversationView
+                    messages={sessionDetail.messages}
+                    searchQuery={searchQuery}
+                    appType={selectedApp}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <div className="flex flex-col items-center gap-2">
+                      <AlertTriangle className="h-8 w-8 opacity-50" />
+                      <p>{t('sessions.noMessages') || 'No messages found'}</p>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
-                {/* Back to top button */}
-                <button
-                  id="back-to-top-btn"
-                  onClick={() => {
-                    const container = document.getElementById('conversation-scroll-container');
-                    if (container) {
-                      // Fast smooth scroll animation (200ms)
-                      const start = container.scrollTop;
-                      const duration = 200;
-                      const startTime = performance.now();
-
-                      const animate = (currentTime: number) => {
-                        const elapsed = currentTime - startTime;
-                        const progress = Math.min(elapsed / duration, 1);
-                        // Ease out quad
-                        const ease = 1 - (1 - progress) * (1 - progress);
-                        container.scrollTop = start * (1 - ease);
-
-                        if (progress < 1) {
-                          requestAnimationFrame(animate);
-                        }
-                      };
-
-                      requestAnimationFrame(animate);
-                    }
-                  }}
-                  className="absolute bottom-4 right-4 p-2.5 rounded-full bg-primary text-primary-foreground shadow-lg transition-all duration-300 hover:bg-primary/90 z-50"
-                  style={{ opacity: 0, pointerEvents: 'none', transform: 'translateY(16px)' }}
-                  title="回到顶部"
-                >
-                  <ChevronUp className="h-5 w-5" />
-                </button>
+                {/* Scroll to top button */}
+                {showScrollToTop && (
+                  <button
+                    onClick={() => {
+                      const container = document.getElementById('conversation-scroll-container');
+                      if (container) {
+                        container.scrollTo({ top: 0, behavior: 'smooth' });
+                      }
+                    }}
+                    className="absolute bottom-4 right-4 p-2 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all z-10"
+                    title={t('common.scrollToTop', 'Scroll to top')}
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             </>
           ) : (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center max-w-md px-6">
-                <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-6">
-                  <History className="h-8 w-8 text-muted-foreground opacity-50" />
+            /* Empty State */
+            <div className="flex items-center justify-center h-full text-muted-foreground">
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+                  <ChevronUp className="h-8 w-8 opacity-50" />
                 </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">
-                  {t('sessions.emptyStateTitle') || 'No Session Selected'}
-                </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {t('sessions.emptyStateDesc') ||
-                    'Choose a session from the list on the left to view conversation details, or select a different application to browse its history.'}
-                </p>
+                <div className="text-center">
+                  <p className="text-lg font-medium mb-1">
+                    {t('sessions.emptyStateTitle') || 'No Session Selected'}
+                  </p>
+                  <p className="text-sm max-w-md">
+                    {t('sessions.emptyStateDesc') ||
+                      'Choose a session from the list on the left to view conversation details.'}
+                  </p>
+                </div>
               </div>
             </div>
           )}

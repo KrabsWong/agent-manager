@@ -9,6 +9,8 @@ export interface SessionMessage {
   timestamp: string;
   content?: string;
   reasoning_content?: string;
+  redacted_content?: string;
+  sub_agent_session_id?: string;
   tool_name?: string;
   tool_input?: Record<string, unknown>;
   tool_output?: {
