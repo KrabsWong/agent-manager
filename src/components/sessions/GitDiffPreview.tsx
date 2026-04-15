@@ -286,6 +286,12 @@ export function GitDiffPreview({
             renderOverviewRuler: false,
             diffAlgorithm: 'advanced',
             ignoreTrimWhitespace: false,
+            hideUnchangedRegions: {
+              enabled: true,
+              contextLineCount: 3,
+              minimumLineCount: 2,
+              revealLineCount: 5,
+            },
           }}
           onMount={(editor, monaco) => {
             editorRef.current = editor;
