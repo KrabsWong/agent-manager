@@ -152,6 +152,14 @@ const enTranslations = {
     unknownDirectory: 'Other',
     noDirectoryGroup: '— No Directory —',
   },
+  contextPanel: {
+    workDir: 'Work',
+    noWorkDir: 'No working directory',
+    emptyDir: 'Empty directory',
+    openInFinder: 'Open in Finder',
+    expand: 'Expand',
+    collapse: 'Collapse',
+  },
   search: {
     placeholder: 'Search in conversation...',
     noMatches: 'No matches found',
@@ -312,6 +320,14 @@ const zhTranslations = {
     directory: '目录',
     unknownDirectory: '其他',
     noDirectoryGroup: '— 无目录 —',
+  },
+  contextPanel: {
+    workDir: '工作目录',
+    noWorkDir: '无工作目录',
+    emptyDir: '空目录',
+    openInFinder: '在 Finder 中打开',
+    expand: '展开',
+    collapse: '收起',
   },
   search: {
     placeholder: '在对话中搜索...',

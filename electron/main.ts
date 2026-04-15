@@ -8,6 +8,7 @@ import { configStore } from './utils/config-store';
 import { ipcRegistry } from './ipc/registry';
 import { performanceMonitor } from './services/performance/monitor';
 import { registerSessionsHandlers } from './handlers/sessions';
+import { buildDirectoryTree } from './handlers/tree';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -261,6 +262,50 @@ app.on('activate', () => {
 // Register shell handler for opening external links
 ipcMain.handle('shell:openExternal', async (_event, url: string) => {
   await shell.openExternal(url);
+});
+
+// Register shell handler for opening files/directories
+ipcMain.handle('shell:openPath', async (_event, filePath: string) => {
+  const result = await shell.openPath(filePath);
+  if (result) {
+    log.warn(`Failed to open path: ${filePath}, error: ${result}`);
+  }
+});
+
+// Register tree handler for directory listing
+ipcMain.handle('tree:get', async (_event, dirPath: string) => {
+  try {
+    const nodes = await buildDirectoryTree(dirPath);
+    return { success: true, data: nodes };
+  } catch (error) {
+    log.error('Failed to build directory tree:', error);
+    return { success: false, error: String(error) };
+  }
+});
+
+// Register file read handler
+import { readFile } from 'fs/promises';
+ipcMain.handle('file:read', async (_event, filePath: string) => {
+  try {
+    // Validate file path (basic security)
+    if (!filePath || typeof filePath !== 'string') {
+      throw new Error('Invalid file path');
+    }
+    // Prevent reading directories
+    const stats = await fs.promises.stat(filePath);
+    if (stats.isDirectory()) {
+      throw new Error('Cannot read directory as file');
+    }
+    // Limit file size (10MB)
+    if (stats.size > 10 * 1024 * 1024) {
+      throw new Error('File too large (>10MB)');
+    }
+    const content = await readFile(filePath, 'utf-8');
+    return content;
+  } catch (error) {
+    log.error('Failed to read file:', error);
+    throw error;
+  }
 });
 
 // Security: Prevent new window creation, but allow external links

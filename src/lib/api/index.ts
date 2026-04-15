@@ -166,6 +166,34 @@ export const shellApi = {
   openExternal: async (url: string): Promise<void> => {
     await window.electronAPI.invoke('shell:openExternal', url);
   },
+  openPath: async (filePath: string): Promise<void> => {
+    await window.electronAPI.invoke('shell:openPath', filePath);
+  },
+};
+
+// Tree API types
+export interface TreeNode {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  children?: TreeNode[];
+}
+
+/**
+ * Tree API
+ */
+export const treeApi = {
+  getDirectoryTree: async (dirPath: string): Promise<TreeNode[]> => {
+    const response = (await window.electronAPI.invoke('tree:get', dirPath)) as {
+      success: boolean;
+      data?: TreeNode[];
+      error?: string;
+    };
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to get directory tree');
+    }
+    return response.data || [];
+  },
 };
 
 // Export all APIs
@@ -175,4 +203,5 @@ export const api = {
   app: appApi,
   config: configApi,
   shell: shellApi,
+  tree: treeApi,
 };

@@ -19,6 +19,7 @@ import {
   RefreshCw,
   ArrowUp,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
@@ -31,6 +32,7 @@ import {
 } from '@/hooks/useSessions';
 import { ConversationView } from '@/components/sessions/ConversationView';
 import { VirtualSessionList, type ViewMode } from '@/components/sessions/VirtualSessionList';
+import { SessionContextPanel } from '@/components/sessions/SessionContextPanel';
 import { APP_LABELS, APP_WEBSITES } from '@/components/AppIcons';
 import type { AppType, Session } from '@/types';
 
@@ -229,135 +231,145 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
     terminalInfo?.kittyInstalled ||
     terminalInfo?.preferred === 'terminal';
 
+  // Track if user is previewing a file to auto-hide session list and resize detail
+  const [isPreviewingFile, setIsPreviewingFile] = useState(false);
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Main Content */}
-      <div className="grid grid-cols-[320px_1fr] gap-0 flex-1 min-h-0 p-4">
-        {/* Session List */}
-        <div className="flex flex-col min-h-0 border-r bg-card/50 overflow-hidden w-[320px]">
-          {/* List Header */}
-          <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/40 bg-card">
-            {/* Stats */}
-            {isSupported && stats && (
-              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                <span>
-                  {stats.totalSessions} {t('sessions.sessionsLabel', 'Sessions')}
-                </span>
-                <span className="text-border">·</span>
-                <span>
-                  {stats.totalMessages} {t('sessions.messagesLabel', 'Messages')}
-                </span>
+      <div className={cn('flex gap-0 flex-1 min-h-0 p-4 transition-all duration-300')}>
+        {/* Session List - hidden when previewing file */}
+        {!isPreviewingFile && (
+          <div className="flex flex-col min-h-0 border-r bg-card/50 overflow-hidden w-[320px] shrink-0">
+            {/* List Header */}
+            <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/40 bg-card">
+              {/* Stats */}
+              {isSupported && stats && (
+                <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                  <span>
+                    {stats.totalSessions} {t('sessions.sessionsLabel', 'Sessions')}
+                  </span>
+                  <span className="text-border">·</span>
+                  <span>
+                    {stats.totalMessages} {t('sessions.messagesLabel', 'Messages')}
+                  </span>
+                </div>
+              )}
+
+              {/* View Mode Toggle - Icon buttons */}
+              <div className="flex items-center bg-muted/60 rounded-md p-0.5">
+                <button
+                  onClick={() => setViewMode('date')}
+                  className={`px-2 py-1 text-[10px] font-medium rounded-sm transition-all ${
+                    viewMode === 'date'
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  title={t('sessions.viewByDate', 'Group by date')}
+                >
+                  {t('sessions.date', 'Date')}
+                </button>
+                <button
+                  onClick={() => setViewMode('directory')}
+                  className={`px-2 py-1 text-[10px] font-medium rounded-sm transition-all ${
+                    viewMode === 'directory'
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                  title={t('sessions.viewByDirectory', 'Group by directory')}
+                >
+                  {t('sessions.directory', 'Directory')}
+                </button>
+              </div>
+            </div>
+
+            {isLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-muted-foreground">
+                  {t('sessions.loading') || 'Loading sessions...'}
+                </div>
+              </div>
+            ) : error ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-destructive flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5" />
+                  {t('sessions.error') || 'Failed to load sessions'}
+                </div>
+              </div>
+            ) : !isSupported ? (
+              <div className="flex flex-col items-center justify-center h-64 space-y-4 p-4">
+                <div className="text-muted-foreground text-center">
+                  <p className="text-lg font-medium mb-2">
+                    {t('sessions.comingSoon') || 'Coming Soon'}
+                  </p>
+                  <p className="text-sm">
+                    {t('sessions.unsupportedApp') ||
+                      `Session viewing is not yet supported for ${APP_LABELS[selectedApp]}.`}
+                  </p>
+                </div>
+                <Button variant="outline" onClick={() => onAppChange('claude')}>
+                  {t('sessions.switchToClaude') || 'Switch to Claude Code'}
+                </Button>
+              </div>
+            ) : !supportStatus?.isAvailable ? (
+              <div className="flex flex-col items-center justify-center h-64 space-y-4 p-4">
+                <div className="text-muted-foreground text-center">
+                  <p className="text-lg font-medium mb-2">
+                    {t('sessions.notInstalled') || 'Not Installed'}
+                  </p>
+                  <p className="text-sm">
+                    {t('sessions.notInstalledDesc', { app: APP_LABELS[selectedApp] }) ||
+                      `Install ${APP_LABELS[selectedApp]} to view your conversation history.`}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => window.open(APP_WEBSITES[selectedApp], '_blank')}
+                  className="flex items-center gap-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  {t('sessions.visitWebsite') || 'Visit Website'}
+                </Button>
+              </div>
+            ) : sessions?.length === 0 ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-muted-foreground text-center">
+                  <p className="text-lg font-medium mb-2">
+                    {t('sessions.noSessions') || 'No Sessions Found'}
+                  </p>
+                  <p className="text-sm">
+                    {t('sessions.noSessionsDesc') ||
+                      'No conversation history found for this application.'}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 min-h-0 p-2">
+                <VirtualSessionList
+                  sessions={sessions || []}
+                  selectedSession={selectedSession}
+                  onSelect={handleSessionSelect}
+                  t={t as (key: string, defaultValue?: string) => string}
+                  collapsedGroups={collapsedGroups}
+                  toggleGroup={toggleGroup}
+                  expandAll={expandAll}
+                  collapseAll={collapseAll}
+                  allExpanded={allExpanded}
+                  allCollapsed={allCollapsed}
+                  viewMode={viewMode}
+                />
               </div>
             )}
-
-            {/* View Mode Toggle - Icon buttons */}
-            <div className="flex items-center bg-muted/60 rounded-md p-0.5">
-              <button
-                onClick={() => setViewMode('date')}
-                className={`px-2 py-1 text-[10px] font-medium rounded-sm transition-all ${
-                  viewMode === 'date'
-                    ? 'bg-card text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-                title={t('sessions.viewByDate', 'Group by date')}
-              >
-                {t('sessions.date', 'Date')}
-              </button>
-              <button
-                onClick={() => setViewMode('directory')}
-                className={`px-2 py-1 text-[10px] font-medium rounded-sm transition-all ${
-                  viewMode === 'directory'
-                    ? 'bg-card text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-                title={t('sessions.viewByDirectory', 'Group by directory')}
-              >
-                {t('sessions.directory', 'Directory')}
-              </button>
-            </div>
           </div>
-
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="text-muted-foreground">
-                {t('sessions.loading') || 'Loading sessions...'}
-              </div>
-            </div>
-          ) : error ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="text-destructive flex items-center gap-2">
-                <AlertCircle className="h-5 w-5" />
-                {t('sessions.error') || 'Failed to load sessions'}
-              </div>
-            </div>
-          ) : !isSupported ? (
-            <div className="flex flex-col items-center justify-center h-64 space-y-4 p-4">
-              <div className="text-muted-foreground text-center">
-                <p className="text-lg font-medium mb-2">
-                  {t('sessions.comingSoon') || 'Coming Soon'}
-                </p>
-                <p className="text-sm">
-                  {t('sessions.unsupportedApp') ||
-                    `Session viewing is not yet supported for ${APP_LABELS[selectedApp]}.`}
-                </p>
-              </div>
-              <Button variant="outline" onClick={() => onAppChange('claude')}>
-                {t('sessions.switchToClaude') || 'Switch to Claude Code'}
-              </Button>
-            </div>
-          ) : !supportStatus?.isAvailable ? (
-            <div className="flex flex-col items-center justify-center h-64 space-y-4 p-4">
-              <div className="text-muted-foreground text-center">
-                <p className="text-lg font-medium mb-2">
-                  {t('sessions.notInstalled') || 'Not Installed'}
-                </p>
-                <p className="text-sm">
-                  {t('sessions.notInstalledDesc', { app: APP_LABELS[selectedApp] }) ||
-                    `Install ${APP_LABELS[selectedApp]} to view your conversation history.`}
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => window.open(APP_WEBSITES[selectedApp], '_blank')}
-                className="flex items-center gap-2"
-              >
-                <ExternalLink className="h-4 w-4" />
-                {t('sessions.visitWebsite') || 'Visit Website'}
-              </Button>
-            </div>
-          ) : sessions?.length === 0 ? (
-            <div className="flex items-center justify-center h-64">
-              <div className="text-muted-foreground text-center">
-                <p className="text-lg font-medium mb-2">
-                  {t('sessions.noSessions') || 'No Sessions Found'}
-                </p>
-                <p className="text-sm">
-                  {t('sessions.noSessionsDesc') ||
-                    'No conversation history found for this application.'}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="flex-1 min-h-0 p-2">
-              <VirtualSessionList
-                sessions={sessions || []}
-                selectedSession={selectedSession}
-                onSelect={handleSessionSelect}
-                t={t as (key: string, defaultValue?: string) => string}
-                collapsedGroups={collapsedGroups}
-                toggleGroup={toggleGroup}
-                expandAll={expandAll}
-                collapseAll={collapseAll}
-                allExpanded={allExpanded}
-                allCollapsed={allCollapsed}
-                viewMode={viewMode}
-              />
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Session Detail */}
-        <div className="overflow-hidden flex flex-col h-full min-h-0 relative">
+        <div
+          className={cn(
+            'overflow-hidden flex flex-col h-full min-h-0 relative transition-all duration-300 border-r',
+            isPreviewingFile ? 'w-[500px] shrink-0' : 'flex-1'
+          )}
+        >
           {selectedSession ? (
             <>
               {/* Header */}
@@ -636,6 +648,17 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
             </div>
           )}
         </div>
+
+        {/* Session Context Panel */}
+        {selectedSession && (
+          <SessionContextPanel
+            sessionDirectory={selectedSession.directory}
+            onPreviewStart={() => setIsPreviewingFile(true)}
+            onPreviewEnd={() => setIsPreviewingFile(false)}
+            isPreviewingFile={isPreviewingFile}
+            className={isPreviewingFile ? 'flex-1 min-w-0' : 'shrink-0'}
+          />
+        )}
       </div>
     </div>
   );

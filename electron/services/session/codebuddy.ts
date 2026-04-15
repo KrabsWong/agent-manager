@@ -77,8 +77,26 @@ export class CodebuddySessionService {
   }
 
   /**
+   * Read cwd from session file (first line should have it)
+   */
+  private readCwdFromSession(filePath: string): string | null {
+    try {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      const firstLine = content.split('\n')[0];
+      if (firstLine) {
+        const entry = JSON.parse(firstLine) as CodebuddyMessageEntry;
+        return (entry as unknown as { cwd?: string }).cwd || null;
+      }
+    } catch {
+      // Fall through to null
+    }
+    return null;
+  }
+
+  /**
    * Decode project directory name to actual path
    * Example: "Users-krabswang-Personal-project" -> "/Users/krabswang/Personal/project"
+   * NOTE: This is fallback only, prefer reading cwd from session file
    */
   private decodeProjectDir(dirName: string): string {
     // Handle special cases
@@ -346,8 +364,8 @@ export class CodebuddySessionService {
           continue;
         }
 
-        // Decode project path
-        const projectCwd = this.decodeProjectDir(projectDirName);
+        // Decode project path (fallback only)
+        const decodedCwd = this.decodeProjectDir(projectDirName);
 
         // Find all .jsonl files in this project (these are sessions)
         const entries = fs.readdirSync(projectPath);
@@ -372,6 +390,9 @@ export class CodebuddySessionService {
               continue;
             }
 
+            // Read cwd from session file first line (more accurate than directory name)
+            const sessionCwd = this.readCwdFromSession(entryPath) || decodedCwd;
+
             // For large files (>100KB), use stream reading to efficiently get session info
             // This avoids loading entire large files into memory just for listing
             let jsonlData: ReturnType<typeof this.readSessionJsonl>;
@@ -392,7 +413,7 @@ export class CodebuddySessionService {
                   ? activeSession!.meta.currentTopic
                   : jsonlData.firstMessage || `Session ${sessionId.substring(0, 8)}`,
               filePath: entryPath,
-              directory: projectCwd,
+              directory: sessionCwd,
               createdAt: jsonlData.createdAt,
               updatedAt: isActiveSession
                 ? activeSession!.updatedAt || activeSession!.lastHeartbeat
@@ -427,13 +448,16 @@ export class CodebuddySessionService {
                   continue;
                 }
 
+                // Read cwd from session file for subagent too
+                const subagentCwd = this.readCwdFromSession(subEntryPath) || decodedCwd;
+
                 sessionMap.set(sessionId, {
                   id: sessionId,
                   appType: 'codebuddy',
                   fileName:
                     jsonlData.firstMessage || `Subagent Session ${sessionId.substring(0, 8)}`,
                   filePath: subEntryPath,
-                  directory: projectCwd,
+                  directory: subagentCwd,
                   createdAt: jsonlData.createdAt,
                   updatedAt: jsonlData.updatedAt,
                   messageCount: jsonlData.count,

@@ -1,6 +1,6 @@
 {
   "name": "yes-sessions",
-  "version": "5.0.1",
+  "version": "5.1.0",
   "description": "AI Session Manager - Browse and resume your AI conversations",
   "main": "dist-electron/main.js",
   "author": "Yes, Sessions Team",
@@ -96,6 +96,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.3.4",
+    "@monaco-editor/react": "^4.7.0",
     "@radix-ui/react-dialog": "^1.0.5",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-scroll-area": "^1.2.10",
@@ -122,6 +123,7 @@
     "i18next-http-backend": "^3.0.4",
     "keytar": "^7.9.0",
     "lucide-react": "^0.400.0",
+    "monaco-editor": "^0.55.1",
     "node-fetch": "^3.3.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
