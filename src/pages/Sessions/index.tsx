@@ -656,7 +656,6 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
             sessionDirectory={selectedSession.directory}
             onPreviewStart={() => setIsPreviewingFile(true)}
             onPreviewEnd={() => setIsPreviewingFile(false)}
-            isPreviewingFile={isPreviewingFile}
             className={isPreviewingFile ? 'flex-1 min-w-0' : 'shrink-0'}
           />
         )}

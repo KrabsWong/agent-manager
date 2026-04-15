@@ -26,7 +26,6 @@ interface SessionContextPanelProps {
   className?: string;
   onPreviewStart?: () => void;
   onPreviewEnd?: () => void;
-  isPreviewingFile?: boolean;
 }
 
 interface TreeItemProps {
@@ -134,7 +133,6 @@ export function SessionContextPanel({
   className,
   onPreviewStart,
   onPreviewEnd,
-  isPreviewingFile: externalIsPreviewingFile,
 }: SessionContextPanelProps) {
   const { t } = useTranslation();
   const [tree, setTree] = useState<TreeNode[]>([]);
