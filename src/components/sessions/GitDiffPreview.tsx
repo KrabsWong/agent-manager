@@ -187,6 +187,48 @@ export function GitDiffPreview({
   const [theme, setTheme] = useState<'tokyo-night' | 'app-light'>('tokyo-night');
   const language = useMemo(() => getLanguage(fileName), [fileName]);
 
+  // Calculate actual diff statistics (additions and deletions)
+  const diffStats = useMemo(() => {
+    const originalLines = originalContent.split('\n');
+    const modifiedLines = modifiedContent.split('\n');
+
+    // Use a simple LCS-based diff to count additions and deletions
+    const lcs: number[][] = Array(originalLines.length + 1)
+      .fill(null)
+      .map(() => Array(modifiedLines.length + 1).fill(0));
+
+    for (let i = 1; i <= originalLines.length; i++) {
+      for (let j = 1; j <= modifiedLines.length; j++) {
+        if (originalLines[i - 1] === modifiedLines[j - 1]) {
+          lcs[i][j] = lcs[i - 1][j - 1] + 1;
+        } else {
+          lcs[i][j] = Math.max(lcs[i - 1][j], lcs[i][j - 1]);
+        }
+      }
+    }
+
+    // Backtrack to find additions and deletions
+    let i = originalLines.length;
+    let j = modifiedLines.length;
+    let additions = 0;
+    let deletions = 0;
+
+    while (i > 0 || j > 0) {
+      if (i > 0 && j > 0 && originalLines[i - 1] === modifiedLines[j - 1]) {
+        i--;
+        j--;
+      } else if (j > 0 && (i === 0 || lcs[i][j - 1] >= lcs[i - 1][j])) {
+        additions++;
+        j--;
+      } else if (i > 0 && (j === 0 || lcs[i][j - 1] < lcs[i - 1][j])) {
+        deletions++;
+        i--;
+      }
+    }
+
+    return { additions, deletions };
+  }, [originalContent, modifiedContent]);
+
   // Refs for editor and container
   const editorRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -281,9 +323,16 @@ export function GitDiffPreview({
               {fileName}
             </p>
             <p className="text-[10px] text-muted-foreground truncate">
-              <span className="text-red-500">-{originalContent.split('\n').length} lines</span>
-              {' → '}
-              <span className="text-green-500">+{modifiedContent.split('\n').length} lines</span>
+              {diffStats.deletions > 0 && (
+                <span className="text-red-500">-{diffStats.deletions} lines</span>
+              )}
+              {diffStats.deletions > 0 && diffStats.additions > 0 && ' → '}
+              {diffStats.additions > 0 && (
+                <span className="text-green-500">+{diffStats.additions} lines</span>
+              )}
+              {diffStats.deletions === 0 && diffStats.additions === 0 && (
+                <span>{t('contextPanel.noChanges', 'No changes')}</span>
+              )}
             </p>
           </div>
         </div>
@@ -336,6 +385,11 @@ export function GitDiffPreview({
             editorRef.current = editor;
             monacoRef.current = monaco;
             defineThemes(monaco);
+
+            // Apply current theme immediately to ensure correct initial theme
+            const currentTheme = getCurrentTheme();
+            monaco.editor.setTheme(currentTheme === 'dark' ? 'tokyo-night' : 'app-light');
+
             setIsLoading(false);
             setIsEditorReady(true);
             // Store initial content
