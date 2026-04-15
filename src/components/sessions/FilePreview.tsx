@@ -166,6 +166,7 @@ function getLanguage(fileName: string): string {
     dockerfile: 'dockerfile',
     makefile: 'makefile',
     gitignore: 'ignore',
+    proto: 'protobuf',
     // Other
     lua: 'lua',
     perl: 'perl',
