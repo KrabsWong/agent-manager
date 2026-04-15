@@ -196,6 +196,61 @@ export const treeApi = {
   },
 };
 
+// Git API types
+export interface GitFileChange {
+  path: string;
+  status: 'added' | 'modified' | 'deleted' | 'renamed' | 'untracked' | 'unknown';
+  additions: number;
+  deletions: number;
+}
+
+export interface GitStatusResult {
+  isGitRepo: boolean;
+  branch: string;
+  ahead: number;
+  behind: number;
+  staged: GitFileChange[];
+  unstaged: GitFileChange[];
+  untracked: GitFileChange[];
+}
+
+export interface GitFileDiffResult {
+  original: string;
+  modified: string;
+  hasChanges: boolean;
+}
+
+/**
+ * Git API
+ */
+export const gitApi = {
+  getStatus: async (dirPath: string): Promise<GitStatusResult> => {
+    const response = (await window.electronAPI.invoke(
+      'git:status',
+      dirPath
+    )) as ApiResponse<GitStatusResult>;
+    return extractData(response);
+  },
+
+  getDiff: async (dirPath: string, filePath?: string): Promise<string> => {
+    const response = (await window.electronAPI.invoke(
+      'git:diff',
+      dirPath,
+      filePath
+    )) as ApiResponse<string>;
+    return extractData(response);
+  },
+
+  getFileDiff: async (dirPath: string, filePath: string): Promise<GitFileDiffResult> => {
+    const response = (await window.electronAPI.invoke(
+      'git:fileDiff',
+      dirPath,
+      filePath
+    )) as ApiResponse<GitFileDiffResult>;
+    return extractData(response);
+  },
+};
+
 // Export all APIs
 export const api = {
   sessions: sessionsApi,
@@ -204,4 +259,5 @@ export const api = {
   config: configApi,
   shell: shellApi,
   tree: treeApi,
+  git: gitApi,
 };

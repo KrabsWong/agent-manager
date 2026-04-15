@@ -351,6 +351,57 @@ ipcMain.handle('file:readImage', async (_event, filePath: string) => {
   }
 });
 
+// Register git handlers
+import { getGitStatus, getGitDiff, getFileDiffContent } from './handlers/git.js';
+
+ipcMain.handle('git:status', async (_event, dirPath: string) => {
+  try {
+    const result = await getGitStatus(dirPath);
+    return { success: true, data: result };
+  } catch (error) {
+    log.error('Failed to get git status:', error);
+    return {
+      success: false,
+      error: {
+        code: 'GIT_ERROR',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+    };
+  }
+});
+
+ipcMain.handle('git:diff', async (_event, dirPath: string, filePath?: string) => {
+  try {
+    const result = await getGitDiff(dirPath, filePath);
+    return { success: true, data: result };
+  } catch (error) {
+    log.error('Failed to get git diff:', error);
+    return {
+      success: false,
+      error: {
+        code: 'GIT_ERROR',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+    };
+  }
+});
+
+ipcMain.handle('git:fileDiff', async (_event, dirPath: string, filePath: string) => {
+  try {
+    const result = await getFileDiffContent(dirPath, filePath);
+    return { success: true, data: result };
+  } catch (error) {
+    log.error('Failed to get file diff content:', error);
+    return {
+      success: false,
+      error: {
+        code: 'GIT_ERROR',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      },
+    };
+  }
+});
+
 // Security: Prevent new window creation, but allow external links
 app.on('web-contents-created', (_event, contents) => {
   contents.setWindowOpenHandler(({ url }) => {

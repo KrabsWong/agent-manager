@@ -85,7 +85,11 @@ export type IpcChannel =
   // Config Import/Export
   | 'config:export'
   | 'config:import'
-  | 'config:backup';
+  | 'config:backup'
+  // Git
+  | 'git:status'
+  | 'git:diff'
+  | 'git:fileDiff';
 
 // ============ API Response Types ============
 export interface ApiResponse<T> {

@@ -16,10 +16,14 @@ import {
   ExternalLink,
   PanelRightClose,
   PanelRightOpen,
+  GitBranch,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { treeApi, shellApi, type TreeNode } from '@/lib/api';
+import { treeApi, shellApi, gitApi, type TreeNode } from '@/lib/api';
 import { FilePreview } from './FilePreview';
+import { GitDiffView } from './GitDiffView';
+import { GitDiffPreview } from './GitDiffPreview';
+
 import {
   Dialog,
   DialogContent,
@@ -29,6 +33,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface SessionContextPanelProps {
   sessionDirectory?: string;
@@ -159,6 +164,20 @@ export function SessionContextPanel({
   } | null>(null);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
+  // Active tab state
+  const [activeTab, setActiveTab] = useState('files');
+
+  // Git status state
+  const [hasGitChanges, setHasGitChanges] = useState(false);
+
+  // Git diff preview state
+  const [diffPreview, setDiffPreview] = useState<{
+    path: string;
+    name: string;
+    original: string;
+    modified: string;
+  } | null>(null);
+
   // External open confirmation dialog state
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingOpenFile, setPendingOpenFile] = useState<{ path: string; name: string } | null>(
@@ -184,6 +203,69 @@ export function SessionContextPanel({
   useEffect(() => {
     loadTree();
   }, [loadTree]);
+
+  // Check git status to determine if we should show the git diff tab
+  useEffect(() => {
+    const checkGitStatus = async () => {
+      if (!sessionDirectory) {
+        setHasGitChanges(false);
+        return;
+      }
+
+      try {
+        const status = await gitApi.getStatus(sessionDirectory);
+        const totalChanges =
+          status.staged.length + status.unstaged.length + status.untracked.length;
+        const hasChanges = status.isGitRepo && totalChanges > 0;
+        setHasGitChanges(hasChanges);
+
+        // If currently on git tab but no changes anymore, switch back to files
+        if (!hasChanges && activeTab === 'git') {
+          setActiveTab('files');
+        }
+      } catch {
+        // Not a git repo or error checking
+        setHasGitChanges(false);
+        if (activeTab === 'git') {
+          setActiveTab('files');
+        }
+      }
+    };
+
+    checkGitStatus();
+  }, [sessionDirectory, activeTab]);
+
+  // Handle git file selection for diff preview
+  const handleGitFileSelect = useCallback(
+    async (filePath: string, fileName: string) => {
+      if (!sessionDirectory) return;
+
+      // Close file preview when opening diff preview
+      if (previewFile) {
+        setPreviewFile(null);
+      }
+
+      try {
+        const result = await gitApi.getFileDiff(sessionDirectory, filePath);
+        setDiffPreview({
+          path: filePath,
+          name: fileName,
+          original: result.original,
+          modified: result.modified,
+        });
+        onPreviewStart?.();
+      } catch (err) {
+        console.error('Failed to load file diff:', err);
+      }
+    },
+    [sessionDirectory, previewFile, onPreviewStart]
+  );
+
+  // Handle close diff preview
+  const handleCloseDiffPreview = useCallback(() => {
+    setDiffPreview(null);
+    onPreviewEnd?.();
+  }, [onPreviewEnd]);
 
   // Check if file is an image
   const isImageFile = useCallback((fileName: string): boolean => {
@@ -277,6 +359,11 @@ export function SessionContextPanel({
     async (filePath: string, fileName: string) => {
       if (previewFile?.path === filePath) return;
 
+      // Close diff preview when opening file preview
+      if (diffPreview) {
+        setDiffPreview(null);
+      }
+
       // Check if file needs confirmation before opening
       if (needsConfirmation(fileName)) {
         setPendingOpenFile({ path: filePath, name: fileName });
@@ -312,7 +399,7 @@ export function SessionContextPanel({
         setIsLoadingPreview(false);
       }
     },
-    [previewFile, onPreviewStart, isImageFile, needsConfirmation]
+    [previewFile, diffPreview, onPreviewStart, isImageFile, needsConfirmation]
   );
 
   // Handle confirmed external open
@@ -336,8 +423,9 @@ export function SessionContextPanel({
   }, [onPreviewEnd]);
 
   // Handle no session directory - still show collapsible panel
-  const showCollapsed = isCollapsed && !previewFile;
-  const workDirWidth = previewFile ? 'w-[200px]' : showCollapsed ? 'w-10' : 'w-72';
+  const hasAnyPreview = previewFile || diffPreview;
+  const showCollapsed = isCollapsed && !hasAnyPreview;
+  const workDirWidth = hasAnyPreview ? 'w-[200px]' : showCollapsed ? 'w-10' : 'w-72';
 
   if (!sessionDirectory) {
     return (
@@ -410,83 +498,133 @@ export function SessionContextPanel({
             </button>
           </div>
         ) : (
-          // Expanded state
-          <>
-            {/* Header with collapse button (hidden when previewing) */}
-            <div className="px-3 py-2 border-b bg-muted/20 shrink-0">
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  <Folder className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                    {t('contextPanel.workDir', 'Work')}
-                  </span>
-                </div>
-                {!previewFile && (
-                  <button
-                    onClick={() => setIsCollapsed(true)}
-                    className="p-1 hover:bg-muted rounded transition-colors"
-                    title={t('contextPanel.collapse', 'Collapse')}
+          // Expanded state with Tabs
+          <Tabs
+            value={activeTab}
+            onValueChange={(value) => {
+              setActiveTab(value);
+              // Close preview when switching away from its tab
+              if (value === 'files' && diffPreview) {
+                setDiffPreview(null);
+                onPreviewEnd?.();
+              } else if (value === 'git' && previewFile) {
+                setPreviewFile(null);
+                onPreviewEnd?.();
+              }
+            }}
+            className="flex flex-col h-full"
+          >
+            {/* Header with tabs and collapse button */}
+            <div className="border-b bg-muted/20 shrink-0">
+              <div className="px-2 pt-2">
+                <div className="flex items-center justify-between mb-1">
+                  <TabsList
+                    className={cn(
+                      'h-7 justify-start bg-transparent p-0 gap-1',
+                      hasGitChanges ? 'w-full' : 'w-auto'
+                    )}
                   >
-                    <PanelRightClose className="h-3 w-3 text-muted-foreground" />
-                  </button>
-                )}
+                    <TabsTrigger
+                      value="files"
+                      className="h-6 px-2 text-[10px] data-[state=active]:bg-muted"
+                    >
+                      <Folder className="h-3 w-3 mr-1" />
+                      {t('contextPanel.filesTab', 'Files')}
+                    </TabsTrigger>
+                    {hasGitChanges && (
+                      <TabsTrigger
+                        value="git"
+                        className="h-6 px-2 text-[10px] data-[state=active]:bg-muted"
+                      >
+                        <GitBranch className="h-3 w-3 mr-1" />
+                        {t('contextPanel.gitDiffTab', 'Git Diff')}
+                      </TabsTrigger>
+                    )}
+                  </TabsList>
+                  {!previewFile && (
+                    <button
+                      onClick={() => setIsCollapsed(true)}
+                      className="p-1 hover:bg-muted rounded transition-colors ml-1"
+                      title={t('contextPanel.collapse', 'Collapse')}
+                    >
+                      <PanelRightClose className="h-3 w-3 text-muted-foreground" />
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-1 group">
-                <span
-                  className="text-xs font-mono text-muted-foreground truncate flex-1"
-                  title={sessionDirectory}
-                >
-                  {previewFile
-                    ? sessionDirectory.split('/').pop()
-                    : sessionDirectory.split('/').slice(-2).join('/')}
-                </span>
-                <button
-                  onClick={() => shellApi.openPath(sessionDirectory)}
-                  className="opacity-0 group-hover:opacity-100 p-1 hover:bg-muted rounded transition-all"
-                  title={t('contextPanel.openInFinder', 'Open in Finder')}
-                >
-                  <ExternalLink className="h-3 w-3 text-muted-foreground" />
-                </button>
+              <div className="px-3 pb-2">
+                <div className="flex items-center gap-1 group">
+                  <span
+                    className="text-xs font-mono text-muted-foreground truncate flex-1"
+                    title={sessionDirectory}
+                  >
+                    {previewFile
+                      ? sessionDirectory.split('/').pop()
+                      : sessionDirectory.split('/').slice(-2).join('/')}
+                  </span>
+                  <button
+                    onClick={() => shellApi.openPath(sessionDirectory)}
+                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-muted rounded transition-all"
+                    title={t('contextPanel.openInFinder', 'Open in Finder')}
+                  >
+                    <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Tree content - with horizontal scroll */}
-            <div className="flex-1 overflow-auto py-2 min-h-0">
-              {loading && (
-                <div className="px-3 py-4 text-center">
-                  <p className="text-xs text-muted-foreground">{t('common.loading')}</p>
-                </div>
-              )}
+            {/* Tab Content */}
+            <div className="flex-1 overflow-hidden min-h-0">
+              <TabsContent value="files" className="h-full m-0 mt-0">
+                {/* Tree content - with horizontal scroll */}
+                <div className="h-full overflow-auto py-2">
+                  {loading && (
+                    <div className="px-3 py-4 text-center">
+                      <p className="text-xs text-muted-foreground">{t('common.loading')}</p>
+                    </div>
+                  )}
 
-              {error && (
-                <div className="px-3 py-4 text-center">
-                  <p className="text-xs text-red-500">{error}</p>
-                </div>
-              )}
+                  {error && (
+                    <div className="px-3 py-4 text-center">
+                      <p className="text-xs text-red-500">{error}</p>
+                    </div>
+                  )}
 
-              {!loading && !error && tree.length === 0 && (
-                <div className="px-3 py-4 text-center">
-                  <p className="text-xs text-muted-foreground">
-                    {t('contextPanel.emptyDir', 'Empty directory')}
-                  </p>
-                </div>
-              )}
+                  {!loading && !error && tree.length === 0 && (
+                    <div className="px-3 py-4 text-center">
+                      <p className="text-xs text-muted-foreground">
+                        {t('contextPanel.emptyDir', 'Empty directory')}
+                      </p>
+                    </div>
+                  )}
 
-              {!loading &&
-                !error &&
-                tree.map((node) => (
-                  <TreeItem
-                    key={node.path}
-                    node={node}
-                    defaultExpanded={true}
-                    onFileClick={handleFileClick}
-                    activeFilePath={previewFile?.path}
+                  {!loading &&
+                    !error &&
+                    tree.map((node) => (
+                      <TreeItem
+                        key={node.path}
+                        node={node}
+                        defaultExpanded={true}
+                        onFileClick={handleFileClick}
+                        activeFilePath={previewFile?.path}
+                      />
+                    ))}
+                </div>
+              </TabsContent>
+
+              {hasGitChanges && (
+                <TabsContent value="git" className="h-full m-0 mt-0">
+                  <GitDiffView
+                    sessionDirectory={sessionDirectory}
+                    className="h-full"
+                    onFileSelect={handleGitFileSelect}
                   />
-                ))}
+                </TabsContent>
+              )}
             </div>
 
             {/* Loading indicator for preview */}
-            {isLoadingPreview && (
+            {isLoadingPreview && activeTab === 'files' && (
               <div className="px-3 py-2 border-t bg-muted/20 shrink-0">
                 <div className="flex items-center gap-2">
                   <div className="h-3 w-3 border-2 border-muted-foreground/20 border-t-muted-foreground/60 rounded-full animate-spin" />
@@ -494,7 +632,7 @@ export function SessionContextPanel({
                 </div>
               </div>
             )}
-          </>
+          </Tabs>
         )}
       </div>
 
@@ -504,6 +642,17 @@ export function SessionContextPanel({
           fileName={previewFile.name}
           content={previewFile.content}
           onClose={handleClosePreview}
+          className="flex-1 min-w-0 overflow-hidden"
+        />
+      )}
+
+      {/* Git Diff Preview Panel */}
+      {diffPreview && (
+        <GitDiffPreview
+          fileName={diffPreview.name}
+          originalContent={diffPreview.original}
+          modifiedContent={diffPreview.modified}
+          onClose={handleCloseDiffPreview}
           className="flex-1 min-w-0 overflow-hidden"
         />
       )}
