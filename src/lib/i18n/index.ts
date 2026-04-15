@@ -26,6 +26,8 @@ const enTranslations = {
     error: 'Error',
     success: 'Success',
     copy: 'Copy',
+    scrollToTop: 'Scroll to top',
+    scrollToBottom: 'Scroll to bottom',
     apps: {
       claude: 'Claude Code',
       'claude-internal': 'Claude Code Internal',
@@ -201,6 +203,8 @@ const zhTranslations = {
     error: '错误',
     success: '成功',
     copy: '复制',
+    scrollToTop: '滚动到顶部',
+    scrollToBottom: '滚动到底部',
     apps: {
       claude: 'Claude Code',
       'claude-internal': 'Claude Code Internal',

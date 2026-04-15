@@ -1521,6 +1521,10 @@ function ToolCallBlock({
   const toolName = toolUse?.tool_name || toolResult?.tool_name || 'unknown';
   const toolType = getToolType(toolName);
 
+  // Thinking / Reasoning content state
+  const [isReasoningExpanded, setIsReasoningExpanded] = useState(false);
+  const reasoningContent = toolUse?.reasoning_content || toolResult?.reasoning_content;
+
   // Determine if this tool should be collapsible (bash, read, write, edit, search, mcp, etc.)
   const toolNameLower = toolName.toLowerCase();
   const isCollapsibleTool =
@@ -1621,6 +1625,38 @@ function ToolCallBlock({
 
   return (
     <div className="border rounded-lg overflow-hidden bg-muted/30">
+      {/* Thinking / Reasoning Block */}
+      {reasoningContent && (
+        <div className="border-b border-amber-200/50 dark:border-amber-800/50 bg-amber-50/30 dark:bg-amber-900/10">
+          <button
+            onClick={() => setIsReasoningExpanded(!isReasoningExpanded)}
+            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-amber-100/50 dark:hover:bg-amber-900/20 transition-colors"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+            <span className="text-xs font-medium text-amber-700 dark:text-amber-400">Thinking</span>
+            <span className="text-xs text-amber-600/70 dark:text-amber-500/70 ml-auto">
+              {isReasoningExpanded ? '收起' : '展开'}
+            </span>
+            {isReasoningExpanded ? (
+              <ChevronDown className="h-3.5 w-3.5 text-amber-500" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5 text-amber-500" />
+            )}
+          </button>
+          {isReasoningExpanded && (
+            <div className="px-3 pb-3 text-sm text-amber-800/80 dark:text-amber-300/80 leading-relaxed border-t border-amber-200/30 dark:border-amber-800/30 pt-2">
+              {searchQuery ? (
+                <HighlightedText text={reasoningContent} query={searchQuery} />
+              ) : (
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                  {reasoningContent}
+                </ReactMarkdown>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Tool Header - Clickable to expand/collapse for collapsible tools */}
       <button
         onClick={() => isCollapsibleTool && setIsExpanded(!isExpanded)}

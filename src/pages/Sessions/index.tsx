@@ -18,6 +18,7 @@ import {
   X,
   RefreshCw,
   ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -62,8 +63,9 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('date');
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
-  // Scroll to top button visibility
+  // Scroll to top/bottom button visibility
   const [showScrollToTop, setShowScrollToTop] = useState(false);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // New messages notification
@@ -84,14 +86,15 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
       const handleScroll = () => {
         setShowScrollToTop(container.scrollTop > 300);
 
+        // Show scroll to bottom button when not at bottom and there's content to scroll
+        const isAtBottom =
+          container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+        setShowScrollToBottom(!isAtBottom && container.scrollHeight > container.clientHeight);
+
         // Hide new messages tip if user scrolls to bottom
-        if (showNewMessagesTip) {
-          const isAtBottom =
-            container.scrollHeight - container.scrollTop - container.clientHeight < 50;
-          if (isAtBottom) {
-            setShowNewMessagesTip(false);
-            setNewMessagesCount(0);
-          }
+        if (showNewMessagesTip && isAtBottom) {
+          setShowNewMessagesTip(false);
+          setNewMessagesCount(0);
         }
       };
 
@@ -614,19 +617,42 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                 </button>
               )}
 
-              {/* Scroll to top button - absolute at bottom right of detail area */}
-              {showScrollToTop && (
-                <button
-                  onClick={() => {
-                    if (scrollContainerRef.current) {
-                      scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-                    }
-                  }}
-                  className="absolute bottom-4 right-4 p-2 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all z-50"
-                  title={t('common.scrollToTop', 'Scroll to top')}
-                >
-                  <ArrowUp className="h-4 w-4" />
-                </button>
+              {/* Scroll to top/bottom buttons - fused together in a single container */}
+              {(showScrollToTop || showScrollToBottom) && (
+                <div className="absolute bottom-4 right-4 z-50 flex flex-col bg-background/95 dark:bg-background/90 backdrop-blur-md rounded-2xl shadow-xl border border-border/60 overflow-hidden">
+                  {showScrollToTop && (
+                    <button
+                      onClick={() => {
+                        if (scrollContainerRef.current) {
+                          scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+                        }
+                      }}
+                      className="p-3 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all duration-200 group"
+                      title={t('common.scrollToTop', 'Scroll to top')}
+                    >
+                      <ArrowUp className="h-4 w-4 transition-transform duration-200 group-hover:-translate-y-0.5" />
+                    </button>
+                  )}
+                  {showScrollToTop && showScrollToBottom && (
+                    <div className="h-px bg-border/60 mx-2" />
+                  )}
+                  {showScrollToBottom && (
+                    <button
+                      onClick={() => {
+                        if (scrollContainerRef.current) {
+                          scrollContainerRef.current.scrollTo({
+                            top: scrollContainerRef.current.scrollHeight,
+                            behavior: 'smooth',
+                          });
+                        }
+                      }}
+                      className="p-3 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all duration-200 group"
+                      title={t('common.scrollToBottom', 'Scroll to bottom')}
+                    >
+                      <ArrowDown className="h-4 w-4 transition-transform duration-200 group-hover:translate-y-0.5" />
+                    </button>
+                  )}
+                </div>
               )}
             </>
           ) : (
