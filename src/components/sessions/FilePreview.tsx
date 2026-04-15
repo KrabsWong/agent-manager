@@ -144,6 +144,7 @@ function getLanguage(fileName: string): string {
     // Data formats
     json: 'json',
     jsonc: 'jsonc',
+    jsonl: 'json',
     md: 'markdown',
     markdown: 'markdown',
     yml: 'yaml',
