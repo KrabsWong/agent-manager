@@ -7,9 +7,8 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react';
 import Editor, { type Monaco } from '@monaco-editor/react';
-import { X, FileText, ExternalLink, Image } from 'lucide-react';
+import { X, FileText, Image } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { shellApi } from '@/lib/api';
 
 // Get current theme from document
 function getCurrentTheme(): 'light' | 'dark' {
@@ -89,7 +88,6 @@ function defineThemes(monaco: Monaco) {
 }
 
 interface FilePreviewProps {
-  filePath: string;
   fileName: string;
   content: string;
   onClose: () => void;
@@ -193,7 +191,7 @@ function formatFileSize(content: string): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function FilePreview({ filePath, fileName, content, onClose, className }: FilePreviewProps) {
+export function FilePreview({ fileName, content, onClose, className }: FilePreviewProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [theme, setTheme] = useState<'tokyo-night' | 'app-light'>('tokyo-night');
   const language = useMemo(() => getLanguage(fileName), [fileName]);
@@ -222,14 +220,6 @@ export function FilePreview({ filePath, fileName, content, onClose, className }:
 
     return () => observer.disconnect();
   }, []);
-
-  const handleOpenExternal = async () => {
-    try {
-      await shellApi.openPath(filePath);
-    } catch (error) {
-      console.error('Failed to open file externally:', error);
-    }
-  };
 
   // ResizeObserver to handle container size changes
   useEffect(() => {
@@ -271,13 +261,6 @@ export function FilePreview({ filePath, fileName, content, onClose, className }:
           </div>
         </div>
         <div className="flex items-center gap-1 ml-2">
-          <button
-            onClick={handleOpenExternal}
-            className="p-1.5 hover:bg-muted rounded-md transition-colors"
-            title="Open in external editor"
-          >
-            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
           <button
             onClick={onClose}
             className="p-1.5 hover:bg-muted rounded-md transition-colors"

@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation, Trans } from 'react-i18next';
 import {
   FileText,
   Folder,
@@ -501,7 +501,6 @@ export function SessionContextPanel({
       {/* File Preview Panel */}
       {previewFile && (
         <FilePreview
-          filePath={previewFile.path}
           fileName={previewFile.name}
           content={previewFile.content}
           onClose={handleClosePreview}
@@ -513,18 +512,20 @@ export function SessionContextPanel({
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Open File Externally?</DialogTitle>
+            <DialogTitle>{t('contextPanel.confirmOpenTitle')}</DialogTitle>
             <DialogDescription>
-              The file <span className="font-medium text-foreground">{pendingOpenFile?.name}</span>{' '}
-              cannot be previewed directly and will be opened with your system's default
-              application.
+              <Trans
+                i18nKey="contextPanel.confirmOpenDescription"
+                values={{ fileName: pendingOpenFile?.name || '' }}
+                components={[<span key="0" className="font-medium text-foreground" />]}
+              />
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex flex-row justify-end gap-2">
             <Button variant="outline" onClick={handleCancelOpen}>
-              Cancel
+              {t('contextPanel.confirmOpenCancel')}
             </Button>
-            <Button onClick={handleConfirmOpen}>Open</Button>
+            <Button onClick={handleConfirmOpen}>{t('contextPanel.confirmOpenButton')}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

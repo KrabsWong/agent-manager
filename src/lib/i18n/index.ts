@@ -159,6 +159,11 @@ const enTranslations = {
     openInFinder: 'Open in Finder',
     expand: 'Expand',
     collapse: 'Collapse',
+    confirmOpenTitle: 'Open File Externally?',
+    confirmOpenDescription:
+      "The file <1>{{fileName}}</1> cannot be previewed directly and will be opened with your system's default application.",
+    confirmOpenButton: 'Open',
+    confirmOpenCancel: 'Cancel',
   },
   search: {
     placeholder: 'Search in conversation...',
@@ -328,6 +333,10 @@ const zhTranslations = {
     openInFinder: '在 Finder 中打开',
     expand: '展开',
     collapse: '收起',
+    confirmOpenTitle: '使用外部应用打开文件？',
+    confirmOpenDescription: '文件 <1>{{fileName}}</1> 无法直接预览，将使用系统默认应用打开。',
+    confirmOpenButton: '打开',
+    confirmOpenCancel: '取消',
   },
   search: {
     placeholder: '在对话中搜索...',
