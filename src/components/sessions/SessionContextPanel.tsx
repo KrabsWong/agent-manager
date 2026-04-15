@@ -618,6 +618,7 @@ export function SessionContextPanel({
                     sessionDirectory={sessionDirectory}
                     className="h-full"
                     onFileSelect={handleGitFileSelect}
+                    active={activeTab === 'git'}
                   />
                 </TabsContent>
               )}

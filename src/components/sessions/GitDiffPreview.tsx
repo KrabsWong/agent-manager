@@ -4,7 +4,8 @@
  * Monaco-based diff viewer showing original vs modified file content
  */
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DiffEditor, type Monaco } from '@monaco-editor/react';
 import { X, GitCompare } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -180,7 +181,9 @@ export function GitDiffPreview({
   onClose,
   className,
 }: GitDiffPreviewProps) {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(true);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [theme, setTheme] = useState<'tokyo-night' | 'app-light'>('tokyo-night');
   const language = useMemo(() => getLanguage(fileName), [fileName]);
 
@@ -188,6 +191,7 @@ export function GitDiffPreview({
   const editorRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isEditorReady, setIsEditorReady] = useState(false);
+  const monacoRef = useRef<Monaco | null>(null);
 
   // Watch for theme changes
   useEffect(() => {
@@ -202,6 +206,50 @@ export function GitDiffPreview({
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 
     return () => observer.disconnect();
+  }, []);
+
+  // Track if content has changed (for triggering hideUnchangedRegions)
+  const contentChangedRef = useRef(false);
+  const prevContentRef = useRef({ original: originalContent, modified: modifiedContent });
+
+  useEffect(() => {
+    const prev = prevContentRef.current;
+    if (prev.original !== originalContent || prev.modified !== modifiedContent) {
+      contentChangedRef.current = true;
+      prevContentRef.current = { original: originalContent, modified: modifiedContent };
+      // Show loading when content changes (switching files)
+      if (isEditorReady) {
+        setIsTransitioning(true);
+      }
+    }
+  }, [originalContent, modifiedContent, isEditorReady]);
+
+  // Helper to apply hideUnchangedRegions
+  const applyHideUnchangedRegions = useCallback(() => {
+    if (!editorRef.current) return;
+
+    // Toggle the option off and on to force re-evaluation
+    editorRef.current.updateOptions({
+      hideUnchangedRegions: {
+        enabled: false,
+      },
+    });
+
+    // Use setTimeout to ensure the update takes effect
+    setTimeout(() => {
+      editorRef.current?.updateOptions({
+        hideUnchangedRegions: {
+          enabled: true,
+          contextLineCount: 3,
+          minimumLineCount: 2,
+          revealLineCount: 5,
+        },
+      });
+      // Hide loading after folding is applied (with small delay for render)
+      setTimeout(() => {
+        setIsTransitioning(false);
+      }, 50);
+    }, 0);
   }, []);
 
   // ResizeObserver to handle container size changes
@@ -251,15 +299,6 @@ export function GitDiffPreview({
       </div>
 
       <div ref={containerRef} className="flex-1 relative min-h-0 min-w-0 w-full overflow-hidden">
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-card z-10">
-            <div className="flex flex-col items-center gap-2">
-              <div className="h-5 w-5 border-2 border-muted-foreground/20 border-t-muted-foreground/60 rounded-full animate-spin" />
-              <p className="text-xs text-muted-foreground">Loading diff...</p>
-            </div>
-          </div>
-        )}
-
         <DiffEditor
           height="100%"
           width="100%"
@@ -295,15 +334,39 @@ export function GitDiffPreview({
           }}
           onMount={(editor, monaco) => {
             editorRef.current = editor;
+            monacoRef.current = monaco;
             defineThemes(monaco);
             setIsLoading(false);
             setIsEditorReady(true);
+            // Store initial content
+            prevContentRef.current = { original: originalContent, modified: modifiedContent };
+
+            // Listen for diff updates and apply hideUnchangedRegions
+            editor.onDidUpdateDiff(() => {
+              if (contentChangedRef.current) {
+                contentChangedRef.current = false;
+                applyHideUnchangedRegions();
+              }
+            });
+
             setTimeout(() => {
               editor.layout();
             }, 100);
           }}
           loading={null}
         />
+
+        {/* Loading overlay - placed after DiffEditor to ensure it's on top */}
+        {(isLoading || isTransitioning) && (
+          <div className="absolute inset-0 flex items-center justify-center bg-card z-20">
+            <div className="flex flex-col items-center gap-2">
+              <div className="h-5 w-5 border-2 border-muted-foreground/20 border-t-muted-foreground/60 rounded-full animate-spin" />
+              <p className="text-xs text-muted-foreground">
+                {isTransitioning ? t('contextPanel.updatingDiff') : t('contextPanel.loadingDiff')}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

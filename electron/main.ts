@@ -9,6 +9,7 @@ import { ipcRegistry } from './ipc/registry';
 import { performanceMonitor } from './services/performance/monitor';
 import { registerSessionsHandlers } from './handlers/sessions';
 import { buildDirectoryTree } from './handlers/tree';
+import { initializeGitWatcher } from './services/git-watcher';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -191,6 +192,10 @@ const initializeApp = () => {
 
     // Register core IPC handlers first
     registerAppHandlers();
+
+    // Initialize git watcher service
+    initializeGitWatcher();
+    log.info('Git watcher service initialized');
 
     // Register remaining handlers asynchronously to speed up startup
     setImmediate(() => {

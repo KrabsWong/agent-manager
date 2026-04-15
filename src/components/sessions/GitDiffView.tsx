@@ -10,11 +10,13 @@ import { GitBranch, FileText, Plus, Minus, Circle, AlertCircle, RefreshCw } from
 import { cn } from '@/lib/utils';
 import { gitApi, type GitStatusResult, type GitFileChange } from '@/lib/api';
 import { Button } from '@/components/ui/button';
+import { useGitWatch } from '@/hooks/useGitWatch';
 
 interface GitDiffViewProps {
   sessionDirectory?: string;
   className?: string;
   onFileSelect?: (filePath: string, fileName: string) => void;
+  active?: boolean;
 }
 
 // File change status indicator
@@ -83,20 +85,17 @@ function SectionHeader({ title, count }: { title: string; count: number }) {
   );
 }
 
-export function GitDiffView({ sessionDirectory, className, onFileSelect }: GitDiffViewProps) {
+export function GitDiffView({
+  sessionDirectory,
+  className,
+  onFileSelect,
+  active = true,
+}: GitDiffViewProps) {
   const { t } = useTranslation();
   const [status, setStatus] = useState<GitStatusResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
-
-  const handleFileClick = useCallback(
-    (file: GitFileChange) => {
-      setSelectedFile(file.path);
-      onFileSelect?.(file.path, file.path.split('/').pop() || file.path);
-    },
-    [onFileSelect]
-  );
 
   const loadGitStatus = useCallback(async () => {
     if (!sessionDirectory) return;
@@ -113,6 +112,32 @@ export function GitDiffView({ sessionDirectory, className, onFileSelect }: GitDi
       setLoading(false);
     }
   }, [sessionDirectory]);
+
+  // Handle file click
+  const handleFileClick = useCallback(
+    (file: GitFileChange) => {
+      setSelectedFile(file.path);
+      onFileSelect?.(file.path, file.path.split('/').pop() || file.path);
+    },
+    [onFileSelect]
+  );
+
+  // Handle git changes - reload status and refresh selected file diff
+  const handleGitChange = useCallback(() => {
+    console.log('[GitDiffView] Git changes detected, reloading...');
+    loadGitStatus();
+    // If a file is selected, notify parent to refresh the diff
+    if (selectedFile && onFileSelect) {
+      onFileSelect(selectedFile, selectedFile.split('/').pop() || selectedFile);
+    }
+  }, [loadGitStatus, selectedFile, onFileSelect]);
+
+  // Setup git watching - only when this component/tab is active
+  useGitWatch({
+    dirPath: sessionDirectory || null,
+    enabled: active && !!sessionDirectory,
+    onChange: handleGitChange,
+  });
 
   useEffect(() => {
     loadGitStatus();

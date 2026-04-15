@@ -180,6 +180,8 @@ const enTranslations = {
     additions_plural: '{{count}} additions',
     deletions: '{{count}} deletion',
     deletions_plural: '{{count}} deletions',
+    loadingDiff: 'Loading diff...',
+    updatingDiff: 'Updating diff...',
   },
   search: {
     placeholder: 'Search in conversation...',
@@ -367,6 +369,8 @@ const zhTranslations = {
     filesChanged: '{{count}} 个文件变更',
     additions: '新增 {{count}} 行',
     deletions: '删除 {{count}} 行',
+    loadingDiff: '加载差异...',
+    updatingDiff: '更新差异...',
   },
   search: {
     placeholder: '在对话中搜索...',

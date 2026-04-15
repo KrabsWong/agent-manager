@@ -249,6 +249,30 @@ export const gitApi = {
     )) as ApiResponse<GitFileDiffResult>;
     return extractData(response);
   },
+
+  startWatching: async (dirPath: string): Promise<void> => {
+    const response = (await window.electronAPI.invoke(
+      'git:watch:start',
+      dirPath
+    )) as ApiResponse<void>;
+    return extractVoid(response);
+  },
+
+  stopWatching: async (): Promise<void> => {
+    const response = (await window.electronAPI.invoke('git:watch:stop')) as ApiResponse<void>;
+    return extractVoid(response);
+  },
+
+  onChange: (callback: (dirPath: string) => void): (() => void) => {
+    const handler = (_event: unknown, ...args: unknown[]) => {
+      const data = args[0] as { dirPath: string };
+      callback(data.dirPath);
+    };
+    window.electronAPI.on('git:changed', handler);
+    return () => {
+      window.electronAPI.removeAllListeners('git:changed');
+    };
+  },
 };
 
 // Export all APIs
