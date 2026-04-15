@@ -28,10 +28,10 @@ const enTranslations = {
     copy: 'Copy',
     apps: {
       claude: 'Claude Code',
+      'claude-internal': 'Claude Code Internal',
       codex: 'Codex CLI',
       gemini: 'Gemini CLI',
       opencode: 'OpenCode',
-
       codebuddy: 'Codebuddy',
     },
   },
@@ -180,10 +180,10 @@ const zhTranslations = {
     copy: '复制',
     apps: {
       claude: 'Claude Code',
+      'claude-internal': 'Claude Code Internal',
       codex: 'Codex CLI',
       gemini: 'Gemini CLI',
       opencode: 'OpenCode',
-
       codebuddy: 'Codebuddy',
     },
   },

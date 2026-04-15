@@ -40,6 +40,10 @@ export function buildResumeCommand(
       // Claude Code: claude --resume=<SESSION_ID>
       return { command: 'claude', args: [`--resume=${sessionId}`] };
 
+    case 'claude-internal':
+      // Claude Code Internal: claude-internal --resume=<SESSION_ID>
+      return { command: 'claude-internal', args: [`--resume=${sessionId}`] };
+
     case 'opencode':
       // OpenCode: opencode -s <SESSION_ID>
       return { command: 'opencode', args: ['-s', sessionId] };

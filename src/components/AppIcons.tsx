@@ -12,6 +12,7 @@ const LOBE_ICONS_CDN = 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons
 // Map of app types to their icon URLs
 const APP_ICON_URLS: Record<AppType, string> = {
   claude: `${LOBE_ICONS_CDN}/claude.svg`,
+  'claude-internal': `${LOBE_ICONS_CDN}/claude.svg`,
   codex: `${LOBE_ICONS_CDN}/openai.svg`,
   gemini: `${LOBE_ICONS_CDN}/gemini.svg`,
   opencode: `${LOBE_ICONS_CDN}/opencode.svg`,
@@ -67,6 +68,7 @@ const CodebuddyIconSVG = ({ size = 16, className = '' }: { size?: number; classN
 // Map of app types to their brand colors
 export const APP_COLORS: Record<AppType, string> = {
   claude: 'text-amber-600',
+  'claude-internal': 'text-amber-600',
   codex: 'text-emerald-600',
   gemini: 'text-blue-500',
   opencode: 'text-indigo-500',
@@ -115,6 +117,7 @@ export function getAppIcon(
 // App labels
 export const APP_LABELS: Record<AppType, string> = {
   claude: 'Claude Code',
+  'claude-internal': 'Claude Code Internal',
   codex: 'Codex CLI',
   gemini: 'Gemini CLI',
   opencode: 'OpenCode',
@@ -122,11 +125,19 @@ export const APP_LABELS: Record<AppType, string> = {
 };
 
 // All app types
-export const APP_TYPES: AppType[] = ['claude', 'codex', 'codebuddy', 'gemini', 'opencode'];
+export const APP_TYPES: AppType[] = [
+  'claude',
+  'claude-internal',
+  'codex',
+  'codebuddy',
+  'gemini',
+  'opencode',
+];
 
 // App official websites
 export const APP_WEBSITES: Record<AppType, string> = {
   claude: 'https://claude.ai/code',
+  'claude-internal': 'https://claude.ai/code',
   codex: 'https://github.com/openai/codex',
   gemini: 'https://ai.google.dev/gemini-cli',
   opencode: 'https://opencode.com',

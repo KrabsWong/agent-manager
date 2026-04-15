@@ -6,6 +6,7 @@
 
 import { ipcRegistry } from '../ipc/registry';
 import { claudeSessionService } from '../services/session/claude';
+import { claudeInternalSessionService } from '../services/session/claude-internal';
 import { opencodeSessionService } from '../services/session/opencode';
 import { codebuddySessionService } from '../services/session/codebuddy';
 import { resumeSessionInTerminal, getTerminalInfo } from '../services/terminal/launcher';
@@ -23,6 +24,9 @@ export function registerSessionsHandlers(): void {
     try {
       if (appType === 'claude') {
         return claudeSessionService.getAllSessions();
+      }
+      if (appType === 'claude-internal') {
+        return claudeInternalSessionService.getAllSessions();
       }
       if (appType === 'opencode') {
         return await opencodeSessionService.getAllSessions();
@@ -46,6 +50,9 @@ export function registerSessionsHandlers(): void {
       if (appType === 'claude') {
         return claudeSessionService.getSessionDetail(sessionId);
       }
+      if (appType === 'claude-internal') {
+        return claudeInternalSessionService.getSessionDetail(sessionId);
+      }
       if (appType === 'opencode') {
         return await opencodeSessionService.getSessionDetail(sessionId);
       }
@@ -56,6 +63,10 @@ export function registerSessionsHandlers(): void {
       const claudeSession = claudeSessionService.getSessionDetail(sessionId);
       if (claudeSession) {
         return claudeSession;
+      }
+      const claudeInternalSession = claudeInternalSessionService.getSessionDetail(sessionId);
+      if (claudeInternalSession) {
+        return claudeInternalSession;
       }
       return await opencodeSessionService.getSessionDetail(sessionId);
     } catch (error) {
@@ -71,6 +82,9 @@ export function registerSessionsHandlers(): void {
     try {
       if (appType === 'claude') {
         return claudeSessionService.getStats();
+      }
+      if (appType === 'claude-internal') {
+        return claudeInternalSessionService.getStats();
       }
       if (appType === 'opencode') {
         return await opencodeSessionService.getStats();
@@ -94,6 +108,11 @@ export function registerSessionsHandlers(): void {
       { supported: boolean; status: string; isAvailable: boolean; notAvailableReason?: string }
     > = {
       claude: { supported: true, status: 'full', isAvailable: true },
+      'claude-internal': {
+        supported: true,
+        status: 'full',
+        isAvailable: claudeInternalSessionService.isAvailable(),
+      },
       codex: {
         supported: false,
         status: 'coming_soon',

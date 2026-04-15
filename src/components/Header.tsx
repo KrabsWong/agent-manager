@@ -38,8 +38,21 @@ export function Header({ selectedApp, onAppChange }: HeaderProps) {
               </div>
             </SelectTrigger>
             <SelectContent className="min-w-[12rem] app-no-drag">
-              {(['codebuddy', 'claude', 'opencode', 'codex', 'gemini'] as AppType[]).map((app) => {
-                const isSupported = app === 'claude' || app === 'opencode' || app === 'codebuddy';
+              {(
+                [
+                  'codebuddy',
+                  'claude-internal',
+                  'claude',
+                  'opencode',
+                  'codex',
+                  'gemini',
+                ] as AppType[]
+              ).map((app) => {
+                const isSupported =
+                  app === 'claude' ||
+                  app === 'claude-internal' ||
+                  app === 'opencode' ||
+                  app === 'codebuddy';
                 return (
                   <SelectItem
                     key={app}

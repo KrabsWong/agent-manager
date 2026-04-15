@@ -4,9 +4,16 @@
  */
 
 // ============ App Types ============
-export type AppType = 'claude' | 'codex' | 'gemini' | 'opencode' | 'codebuddy';
+export type AppType = 'claude' | 'claude-internal' | 'codex' | 'gemini' | 'opencode' | 'codebuddy';
 
-export const APP_TYPES: AppType[] = ['claude', 'codex', 'codebuddy', 'gemini', 'opencode'];
+export const APP_TYPES: AppType[] = [
+  'claude',
+  'claude-internal',
+  'codex',
+  'codebuddy',
+  'gemini',
+  'opencode',
+];
 
 // ============ Settings Types ============
 export type AccentColor =
