@@ -17,14 +17,17 @@ const execAsync = promisify(exec);
 
 /**
  * Check if Ghostty is installed
+ * TEMP: Force return false to test Terminal.app
  */
 export async function isGhosttyInstalled(): Promise<boolean> {
-  try {
-    await execAsync('which ghostty');
-    return true;
-  } catch {
-    return false;
-  }
+  // TEMP: Force use Terminal.app for testing
+  return false;
+  // try {
+  //   await execAsync('which ghostty');
+  //   return true;
+  // } catch {
+  //   return false;
+  // }
 }
 
 /**
