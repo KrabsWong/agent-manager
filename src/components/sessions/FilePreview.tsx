@@ -151,7 +151,7 @@ function getLanguage(fileName: string): string {
     yml: 'yaml',
     yaml: 'yaml',
     xml: 'xml',
-    toml: 'toml',
+    toml: 'ini',
     ini: 'ini',
     // Web
     css: 'css',
