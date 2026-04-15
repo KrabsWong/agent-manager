@@ -107,11 +107,10 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
   const { data: sessions, isLoading, error } = useSessions(selectedApp);
   const { data: stats } = useSessionStats(selectedApp);
   const { data: supportStatus } = useSessionSupportStatus(selectedApp);
-  const {
-    data: sessionDetail,
-    isLoading: isLoadingDetail,
-    isFetching: isFetchingDetail,
-  } = useSessionDetail(selectedSession?.id || '', selectedApp);
+  const { data: sessionDetail, isLoading: isLoadingDetail } = useSessionDetail(
+    selectedSession?.id || '',
+    selectedApp
+  );
   const { data: terminalInfo } = useTerminalInfo();
   const resumeMutation = useResumeSession();
 
