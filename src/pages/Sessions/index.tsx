@@ -123,9 +123,10 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
     }
   }, [sessions, selectedSession]);
 
-  // Reset selected session when app changes
+  // Reset selected session and close Monaco when app changes
   useEffect(() => {
     setSelectedSession(null);
+    setIsPreviewingFile(false);
   }, [selectedApp]);
 
   const formatDate = (timestamp: number) => {
