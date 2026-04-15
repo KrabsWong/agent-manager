@@ -33,6 +33,7 @@ const schema = {
       autoStart: { type: 'boolean', default: false },
       lightweightMode: { type: 'boolean', default: false },
       collapseBashBlocks: { type: 'boolean', default: true },
+      preferredTerminal: { type: 'string', default: 'auto' },
     },
     default: DEFAULT_SETTINGS,
   },

@@ -3,31 +3,85 @@
  *
  * Handles launching terminal applications to resume sessions
  * - Detects and prefers Ghostty if available
+ * - Falls back to Kitty if available
  * - Falls back to system default Terminal on macOS
  * - Supports both Claude Code and OpenCode resume commands
  */
 
-import { spawn, exec } from 'child_process';
+import { spawn, exec, execSync } from 'child_process';
 import { promisify } from 'util';
 import fs from 'fs';
 import log from 'electron-log';
+import { configStore } from '../../utils/config-store';
 import type { AppType } from '../../../src/types';
 
 const execAsync = promisify(exec);
 
 /**
  * Check if Ghostty is installed
- * TEMP: Force return false to test Terminal.app
  */
 export async function isGhosttyInstalled(): Promise<boolean> {
-  // TEMP: Force use Terminal.app for testing
-  return false;
-  // try {
-  //   await execAsync('which ghostty');
-  //   return true;
-  // } catch {
-  //   return false;
-  // }
+  try {
+    await execAsync('which ghostty');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if Kitty is installed
+ * Kitty is often not in PATH on macOS, so check common locations
+ */
+export async function isKittyInstalled(): Promise<boolean> {
+  // Check if kitty is in PATH
+  try {
+    await execAsync('which kitty');
+    return true;
+  } catch {
+    // Check common macOS installation paths
+    const kittyPaths = [
+      '/Applications/kitty.app/Contents/MacOS/kitty',
+      `${process.env.HOME}/Applications/kitty.app/Contents/MacOS/kitty`,
+    ];
+
+    for (const kittyPath of kittyPaths) {
+      if (fs.existsSync(kittyPath)) {
+        return true;
+      }
+    }
+    return false;
+  }
+}
+
+/**
+ * Get the Kitty executable path
+ */
+function getKittyPath(): string {
+  // Check if kitty is in PATH
+  try {
+    const result = execSync('which kitty', { encoding: 'utf-8' });
+    if (result.trim()) {
+      return result.trim();
+    }
+  } catch {
+    // Fall through to check common paths
+  }
+
+  // Check common macOS installation paths
+  const kittyPaths = [
+    '/Applications/kitty.app/Contents/MacOS/kitty',
+    `${process.env.HOME}/Applications/kitty.app/Contents/MacOS/kitty`,
+  ];
+
+  for (const kittyPath of kittyPaths) {
+    if (fs.existsSync(kittyPath)) {
+      return kittyPath;
+    }
+  }
+
+  // Fallback to just 'kitty' and hope it's in PATH
+  return 'kitty';
 }
 
 /**
@@ -96,6 +150,40 @@ function launchGhostty(command: string, commandArgs: string[], workingDir?: stri
 }
 
 /**
+ * Launch Kitty with a command
+ */
+function launchKitty(command: string, commandArgs: string[], workingDir?: string): void {
+  // Kitty: kitty --working-directory=<dir> <command>
+  // Or use -e flag to execute command
+  const fullCommand = `${command} ${commandArgs.join(' ')}`;
+
+  const args: string[] = [];
+
+  // Check if workingDir exists before using it
+  const effectiveWorkingDir = workingDir && fs.existsSync(workingDir) ? workingDir : undefined;
+
+  if (effectiveWorkingDir) {
+    args.push('--working-directory', effectiveWorkingDir);
+  } else if (workingDir && !effectiveWorkingDir) {
+    log.warn(`Working directory does not exist: ${workingDir}, launching without cd`);
+  }
+
+  // Use -e to execute command
+  args.push('-e', 'zsh', '-ic', fullCommand);
+
+  const kittyPath = getKittyPath();
+  const child = spawn(kittyPath, args, {
+    detached: true,
+    stdio: 'ignore',
+  });
+
+  child.unref();
+  log.info(
+    `Launched Kitty with command: ${fullCommand}, workingDir: ${effectiveWorkingDir || 'none'}`
+  );
+}
+
+/**
  * Launch Terminal.app (macOS default) with a command
  */
 function launchTerminal(command: string): void {
@@ -128,6 +216,50 @@ function launchTerminal(command: string): void {
  * @param workingDir - Optional working directory to cd into first
  * @returns Promise that resolves when terminal is launched
  */
+/**
+ * Get the terminal to use based on user preference and availability
+ */
+async function getTerminalToUse(): Promise<{
+  terminal: 'ghostty' | 'kitty' | 'terminal';
+  ghosttyInstalled: boolean;
+  kittyInstalled: boolean;
+}> {
+  const settings = configStore.getSettings();
+  const userPreference = settings.preferredTerminal;
+
+  const [ghosttyInstalled, kittyInstalled] = await Promise.all([
+    isGhosttyInstalled(),
+    isKittyInstalled(),
+  ]);
+
+  // If user has a specific preference (not auto), try to honor it
+  if (userPreference !== 'auto') {
+    // Check if the preferred terminal is installed
+    if (userPreference === 'ghostty' && ghosttyInstalled) {
+      return { terminal: 'ghostty', ghosttyInstalled, kittyInstalled };
+    }
+    if (userPreference === 'kitty' && kittyInstalled) {
+      return { terminal: 'kitty', ghosttyInstalled, kittyInstalled };
+    }
+    if (userPreference === 'terminal') {
+      return { terminal: 'terminal', ghosttyInstalled, kittyInstalled };
+    }
+    // If preferred terminal is not installed, fall back to auto-detection
+    log.warn(
+      `Preferred terminal '${userPreference}' is not installed, falling back to auto-detection`
+    );
+  }
+
+  // Auto-detect: Ghostty > Kitty > Terminal.app
+  if (ghosttyInstalled) {
+    return { terminal: 'ghostty', ghosttyInstalled, kittyInstalled };
+  }
+  if (kittyInstalled) {
+    return { terminal: 'kitty', ghosttyInstalled, kittyInstalled };
+  }
+  return { terminal: 'terminal', ghosttyInstalled, kittyInstalled };
+}
+
 export async function resumeSessionInTerminal(
   appType: AppType,
   sessionId: string,
@@ -135,19 +267,33 @@ export async function resumeSessionInTerminal(
 ): Promise<void> {
   try {
     const { command, args } = buildResumeCommand(appType, sessionId);
-    const hasGhostty = await isGhosttyInstalled();
 
-    if (hasGhostty) {
-      launchGhostty(command, args, workingDir);
-    } else {
-      // Terminal.app still uses the old approach with AppleScript
-      const fullCommand = workingDir
-        ? `cd "${workingDir}" && ${command} ${args.join(' ')}`
-        : `${command} ${args.join(' ')}`;
-      launchTerminal(fullCommand);
+    // Get terminal based on user preference and availability
+    const { terminal: terminalToUse } = await getTerminalToUse();
+
+    let terminalUsed: string;
+
+    switch (terminalToUse) {
+      case 'ghostty':
+        launchGhostty(command, args, workingDir);
+        terminalUsed = 'Ghostty';
+        break;
+      case 'kitty':
+        launchKitty(command, args, workingDir);
+        terminalUsed = 'Kitty';
+        break;
+      case 'terminal':
+      default:
+        // Terminal.app still uses the old approach with AppleScript
+        const fullCommand = workingDir
+          ? `cd "${workingDir}" && ${command} ${args.join(' ')}`
+          : `${command} ${args.join(' ')}`;
+        launchTerminal(fullCommand);
+        terminalUsed = 'Terminal';
+        break;
     }
 
-    log.info(`Resumed ${appType} session ${sessionId} in ${hasGhostty ? 'Ghostty' : 'Terminal'}`);
+    log.info(`Resumed ${appType} session ${sessionId} in ${terminalUsed}`);
   } catch (error) {
     log.error(`Failed to resume session:`, error);
     throw error;
@@ -158,12 +304,27 @@ export async function resumeSessionInTerminal(
  * Get available terminal options for UI display
  */
 export async function getTerminalInfo(): Promise<{
-  preferred: 'ghostty' | 'terminal';
+  preferred: 'ghostty' | 'kitty' | 'terminal';
   ghosttyInstalled: boolean;
+  kittyInstalled: boolean;
 }> {
-  const ghosttyInstalled = await isGhosttyInstalled();
+  const [ghosttyInstalled, kittyInstalled] = await Promise.all([
+    isGhosttyInstalled(),
+    isKittyInstalled(),
+  ]);
+
+  let preferred: 'ghostty' | 'kitty' | 'terminal';
+  if (ghosttyInstalled) {
+    preferred = 'ghostty';
+  } else if (kittyInstalled) {
+    preferred = 'kitty';
+  } else {
+    preferred = 'terminal';
+  }
+
   return {
-    preferred: ghosttyInstalled ? 'ghostty' : 'terminal',
+    preferred,
     ghosttyInstalled,
+    kittyInstalled,
   };
 }

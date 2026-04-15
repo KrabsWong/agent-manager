@@ -49,6 +49,9 @@ export interface AppSettings {
 
   // Display
   collapseBashBlocks: boolean;
+
+  // Terminal
+  preferredTerminal: 'auto' | 'ghostty' | 'kitty' | 'terminal';
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -58,6 +61,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   autoStart: false,
   lightweightMode: false,
   collapseBashBlocks: true,
+  preferredTerminal: 'auto',
 };
 
 // ============ IPC Channel Types ============

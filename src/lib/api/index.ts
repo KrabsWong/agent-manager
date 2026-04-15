@@ -13,10 +13,16 @@ function extractData<T>(response: ApiResponse<T>): T {
   if (!response.success) {
     throw new Error(response.error?.message || 'Unknown error');
   }
-  if (response.data === undefined) {
-    throw new Error('No data returned');
+  return response.data as T;
+}
+
+/**
+ * Extract data from API response or throw error (for void operations)
+ */
+function extractVoid(response: ApiResponse<void>): void {
+  if (!response.success) {
+    throw new Error(response.error?.message || 'Unknown error');
   }
-  return response.data;
 }
 
 /**
@@ -90,12 +96,14 @@ export const sessionsApi = {
   },
 
   getTerminalInfo: async (): Promise<{
-    preferred: 'ghostty' | 'terminal';
+    preferred: 'ghostty' | 'kitty' | 'terminal';
     ghosttyInstalled: boolean;
+    kittyInstalled: boolean;
   }> => {
     const response = (await window.electronAPI.invoke('sessions:getTerminalInfo')) as ApiResponse<{
-      preferred: 'ghostty' | 'terminal';
+      preferred: 'ghostty' | 'kitty' | 'terminal';
       ghosttyInstalled: boolean;
+      kittyInstalled: boolean;
     }>;
     return extractData(response);
   },
@@ -115,7 +123,7 @@ export const settingsApi = {
       'settings:update',
       settings
     )) as ApiResponse<void>;
-    return extractData(response);
+    return extractVoid(response);
   },
 
   reset: async (): Promise<void> => {

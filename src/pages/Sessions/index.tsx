@@ -224,8 +224,11 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
     });
   };
 
-  // Check if terminal supports resume
-  const canResume = terminalInfo?.ghosttyInstalled || terminalInfo?.preferred === 'terminal';
+  // Check if terminal supports resume (any modern terminal or Terminal.app)
+  const canResume =
+    terminalInfo?.ghosttyInstalled ||
+    terminalInfo?.kittyInstalled ||
+    terminalInfo?.preferred === 'terminal';
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -361,60 +364,72 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
               {/* Header */}
               <div className="flex items-start justify-between border-b p-4 shrink-0 gap-4">
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold truncate">
-                    {selectedSession.firstMessage
-                      ? truncateText(selectedSession.firstMessage, 100)
-                      : selectedSession.fileName || 'Untitled Session'}
-                  </h3>
-                  <p className="text-sm text-muted-foreground flex items-center gap-2">
-                    <span>
-                      {formatDate(selectedSession.updatedAt)} ·{' '}
-                      {sessionDetail?.messages
-                        ? `${sessionDetail.messages.length}/${selectedSession.messageCount} ${t('sessions.messages', 'messages')}`
-                        : `${selectedSession.messageCount} ${t('sessions.messages', 'messages')}`}
-                    </span>
-                    {isFetchingDetail && !isLoadingDetail && (
-                      <span className="inline-flex items-center gap-1 text-xs text-primary">
-                        <RefreshCw className="h-3 w-3 animate-spin" />
-                        updating...
+                  {/* Title row with Live indicator */}
+                  <div className="flex items-center gap-2">
+                    {/* Live refresh indicator - always shown at the front */}
+                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 shrink-0">
+                      <RefreshCw className="h-3 w-3 animate-spin text-primary" />
+                      <span className="text-[10px] text-primary font-medium">
+                        {t('sessions.liveRefresh', 'Live')}
                       </span>
+                    </div>
+                    <h3 className="font-semibold truncate">
+                      {selectedSession.firstMessage
+                        ? truncateText(selectedSession.firstMessage, 100)
+                        : selectedSession.fileName || 'Untitled Session'}
+                    </h3>
+                  </div>
+
+                  {/* Metadata row - Time, Messages, Session ID, Work */}
+                  <div className="flex flex-col gap-1 mt-2">
+                    {/* Time and Messages */}
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span>{formatDate(selectedSession.updatedAt)}</span>
+                      <span className="text-border">·</span>
+                      <span>
+                        {sessionDetail?.messages
+                          ? `${sessionDetail.messages.length}/${selectedSession.messageCount} ${t('sessions.messages', 'messages')}`
+                          : `${selectedSession.messageCount} ${t('sessions.messages', 'messages')}`}
+                      </span>
+                    </div>
+
+                    {/* Session ID */}
+                    {selectedSession.id && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                          Session ID:
+                        </span>
+                        <span className="text-xs font-mono truncate">{selectedSession.id}</span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(selectedSession.id || '');
+                            setCopied(true);
+                            setTimeout(() => setCopied(false), 2000);
+                          }}
+                          className="p-1 hover:bg-muted rounded-md transition-colors"
+                          title="Copy Session ID"
+                        >
+                          {copied ? (
+                            <Check className="h-3 w-3 text-green-500" />
+                          ) : (
+                            <Copy className="h-3 w-3 text-muted-foreground" />
+                          )}
+                        </button>
+                      </div>
                     )}
-                  </p>
-                  {/* Session ID - always show */}
-                  {selectedSession.id && (
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                        Session ID:
-                      </span>
-                      <span className="text-xs font-mono truncate">{selectedSession.id}</span>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(selectedSession.id || '');
-                          setCopied(true);
-                          setTimeout(() => setCopied(false), 2000);
-                        }}
-                        className="p-1 hover:bg-muted rounded-md transition-colors"
-                        title="Copy Session ID"
-                      >
-                        {copied ? (
-                          <Check className="h-3 w-3 text-green-500" />
-                        ) : (
-                          <Copy className="h-3 w-3 text-muted-foreground" />
-                        )}
-                      </button>
-                    </div>
-                  )}
-                  {/* Working Directory (for OpenCode) */}
-                  {selectedSession.directory && (
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                        Work:
-                      </span>
-                      <span className="text-xs text-muted-foreground font-mono truncate">
-                        {selectedSession.directory}
-                      </span>
-                    </div>
-                  )}
+
+                    {/* Working Directory */}
+                    {selectedSession.directory && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                          Work:
+                        </span>
+                        <span className="text-xs text-muted-foreground font-mono truncate">
+                          {selectedSession.directory}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 {/* Search and Resume Buttons */}
                 <div className="flex items-center gap-2">
@@ -504,10 +519,17 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                       <TooltipContent side="bottom">
                         <p>
                           {!canResume
-                            ? t('sessions.installGhosttyTip', 'Install Ghostty for best experience')
+                            ? t(
+                                'sessions.installTerminalTip',
+                                'Install Ghostty or Kitty for best experience'
+                              )
                             : t('sessions.resumeInTerminal', {
                                 terminal:
-                                  terminalInfo?.preferred === 'ghostty' ? 'Ghostty' : 'Terminal',
+                                  terminalInfo?.preferred === 'ghostty'
+                                    ? 'Ghostty'
+                                    : terminalInfo?.preferred === 'kitty'
+                                      ? 'Kitty'
+                                      : 'Terminal',
                               })}
                         </p>
                       </TooltipContent>

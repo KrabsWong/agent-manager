@@ -1,8 +1,9 @@
 import { useTranslation } from 'react-i18next';
-import { Type, Terminal } from 'lucide-react';
+import { Type, Terminal, Monitor } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { ColorPicker } from '@/components/ColorPicker';
+import { TerminalSelector } from '@/components/TerminalSelector';
 import { useTheme } from '@/components/ThemeProvider';
 import { useVersion } from '@/hooks/useVersion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -43,6 +44,8 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           </Card>
 
           <ExperienceSettings />
+
+          <TerminalSettings />
         </div>
 
         {/* Version */}
@@ -157,6 +160,28 @@ function ExperienceSettings() {
             />
           </div>
         </button>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Terminal settings component
+function TerminalSettings() {
+  const { t } = useTranslation();
+
+  return (
+    <Card className="border-border/60">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Monitor className="h-4 w-4" />
+          {t('settings.terminalTitle') || 'Terminal'}
+        </CardTitle>
+        <CardDescription className="text-xs">
+          {t('settings.terminalDescription') || 'Choose your preferred terminal application'}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <TerminalSelector />
       </CardContent>
     </Card>
   );
