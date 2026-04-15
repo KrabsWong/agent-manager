@@ -20,6 +20,15 @@ import {
 import { cn } from '@/lib/utils';
 import { treeApi, shellApi, type TreeNode } from '@/lib/api';
 import { FilePreview } from './FilePreview';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 interface SessionContextPanelProps {
   sessionDirectory?: string;
@@ -150,6 +159,12 @@ export function SessionContextPanel({
   } | null>(null);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
 
+  // External open confirmation dialog state
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingOpenFile, setPendingOpenFile] = useState<{ path: string; name: string } | null>(
+    null
+  );
+
   const loadTree = useCallback(async () => {
     if (!sessionDirectory) return;
 
@@ -182,6 +197,7 @@ export function SessionContextPanel({
       'svg',
       'bmp',
       'ico',
+      'icns',
       'tiff',
       'tif',
       'avif',
@@ -191,10 +207,82 @@ export function SessionContextPanel({
     return imageExts.includes(ext);
   }, []);
 
+  // Check if file needs confirmation before opening externally
+  const needsConfirmation = useCallback((fileName: string): boolean => {
+    const ext = fileName.split('.').pop()?.toLowerCase() || '';
+    // Binary files that should not be opened directly in Monaco
+    const binaryExts = [
+      // Archives
+      'zip',
+      'rar',
+      '7z',
+      'tar',
+      'gz',
+      'bz2',
+      'xz',
+      'lz4',
+      'zst',
+      // Executables
+      'exe',
+      'msi',
+      'dmg',
+      'pkg',
+      'deb',
+      'rpm',
+      'appimage',
+      // macOS bundles
+      'app',
+      'framework',
+      'bundle',
+      // Documents that need specific apps
+      'pdf',
+      'doc',
+      'docx',
+      'xls',
+      'xlsx',
+      'ppt',
+      'pptx',
+      // Binary assets
+      'icns',
+      'ico',
+      'cur',
+      // Databases
+      'db',
+      'sqlite',
+      'sqlite3',
+      // Certificates
+      'cer',
+      'cert',
+      'crt',
+      'pem',
+      'p12',
+      'pfx',
+      // Fonts
+      'ttf',
+      'otf',
+      'woff',
+      'woff2',
+      'eot',
+      // Compiled files
+      'wasm',
+      'so',
+      'dll',
+      'dylib',
+    ];
+    return binaryExts.includes(ext);
+  }, []);
+
   // Handle file click - load content and show preview
   const handleFileClick = useCallback(
     async (filePath: string, fileName: string) => {
       if (previewFile?.path === filePath) return;
+
+      // Check if file needs confirmation before opening
+      if (needsConfirmation(fileName)) {
+        setPendingOpenFile({ path: filePath, name: fileName });
+        setConfirmOpen(true);
+        return;
+      }
 
       setIsLoadingPreview(true);
       try {
@@ -224,8 +312,23 @@ export function SessionContextPanel({
         setIsLoadingPreview(false);
       }
     },
-    [previewFile, onPreviewStart, isImageFile]
+    [previewFile, onPreviewStart, isImageFile, needsConfirmation]
   );
+
+  // Handle confirmed external open
+  const handleConfirmOpen = useCallback(async () => {
+    if (pendingOpenFile) {
+      await shellApi.openPath(pendingOpenFile.path);
+      setPendingOpenFile(null);
+    }
+    setConfirmOpen(false);
+  }, [pendingOpenFile]);
+
+  // Handle cancel external open
+  const handleCancelOpen = useCallback(() => {
+    setConfirmOpen(false);
+    setPendingOpenFile(null);
+  }, []);
 
   const handleClosePreview = useCallback(() => {
     setPreviewFile(null);
@@ -405,6 +508,26 @@ export function SessionContextPanel({
           className="flex-1 min-w-0 overflow-hidden"
         />
       )}
+
+      {/* External Open Confirmation Dialog */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Open File Externally?</DialogTitle>
+            <DialogDescription>
+              The file <span className="font-medium text-foreground">{pendingOpenFile?.name}</span>{' '}
+              cannot be previewed directly and will be opened with your system's default
+              application.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-row justify-end gap-2">
+            <Button variant="outline" onClick={handleCancelOpen}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmOpen}>Open</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
