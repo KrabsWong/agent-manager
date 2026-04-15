@@ -57,7 +57,17 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+
+  // Debounce search query to avoid excessive re-renders while typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // View mode and collapse state for session list
   const [viewMode, setViewMode] = useState<ViewMode>('date');
@@ -144,11 +154,11 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
     setSearchQuery('');
   };
 
-  // Calculate matching messages count for search display
+  // Calculate matching messages count for search display (using debounced query)
   const matchCount = useMemo(() => {
-    if (!searchQuery.trim() || !sessionDetail?.messages) return 0;
+    if (!debouncedSearchQuery.trim() || !sessionDetail?.messages) return 0;
 
-    const query = searchQuery.toLowerCase();
+    const query = debouncedSearchQuery.toLowerCase();
     let count = 0;
 
     sessionDetail.messages.forEach((msg) => {
@@ -168,7 +178,7 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
     });
 
     return count;
-  }, [searchQuery, sessionDetail?.messages]);
+  }, [debouncedSearchQuery, sessionDetail?.messages]);
 
   // Toggle collapse state for a group
   const toggleGroup = (groupKey: string) => {
@@ -480,7 +490,7 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>
-                        {searchQuery && (
+                        {debouncedSearchQuery && (
                           <span className="text-[10px] text-muted-foreground whitespace-nowrap">
                             {matchCount} {t('search.matchesShort', 'matches')}
                           </span>
@@ -569,7 +579,7 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                 ) : sessionDetail?.messages && sessionDetail.messages.length > 0 ? (
                   <ConversationView
                     messages={sessionDetail.messages}
-                    searchQuery={searchQuery}
+                    searchQuery={debouncedSearchQuery}
                     appType={selectedApp}
                     shouldLoadAll={shouldLoadAll}
                     onLoadAllComplete={() => {

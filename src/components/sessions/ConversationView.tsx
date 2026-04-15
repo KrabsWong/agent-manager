@@ -1217,6 +1217,26 @@ const AssistantMessage = memo(function AssistantMessage({
   const [isExpanded, setIsExpanded] = useState(false);
   const [isReasoningExpanded, setIsReasoningExpanded] = useState(false);
 
+  // Auto-expand reasoning only when this specific content matches search
+  useEffect(() => {
+    if (!searchQuery || !reasoningContent) return;
+
+    const hasMatch = reasoningContent.toLowerCase().includes(searchQuery.toLowerCase());
+    if (hasMatch) {
+      setIsReasoningExpanded(true);
+    }
+  }, [searchQuery, reasoningContent]);
+
+  // Auto-expand main content only when this specific content matches search
+  useEffect(() => {
+    if (searchQuery && content) {
+      const hasMatch = content.toLowerCase().includes(searchQuery.toLowerCase());
+      if (hasMatch) {
+        setIsExpanded(true);
+      }
+    }
+  }, [searchQuery, content]);
+
   // For Claude Code: parse XML before truncating to avoid breaking XML structure
   const parsedXML = useMemo(
     () => (appType === 'claude' ? parseClaudeCodeXML(content) : null),
@@ -1525,6 +1545,16 @@ function ToolCallBlock({
   const [isReasoningExpanded, setIsReasoningExpanded] = useState(false);
   const reasoningContent = toolUse?.reasoning_content || toolResult?.reasoning_content;
 
+  // Auto-expand only when this specific reasoning content matches search
+  useEffect(() => {
+    if (!searchQuery || !reasoningContent) return;
+
+    const hasMatch = reasoningContent.toLowerCase().includes(searchQuery.toLowerCase());
+    if (hasMatch) {
+      setIsReasoningExpanded(true);
+    }
+  }, [searchQuery, reasoningContent]);
+
   // Determine if this tool should be collapsible (bash, read, write, edit, search, mcp, etc.)
   const toolNameLower = toolName.toLowerCase();
   const isCollapsibleTool =
@@ -1548,6 +1578,22 @@ function ToolCallBlock({
   // Default collapsed state based on setting (only for collapsible tools)
   const shouldDefaultCollapse = isCollapsibleTool && collapseBashBlocks;
   const [isExpanded, setIsExpanded] = useState(!shouldDefaultCollapse);
+
+  // Auto-expand only when this specific tool's input/output matches search
+  useEffect(() => {
+    if (!searchQuery || !isCollapsibleTool) return;
+
+    const query = searchQuery.toLowerCase();
+    const inputStr = toolUse?.tool_input ? JSON.stringify(toolUse.tool_input).toLowerCase() : '';
+    const outputStr = toolResult?.tool_output
+      ? JSON.stringify(toolResult.tool_output).toLowerCase()
+      : '';
+    const hasMatch = inputStr.includes(query) || outputStr.includes(query);
+
+    if (hasMatch) {
+      setIsExpanded(true);
+    }
+  }, [searchQuery, toolUse?.tool_input, toolResult?.tool_output, isCollapsibleTool]);
 
   // Use SubAgentCard for sub-agent calls
   if (toolType === 'subagent') {
