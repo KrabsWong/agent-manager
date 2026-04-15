@@ -170,6 +170,27 @@ export function SessionContextPanel({
     loadTree();
   }, [loadTree]);
 
+  // Check if file is an image
+  const isImageFile = useCallback((fileName: string): boolean => {
+    const ext = fileName.split('.').pop()?.toLowerCase() || '';
+    const imageExts = [
+      'jpg',
+      'jpeg',
+      'png',
+      'gif',
+      'webp',
+      'svg',
+      'bmp',
+      'ico',
+      'tiff',
+      'tif',
+      'avif',
+      'heic',
+      'heif',
+    ];
+    return imageExts.includes(ext);
+  }, []);
+
   // Handle file click - load content and show preview
   const handleFileClick = useCallback(
     async (filePath: string, fileName: string) => {
@@ -177,17 +198,33 @@ export function SessionContextPanel({
 
       setIsLoadingPreview(true);
       try {
-        const content = (await window.electronAPI.invoke('file:read', filePath)) as string;
+        let content: string;
+
+        if (isImageFile(fileName)) {
+          // Read image as base64 data URL
+          content = (await window.electronAPI.invoke('file:readImage', filePath)) as string;
+        } else {
+          // Read as text
+          content = (await window.electronAPI.invoke('file:read', filePath)) as string;
+        }
+
         setPreviewFile({ path: filePath, name: fileName, content });
         onPreviewStart?.();
       } catch (err) {
         console.error('Failed to read file:', err);
-        shellApi.openPath(filePath);
+        // Show error toast or notification before opening externally
+        const errorMsg = err instanceof Error ? err.message : 'Failed to read file';
+        if (errorMsg.includes('too large')) {
+          // For large files, just open externally without showing error
+          shellApi.openPath(filePath);
+        } else {
+          shellApi.openPath(filePath);
+        }
       } finally {
         setIsLoadingPreview(false);
       }
     },
-    [previewFile, onPreviewStart]
+    [previewFile, onPreviewStart, isImageFile]
   );
 
   const handleClosePreview = useCallback(() => {

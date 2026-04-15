@@ -296,14 +296,57 @@ ipcMain.handle('file:read', async (_event, filePath: string) => {
     if (stats.isDirectory()) {
       throw new Error('Cannot read directory as file');
     }
-    // Limit file size (10MB)
-    if (stats.size > 10 * 1024 * 1024) {
-      throw new Error('File too large (>10MB)');
+    // Limit file size (50MB for text files)
+    if (stats.size > 50 * 1024 * 1024) {
+      throw new Error('File too large (>50MB)');
     }
     const content = await readFile(filePath, 'utf-8');
     return content;
   } catch (error) {
     log.error('Failed to read file:', error);
+    throw error;
+  }
+});
+
+// Register image file read handler (returns base64)
+ipcMain.handle('file:readImage', async (_event, filePath: string) => {
+  try {
+    // Validate file path (basic security)
+    if (!filePath || typeof filePath !== 'string') {
+      throw new Error('Invalid file path');
+    }
+    // Prevent reading directories
+    const stats = await fs.promises.stat(filePath);
+    if (stats.isDirectory()) {
+      throw new Error('Cannot read directory as image');
+    }
+    // Limit file size (10MB)
+    if (stats.size > 10 * 1024 * 1024) {
+      throw new Error('Image too large (>10MB)');
+    }
+    // Read as base64
+    const buffer = await readFile(filePath);
+    const ext = filePath.split('.').pop()?.toLowerCase() || '';
+    const mimeTypes: Record<string, string> = {
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      gif: 'image/gif',
+      webp: 'image/webp',
+      svg: 'image/svg+xml',
+      bmp: 'image/bmp',
+      ico: 'image/x-icon',
+      tiff: 'image/tiff',
+      tif: 'image/tiff',
+      avif: 'image/avif',
+      heic: 'image/heic',
+      heif: 'image/heif',
+    };
+    const mimeType = mimeTypes[ext] || 'image/png';
+    const base64 = buffer.toString('base64');
+    return `data:${mimeType};base64,${base64}`;
+  } catch (error) {
+    log.error('Failed to read image:', error);
     throw error;
   }
 });

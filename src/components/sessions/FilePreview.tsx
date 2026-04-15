@@ -2,11 +2,12 @@
  * File Preview Component
  *
  * Monaco-based read-only file viewer with theme support
+ * Also supports image preview
  */
 
 import { useState, useMemo, useEffect, useRef } from 'react';
 import Editor, { type Monaco } from '@monaco-editor/react';
-import { X, FileText, ExternalLink } from 'lucide-react';
+import { X, FileText, ExternalLink, Image } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { shellApi } from '@/lib/api';
 
@@ -179,6 +180,8 @@ function getLanguage(fileName: string): string {
     plist: 'xml',
     storyboard: 'xml',
     xib: 'xml',
+    // Log files
+    log: 'plaintext',
   };
   return languageMap[ext] || 'plaintext';
 }
@@ -195,6 +198,9 @@ export function FilePreview({ filePath, fileName, content, onClose, className }:
   const [theme, setTheme] = useState<'tokyo-night' | 'app-light'>('tokyo-night');
   const language = useMemo(() => getLanguage(fileName), [fileName]);
   const fileSize = useMemo(() => formatFileSize(content), [content]);
+
+  // Check if content is an image (data URL)
+  const isImage = useMemo(() => content.startsWith('data:image/'), [content]);
 
   // Refs for editor and container
   const editorRef = useRef<any>(null);
@@ -250,13 +256,17 @@ export function FilePreview({ filePath, fileName, content, onClose, className }:
     <div className={cn('flex flex-col h-full w-full min-w-0 bg-card border-l', className)}>
       <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/30 shrink-0">
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          {isImage ? (
+            <Image className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          ) : (
+            <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          )}
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium truncate" title={fileName}>
               {fileName}
             </p>
             <p className="text-[10px] text-muted-foreground truncate">
-              {fileSize} • {language}
+              {fileSize} • {isImage ? 'Image' : language}
             </p>
           </div>
         </div>
@@ -279,49 +289,64 @@ export function FilePreview({ filePath, fileName, content, onClose, className }:
       </div>
 
       <div ref={containerRef} className="flex-1 relative min-h-0 min-w-0 w-full overflow-hidden">
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-card z-10">
-            <div className="flex flex-col items-center gap-2">
-              <div className="h-5 w-5 border-2 border-muted-foreground/20 border-t-muted-foreground/60 rounded-full animate-spin" />
-              <p className="text-xs text-muted-foreground">Loading...</p>
-            </div>
+        {isImage ? (
+          // Image preview
+          <div className="w-full h-full flex items-center justify-center bg-muted/30 p-4 overflow-auto">
+            <img
+              src={content}
+              alt={fileName}
+              className="max-w-full max-h-full object-contain"
+              onLoad={() => setIsLoading(false)}
+            />
           </div>
-        )}
+        ) : (
+          // Text preview with Monaco
+          <>
+            {isLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-card z-10">
+                <div className="flex flex-col items-center gap-2">
+                  <div className="h-5 w-5 border-2 border-muted-foreground/20 border-t-muted-foreground/60 rounded-full animate-spin" />
+                  <p className="text-xs text-muted-foreground">Loading...</p>
+                </div>
+              </div>
+            )}
 
-        <Editor
-          height="100%"
-          width="100%"
-          language={language}
-          value={content}
-          theme={theme}
-          options={{
-            readOnly: true,
-            minimap: { enabled: true, scale: 1 },
-            scrollBeyondLastLine: false,
-            fontSize: 13,
-            lineNumbers: 'on',
-            renderWhitespace: 'selection',
-            wordWrap: 'on',
-            automaticLayout: false,
-            folding: true,
-            lineHeight: 1.6,
-            padding: { top: 12, bottom: 12 },
-            fixedOverflowWidgets: true,
-            overviewRulerBorder: false,
-          }}
-          onMount={(editor, monaco) => {
-            // Save editor instance to ref
-            editorRef.current = editor;
-            defineThemes(monaco);
-            setIsLoading(false);
-            setIsEditorReady(true);
-            // Force layout update after mount
-            setTimeout(() => {
-              editor.layout();
-            }, 100);
-          }}
-          loading={null}
-        />
+            <Editor
+              height="100%"
+              width="100%"
+              language={language}
+              value={content}
+              theme={theme}
+              options={{
+                readOnly: true,
+                minimap: { enabled: true, scale: 1 },
+                scrollBeyondLastLine: false,
+                fontSize: 13,
+                lineNumbers: 'on',
+                renderWhitespace: 'selection',
+                wordWrap: 'on',
+                automaticLayout: false,
+                folding: true,
+                lineHeight: 1.6,
+                padding: { top: 12, bottom: 12 },
+                fixedOverflowWidgets: true,
+                overviewRulerBorder: false,
+              }}
+              onMount={(editor, monaco) => {
+                // Save editor instance to ref
+                editorRef.current = editor;
+                defineThemes(monaco);
+                setIsLoading(false);
+                setIsEditorReady(true);
+                // Force layout update after mount
+                setTimeout(() => {
+                  editor.layout();
+                }, 100);
+              }}
+              loading={null}
+            />
+          </>
+        )}
       </div>
     </div>
   );
