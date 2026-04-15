@@ -41,8 +41,8 @@ export function buildResumeCommand(
       return { command: 'claude', args: [`--resume=${sessionId}`] };
 
     case 'claude-internal':
-      // Claude Code Internal: claude-internal --resume=<SESSION_ID>
-      return { command: 'claude-internal', args: [`--resume=${sessionId}`] };
+      // Claude Code Internal: claude-internal --resume <SESSION_ID>
+      return { command: 'claude-internal', args: ['--resume', sessionId] };
 
     case 'opencode':
       // OpenCode: opencode -s <SESSION_ID>

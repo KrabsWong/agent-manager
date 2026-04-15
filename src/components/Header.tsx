@@ -31,10 +31,10 @@ export function Header({ selectedApp, onAppChange }: HeaderProps) {
         {/* 右侧：应用选择器 + 设置按钮 */}
         <div className="flex items-center gap-2">
           <Select value={selectedApp} onValueChange={(value) => onAppChange(value as AppType)}>
-            <SelectTrigger className="w-44 h-9 app-no-drag">
+            <SelectTrigger className="w-52 h-9 app-no-drag">
               <div className="flex items-center gap-2">
                 <span className={APP_COLORS[selectedApp]}>{getAppIcon(selectedApp)}</span>
-                <span>{APP_LABELS[selectedApp]}</span>
+                <span className="truncate">{APP_LABELS[selectedApp]}</span>
               </div>
             </SelectTrigger>
             <SelectContent className="min-w-[12rem] app-no-drag">
