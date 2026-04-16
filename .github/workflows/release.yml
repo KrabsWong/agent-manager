@@ -177,61 +177,63 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check Homebrew Tap exists
-        id: check-tap
+      - name: Create Release in homebrew-yes-sessions (public)
         env:
-          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
-          # 检查是否已创建 Tap 仓库（需要认证才能访问私有仓库）
-          if [ -n "$HOMEBREW_TAP_TOKEN" ]; then
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token ${HOMEBREW_TAP_TOKEN}" https://api.github.com/repos/KrabsWong/homebrew-yes-sessions)
-          else
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://api.github.com/repos/KrabsWong/homebrew-yes-sessions)
-          fi
+          VERSION=${{ steps.verify-version.outputs.version }}
+          DMG_FILE=$(ls dist/Yes-Sessions-*-arm64.dmg)
 
-          if [ "$STATUS" = "200" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-            echo "✅ Homebrew Tap 仓库存在"
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "⚠️ Homebrew Tap 仓库不存在或无法访问 (状态码: $STATUS)"
-            echo "如需启用自动推送，请创建仓库: https://github.com/new?name=homebrew-yes-sessions"
-          fi
+          # 在 homebrew-yes-sessions 仓库创建 release 并上传 DMG
+          # 使用公开仓库托管构建产物，确保 Homebrew 可以无认证下载
+          gh release create "v${VERSION}" "$DMG_FILE" \
+            --repo KrabsWong/homebrew-yes-sessions \
+            --title "v${VERSION}" \
+            --notes "Yes Sessions v${VERSION}" \
+            --latest
 
       - name: Update Homebrew Cask
-        if: steps.check-tap.outputs.exists == 'true'
         env:
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
-          # 检查 Token 是否配置
-          if [ -z "$HOMEBREW_TAP_TOKEN" ]; then
-            echo "⚠️ HOMEBREW_TAP_TOKEN 未配置，跳过更新"
-            echo "请在仓库 Settings -> Secrets -> Actions 中添加 HOMEBREW_TAP_TOKEN"
-            exit 0
-          fi
+          VERSION=${{ steps.verify-version.outputs.version }}
+          SHA256=${{ steps.sha256.outputs.arm64 }}
 
           # 配置 git
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
 
           # 克隆 Tap 仓库
-          git clone https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/KrabsWong/homebrew-yes-sessions.git || {
-            echo "⚠️ 克隆 Tap 仓库失败，跳过更新"
-            exit 0
-          }
+          git clone https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/KrabsWong/homebrew-yes-sessions.git
           cd homebrew-yes-sessions
 
-          # 更新 Cask 文件（使用已验证的版本号）
-          VERSION=${{ steps.verify-version.outputs.version }}
-          SHA256=${{ steps.sha256.outputs.arm64 }}
+          # 更新 Cask：URL 指向公开的 homebrew-yes-sessions release
+          cat > Casks/yes-sessions.rb << EOF
+cask "yes-sessions" do
+  version "${VERSION}"
+  sha256 "${SHA256}"
 
-          # 使用 sed 更新版本号和 SHA256
-          sed -i '' "s/version \".*\"/version \"${VERSION}\"/" Casks/yes-sessions.rb
-          sed -i '' "s/sha256 \".*\"/sha256 \"${SHA256}\"/" Casks/yes-sessions.rb
+  url "https://github.com/KrabsWong/homebrew-yes-sessions/releases/download/v#{version}/Yes-Sessions-#{version}-arm64.dmg"
+  name "Yes Sessions"
+  desc "AI Session Manager - Browse and resume your AI conversations"
+  homepage "https://github.com/KrabsWong/agent-manager"
 
-          # 提交并推送
+  # Only support Apple Silicon
+  depends_on arch: :arm64
+
+  app "Yes-Sessions.app"
+
+  zap trash: [
+    "~/Library/Application Support/yes-sessions",
+    "~/Library/Preferences/com.yes-sessions.plist",
+    "~/Library/Logs/yes-sessions",
+    "~/Library/Saved Application State/com.yes-sessions.savedState",
+  ]
+end
+EOF
+
           git add .
-          git commit -m "Update yes-sessions to ${VERSION}" || echo "无变更需要提交"
-          git push || echo "推送失败"
+          git commit -m "Update yes-sessions to ${VERSION}"
+          git push
 
           echo "✅ Homebrew Cask updated to version ${VERSION}"
