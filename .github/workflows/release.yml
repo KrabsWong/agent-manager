@@ -121,16 +121,41 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Check Homebrew Tap exists
+        id: check-tap
+        run: |
+          # 检查是否已创建 Tap 仓库
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://api.github.com/repos/KrabsWong/homebrew-yes-sessions)
+          if [ "$STATUS" = "200" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "✅ Homebrew Tap 仓库存在"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Homebrew Tap 仓库不存在 (状态码: $STATUS)"
+            echo "如需启用自动推送，请创建仓库: https://github.com/new?name=homebrew-yes-sessions"
+          fi
+
       - name: Update Homebrew Cask
+        if: steps.check-tap.outputs.exists == 'true'
         env:
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
+          # 检查 Token 是否配置
+          if [ -z "$HOMEBREW_TAP_TOKEN" ]; then
+            echo "⚠️ HOMEBREW_TAP_TOKEN 未配置，跳过更新"
+            echo "请在仓库 Settings -> Secrets -> Actions 中添加 HOMEBREW_TAP_TOKEN"
+            exit 0
+          fi
+
           # 配置 git
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
 
           # 克隆 Tap 仓库
-          git clone https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/KrabsWong/homebrew-yes-sessions.git
+          git clone https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/KrabsWong/homebrew-yes-sessions.git || {
+            echo "⚠️ 克隆 Tap 仓库失败，跳过更新"
+            exit 0
+          }
           cd homebrew-yes-sessions
 
           # 更新 Cask 文件
@@ -143,7 +168,7 @@ jobs:
 
           # 提交并推送
           git add .
-          git commit -m "Update yes-sessions to ${VERSION}"
-          git push
+          git commit -m "Update yes-sessions to ${VERSION}" || echo "无变更需要提交"
+          git push || echo "推送失败"
 
           echo "✅ Homebrew Cask updated to version ${VERSION}"
