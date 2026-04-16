@@ -104,6 +104,22 @@ electron/
 
 - 会话文件：`~/.codebuddy/projects/<project>/*.jsonl`
 
+## 开发贡献
+
+### 自动化版本管理
+
+本项目使用自动化版本管理工作流：
+
+1. 从 `main` 分支创建功能分支：`git checkout -b feature/xxx`
+2. 开发完成后提交并推送到远程
+3. 创建 PR 到 `main` 分支，并添加标签：
+   - `major` - 破坏性变更 (x.0.0)
+   - `minor` - 新功能 (x.y.0)
+   - `patch` - Bug 修复 (x.y.z)
+4. 合并 PR 后，版本会自动升级并触发 Release 构建
+
+查看完整文档：[VERSION_MANAGEMENT.md](./docs/VERSION_MANAGEMENT.md)
+
 ## 许可证
 
 MIT
