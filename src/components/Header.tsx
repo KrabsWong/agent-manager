@@ -19,8 +19,8 @@ export function Header({ selectedApp, onAppChange }: HeaderProps) {
 
   return (
     <>
-      {/* 顶部导航栏 - pt-4 为系统按钮预留更多空间，z-50 确保在 drag region 之上 */}
-      <header className="h-20 border-b border-border/50 bg-card flex items-center justify-between px-6 pt-4 relative z-50 app-no-drag">
+      {/* 顶部导航栏 - pt-4 为系统按钮预留更多空间，z-50 确保在 drag region 之上，Header 本身可拖动 */}
+      <header className="h-20 border-b border-border/50 bg-card flex items-center justify-between px-6 pt-4 relative z-50">
         {/* 左侧：Logo + 标题 */}
         <div className="flex items-center gap-3">
           <img src="./logo.png" alt="Yes Sessions Logo" className="w-8 h-8 rounded-lg shadow-md" />
