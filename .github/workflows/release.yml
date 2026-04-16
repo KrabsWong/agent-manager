@@ -22,17 +22,54 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify version consistency
+        id: verify-version
+        run: |
+          # 从 tag 获取版本号（去掉 v 前缀）
+          TAG_VERSION=${GITHUB_REF_NAME#v}
+
+          # 从 package.json 获取版本号
+          PKG_VERSION=$(node -p "require('./package.json').version")
+
+          echo "Tag version: $TAG_VERSION"
+          echo "Package.json version: $PKG_VERSION"
+
+          # 对比版本号
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "❌ 版本号不一致！"
+            echo "   Tag: v$TAG_VERSION"
+            echo "   package.json: $PKG_VERSION"
+            echo ""
+            echo "如果你在使用自动版本管理，请不要手动打 tag。"
+            echo "正确流程："
+            echo "  1. 创建 PR 到 main 分支"
+            echo "  2. 添加标签: major / minor / patch"
+            echo "  3. 合并 PR，版本会自动升级"
+            echo ""
+            echo "如果你确实需要手动修复，请运行:"
+            echo "  npm version $TAG_VERSION --no-git-tag-version"
+            echo "  git add package.json package-lock.json"
+            echo "  git commit -m \"chore(release): bump version to $TAG_VERSION\""
+            echo "  git tag -d v$TAG_VERSION && git tag v$TAG_VERSION"
+            echo "  git push --force origin v$TAG_VERSION"
+            exit 1
+          fi
+
+          echo "✅ 版本号一致: $PKG_VERSION"
+          echo "version=$PKG_VERSION" >> $GITHUB_OUTPUT
+
       - name: Build macOS
         run: npm run build:mac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get version
+      - name: Get version info
         id: version
         run: |
-          VERSION=${GITHUB_REF_NAME#v}
+          # 使用验证过的版本号，确保一致性
+          VERSION=${{ steps.verify-version.outputs.version }}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Version: $VERSION"
+          echo "Using verified version: $VERSION"
 
       - name: Calculate SHA256
         id: sha256
@@ -165,8 +202,8 @@ jobs:
           }
           cd homebrew-yes-sessions
 
-          # 更新 Cask 文件
-          VERSION=${GITHUB_REF_NAME#v}
+          # 更新 Cask 文件（使用已验证的版本号）
+          VERSION=${{ steps.verify-version.outputs.version }}
           SHA256=${{ steps.sha256.outputs.arm64 }}
 
           # 使用 sed 更新版本号和 SHA256
