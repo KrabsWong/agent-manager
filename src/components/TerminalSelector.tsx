@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Terminal, Ghost, Cat } from 'lucide-react';
 import { useTerminalInfo } from '@/hooks/useSessions';
 import { useSettings } from '@/hooks/useSettings';
+import { useToast } from '@/hooks/useToast';
 import { cn } from '@/lib/utils';
 import type { AppSettings } from '@/types';
 
@@ -16,6 +17,7 @@ export function TerminalSelector() {
   const { t } = useTranslation();
   const { data: terminalInfo } = useTerminalInfo();
   const { settings, updateSettings } = useSettings();
+  const { toast } = useToast();
 
   const installedTerminals: TerminalOption[] = [
     {
@@ -54,6 +56,11 @@ export function TerminalSelector() {
 
   const handleSelect = (terminalId: AppSettings['preferredTerminal']) => {
     updateSettings({ preferredTerminal: terminalId });
+    const option = availableOptions.find((opt) => opt.id === terminalId);
+    toast({
+      title: t('settings.terminalChanged', 'Terminal preference saved'),
+      description: option?.label,
+    });
   };
 
   return (

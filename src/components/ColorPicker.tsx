@@ -3,6 +3,7 @@ import { Check, Palette } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { accentColors, type AccentColor, getColorById } from '@/lib/theme/colors';
 import { useTheme } from '@/components/ThemeProvider';
+import { useToast } from '@/hooks/useToast';
 import {
   Dialog,
   DialogContent,
@@ -36,24 +37,29 @@ function useDarkCheck(colorId: AccentColor): boolean {
 export function ColorPicker({ value, onChange }: ColorPickerProps) {
   const { t } = useTranslation();
   const { resolvedTheme } = useTheme();
+  const { toast } = useToast();
   const isDark = resolvedTheme === 'dark';
   const currentColor = getColorById(value);
 
+  const handleColorChange = (colorId: AccentColor) => {
+    onChange(colorId);
+    toast({
+      title: t('settings.accentColorChanged', 'Accent color changed'),
+      description: t(`settings.colors.${colorId}`) || getColorById(colorId).name,
+    });
+  };
+
   return (
     <Dialog>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
-          <div className="text-sm font-medium">
-            {t('settings.accentColor') || 'Accent Color'}
-            <span className="text-muted-foreground font-normal">
-              {' · '}
-              {t(`settings.colors.${value}`) || currentColor.name}
-            </span>
-          </div>
           <div
-            className="w-4 h-4 rounded-full border border-border/60 shrink-0"
+            className="w-5 h-5 rounded-full border border-border/60 shrink-0"
             style={getColorPreviewStyle(value, isDark)}
           />
+          <span className="text-sm text-muted-foreground">
+            {t(`settings.colors.${value}`) || currentColor.name}
+          </span>
         </div>
         <DialogTrigger asChild>
           <button className="flex items-center justify-center w-8 h-8 rounded-md border border-border/60 hover:border-primary/50 hover:bg-accent/50 transition-colors shrink-0">
@@ -72,7 +78,7 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
             return (
               <button
                 key={color.id}
-                onClick={() => onChange(color.id)}
+                onClick={() => handleColorChange(color.id)}
                 data-selected={isSelected}
                 className={cn(
                   'group relative flex flex-col items-center gap-2 p-2 rounded-lg transition-all',

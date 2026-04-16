@@ -1216,6 +1216,7 @@ const AssistantMessage = memo(function AssistantMessage({
   const assistantName = APP_LABELS[appType as AppType] || APP_LABELS.claude;
   const [isExpanded, setIsExpanded] = useState(false);
   const [isReasoningExpanded, setIsReasoningExpanded] = useState(false);
+  const { showThinkingContent } = useExperienceStore();
 
   // Auto-expand reasoning only when this specific content matches search
   useEffect(() => {
@@ -1266,9 +1267,11 @@ const AssistantMessage = memo(function AssistantMessage({
           )}
           <span className="text-xs text-muted-foreground">{formatTimestamp(timestamp)}</span>
         </div>
-        <div className={content && reasoningContent ? 'space-y-2' : undefined}>
+        <div
+          className={content && reasoningContent && showThinkingContent ? 'space-y-2' : undefined}
+        >
           {/* Reasoning / Thinking Block */}
-          {reasoningContent && (
+          {reasoningContent && showThinkingContent && (
             <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/20 overflow-hidden">
               <button
                 onClick={() => setIsReasoningExpanded(!isReasoningExpanded)}
@@ -1536,7 +1539,7 @@ function ToolCallBlock({
   searchQuery = '',
 }: ToolCallBlockProps) {
   const { t } = useTranslation();
-  const { collapseBashBlocks } = useExperienceStore();
+  const { collapseBashBlocks, showThinkingContent } = useExperienceStore();
 
   const toolName = toolUse?.tool_name || toolResult?.tool_name || 'unknown';
   const toolType = getToolType(toolName);
@@ -1672,7 +1675,7 @@ function ToolCallBlock({
   return (
     <div className="border rounded-lg overflow-hidden bg-muted/30">
       {/* Thinking / Reasoning Block */}
-      {reasoningContent && (
+      {reasoningContent && showThinkingContent && (
         <div className="border-b border-amber-200/50 dark:border-amber-800/50 bg-amber-50/30 dark:bg-amber-900/10">
           <button
             onClick={() => setIsReasoningExpanded(!isReasoningExpanded)}

@@ -2,10 +2,14 @@ import { useState } from 'react';
 import '@/lib/i18n';
 import { Header } from './Header';
 import { SessionsPage } from '@/pages/Sessions';
-import type { AppType } from '@/types';
+import { useSettingsStore } from '@/stores/settings';
+import { APP_TYPES, type AppType } from '@/types';
 
 export function Layout() {
-  const [selectedApp, setSelectedApp] = useState<AppType>('codebuddy');
+  const { defaultApp } = useSettingsStore();
+  // 如果用户设置了默认应用则使用，否则使用第一个可用应用
+  const initialApp = defaultApp || APP_TYPES[0];
+  const [selectedApp, setSelectedApp] = useState<AppType>(initialApp);
 
   return (
     <div className="flex flex-col h-screen bg-background">

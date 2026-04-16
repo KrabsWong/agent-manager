@@ -11,6 +11,27 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { useExperienceStore } from '@/stores/experience';
+import { useSettingsStore } from '@/stores/settings';
+import { type AppType } from '@/types';
+import { getAppIcon, APP_COLORS, APP_LABELS } from '@/components/AppIcons';
+import { useToast } from '@/hooks/useToast';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+
+// App order consistent with Header dropdown
+const APP_ORDER: AppType[] = [
+  'codebuddy',
+  'claude-internal',
+  'claude',
+  'opencode',
+  'codex',
+  'gemini',
+];
 
 interface SettingsDialogProps {
   open: boolean;
@@ -108,16 +129,20 @@ interface GeneralSettingsProps {
 
 function GeneralSettings({ accentColor, onAccentColorChange }: GeneralSettingsProps) {
   const { t } = useTranslation();
+  const { defaultApp, setDefaultApp } = useSettingsStore();
+  const { toast } = useToast();
 
   return (
     <div className="space-y-6">
       {/* Language Section */}
       <section className="space-y-3">
-        <div>
-          <h3 className="text-sm font-medium">{t('settings.language')}</h3>
-          <p className="text-xs text-muted-foreground">{t('settings.languageDescription')}</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-medium">{t('settings.language')}</h3>
+            <p className="text-xs text-muted-foreground">{t('settings.languageDescription')}</p>
+          </div>
+          <LanguageSwitcher />
         </div>
-        <LanguageSwitcher />
       </section>
 
       {/* Divider */}
@@ -125,11 +150,13 @@ function GeneralSettings({ accentColor, onAccentColorChange }: GeneralSettingsPr
 
       {/* Theme Section */}
       <section className="space-y-3">
-        <div>
-          <h3 className="text-sm font-medium">{t('settings.theme')}</h3>
-          <p className="text-xs text-muted-foreground">{t('settings.themeDescription')}</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-medium">{t('settings.theme')}</h3>
+            <p className="text-xs text-muted-foreground">{t('settings.themeDescription')}</p>
+          </div>
+          <ThemeSwitcher />
         </div>
-        <ThemeSwitcher />
       </section>
 
       {/* Divider */}
@@ -137,13 +164,75 @@ function GeneralSettings({ accentColor, onAccentColorChange }: GeneralSettingsPr
 
       {/* Accent Color Section */}
       <section className="space-y-3">
-        <div>
-          <h3 className="text-sm font-medium">{t('settings.accentColor') || 'Accent Color'}</h3>
-          <p className="text-xs text-muted-foreground">
-            {t('settings.selectAccentColor') || 'Select your preferred accent color'}
-          </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-medium">{t('settings.accentColor') || 'Accent Color'}</h3>
+            <p className="text-xs text-muted-foreground">
+              {t('settings.selectAccentColor') || 'Select your preferred accent color'}
+            </p>
+          </div>
+          <ColorPicker value={accentColor} onChange={onAccentColorChange} />
         </div>
-        <ColorPicker value={accentColor} onChange={onAccentColorChange} />
+      </section>
+
+      {/* Divider */}
+      <div className="h-px bg-border/60" />
+
+      {/* Default Application Section */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-medium">
+              {t('settings.defaultApp') || 'Default Application'}
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              {t('settings.defaultAppDescription') ||
+                'Select the default application to display on startup'}
+            </p>
+          </div>
+          <Select
+            value={defaultApp || APP_ORDER[0]}
+            onValueChange={(value) => {
+              const newApp = value as AppType;
+              setDefaultApp(newApp);
+              toast({
+                title: t('settings.defaultAppChanged', 'Default application changed'),
+                description: APP_LABELS[newApp],
+              });
+            }}
+          >
+            <SelectTrigger className="w-[220px] h-8 text-sm">
+              <SelectValue placeholder={t('settings.selectDefaultApp') || 'Select app'} />
+            </SelectTrigger>
+            <SelectContent>
+              {APP_ORDER.map((app) => {
+                const isSupported =
+                  app === 'claude' ||
+                  app === 'claude-internal' ||
+                  app === 'opencode' ||
+                  app === 'codebuddy';
+                return (
+                  <SelectItem
+                    key={app}
+                    value={app}
+                    disabled={!isSupported}
+                    className={!isSupported ? 'opacity-50 cursor-not-allowed' : ''}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className={APP_COLORS[app]}>{getAppIcon(app, 14)}</span>
+                      <span>{APP_LABELS[app]}</span>
+                      {!isSupported && (
+                        <span className="text-xs text-muted-foreground ml-2">
+                          ({t('sessions.comingSoon')})
+                        </span>
+                      )}
+                    </div>
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+        </div>
       </section>
     </div>
   );
@@ -152,8 +241,48 @@ function GeneralSettings({ accentColor, onAccentColorChange }: GeneralSettingsPr
 // 体验特性设置
 function ExperienceSettings() {
   const { t } = useTranslation();
-  const { enableTitleMarquee, toggleTitleMarquee, collapseBashBlocks, toggleCollapseBashBlocks } =
-    useExperienceStore();
+  const {
+    enableTitleMarquee,
+    toggleTitleMarquee,
+    collapseBashBlocks,
+    toggleCollapseBashBlocks,
+    showThinkingContent,
+    toggleShowThinkingContent,
+  } = useExperienceStore();
+  const { toast } = useToast();
+
+  const handleToggleTitleMarquee = () => {
+    const newValue = !enableTitleMarquee;
+    toggleTitleMarquee();
+    toast({
+      title: newValue
+        ? t('settings.featureEnabled', 'Feature enabled')
+        : t('settings.featureDisabled', 'Feature disabled'),
+      description: t('settings.titleMarquee', 'Title Marquee Effect'),
+    });
+  };
+
+  const handleToggleCollapseBashBlocks = () => {
+    const newValue = !collapseBashBlocks;
+    toggleCollapseBashBlocks();
+    toast({
+      title: newValue
+        ? t('settings.featureEnabled', 'Feature enabled')
+        : t('settings.featureDisabled', 'Feature disabled'),
+      description: t('settings.collapseBashBlocks', 'Collapse Bash Output by Default'),
+    });
+  };
+
+  const handleToggleShowThinkingContent = () => {
+    const newValue = !showThinkingContent;
+    toggleShowThinkingContent();
+    toast({
+      title: newValue
+        ? t('settings.featureEnabled', 'Feature enabled')
+        : t('settings.featureDisabled', 'Feature disabled'),
+      description: t('settings.showThinkingContent', 'Show Thinking Content'),
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -164,7 +293,7 @@ function ExperienceSettings() {
 
       {/* Title Marquee Toggle */}
       <button
-        onClick={toggleTitleMarquee}
+        onClick={handleToggleTitleMarquee}
         className={cn(
           'w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left',
           enableTitleMarquee
@@ -208,7 +337,7 @@ function ExperienceSettings() {
 
       {/* Collapse Bash Blocks Toggle */}
       <button
-        onClick={toggleCollapseBashBlocks}
+        onClick={handleToggleCollapseBashBlocks}
         className={cn(
           'w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left',
           collapseBashBlocks
@@ -245,6 +374,50 @@ function ExperienceSettings() {
             className={cn(
               'absolute top-1 w-3 h-3 rounded-full bg-white transition-transform',
               collapseBashBlocks ? 'translate-x-6' : 'translate-x-1'
+            )}
+          />
+        </div>
+      </button>
+
+      {/* Show Thinking Content Toggle */}
+      <button
+        onClick={handleToggleShowThinkingContent}
+        className={cn(
+          'w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left',
+          showThinkingContent
+            ? 'border-primary/50 bg-primary/5'
+            : 'border-border hover:border-primary/30 hover:bg-accent/50'
+        )}
+      >
+        <div
+          className={cn(
+            'flex items-center justify-center w-9 h-9 rounded-md transition-colors shrink-0',
+            showThinkingContent
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted text-muted-foreground'
+          )}
+        >
+          <span className="text-sm">💭</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-medium text-sm">
+            {t('settings.showThinkingContent') || 'Show Thinking Content'}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {t('settings.showThinkingContentDesc') ||
+              'Display AI reasoning and thinking process in conversation details'}
+          </div>
+        </div>
+        <div
+          className={cn(
+            'w-10 h-5 rounded-full transition-colors relative shrink-0',
+            showThinkingContent ? 'bg-primary' : 'bg-muted'
+          )}
+        >
+          <div
+            className={cn(
+              'absolute top-1 w-3 h-3 rounded-full bg-white transition-transform',
+              showThinkingContent ? 'translate-x-6' : 'translate-x-1'
             )}
           />
         </div>

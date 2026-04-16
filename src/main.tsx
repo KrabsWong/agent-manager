@@ -5,6 +5,7 @@ import { RouterProvider } from 'react-router-dom';
 import { queryClient } from './lib/query/queryClient';
 import { router } from './lib/router';
 import { ThemeProvider } from './components/ThemeProvider';
+import { Toaster } from './components/ui/toaster';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -12,6 +13,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <RouterProvider router={router} />
+        <Toaster />
       </ThemeProvider>
     </QueryClientProvider>
   </React.StrictMode>

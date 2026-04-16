@@ -14,6 +14,12 @@ interface ExperienceState {
   toggleCollapseBashBlocks: () => void;
   // 设置 Bash 输出块收起状态
   setCollapseBashBlocks: (enabled: boolean) => void;
+  // 是否显示 Thinking 内容
+  showThinkingContent: boolean;
+  // 切换 Thinking 内容显示
+  toggleShowThinkingContent: () => void;
+  // 设置 Thinking 内容显示
+  setShowThinkingContent: (enabled: boolean) => void;
 }
 
 export const useExperienceStore = create<ExperienceState>()(
@@ -26,6 +32,10 @@ export const useExperienceStore = create<ExperienceState>()(
       toggleCollapseBashBlocks: () =>
         set((state) => ({ collapseBashBlocks: !state.collapseBashBlocks })),
       setCollapseBashBlocks: (enabled) => set({ collapseBashBlocks: enabled }),
+      showThinkingContent: true, // 默认显示 thinking 内容
+      toggleShowThinkingContent: () =>
+        set((state) => ({ showThinkingContent: !state.showThinkingContent })),
+      setShowThinkingContent: (enabled) => set({ showThinkingContent: enabled }),
     }),
     {
       name: 'experience-storage',

@@ -6,10 +6,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/useToast';
 
 export function LanguageSwitcher() {
   const { i18n, t } = useTranslation();
+  const { toast } = useToast();
 
   const languages = [
     { code: 'en', name: 'English' },
@@ -20,28 +21,24 @@ export function LanguageSwitcher() {
 
   const handleLanguageChange = (value: string) => {
     i18n.changeLanguage(value);
+    toast({
+      title: t('settings.languageChanged', 'Language changed'),
+      description: languages.find((l) => l.code === value)?.name,
+    });
   };
 
   return (
-    <div className="flex items-center justify-between">
-      <div>
-        <Label className="text-sm font-medium">{t('settings.language')}</Label>
-        <p className="text-xs text-muted-foreground">
-          {t('settings.languageDescription') || 'Select your preferred language'}
-        </p>
-      </div>
-      <Select value={currentLanguage} onValueChange={handleLanguageChange}>
-        <SelectTrigger className="w-[140px] h-8 text-sm">
-          <SelectValue placeholder={t('settings.selectLanguage')} />
-        </SelectTrigger>
-        <SelectContent>
-          {languages.map((lang) => (
-            <SelectItem key={lang.code} value={lang.code}>
-              {lang.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+    <Select value={currentLanguage} onValueChange={handleLanguageChange}>
+      <SelectTrigger className="w-[140px] h-8 text-sm">
+        <SelectValue placeholder={t('settings.selectLanguage')} />
+      </SelectTrigger>
+      <SelectContent>
+        {languages.map((lang) => (
+          <SelectItem key={lang.code} value={lang.code}>
+            {lang.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }
