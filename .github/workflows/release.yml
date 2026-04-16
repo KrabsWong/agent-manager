@@ -123,15 +123,22 @@ jobs:
 
       - name: Check Homebrew Tap exists
         id: check-tap
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
-          # 检查是否已创建 Tap 仓库
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://api.github.com/repos/KrabsWong/homebrew-yes-sessions)
+          # 检查是否已创建 Tap 仓库（需要认证才能访问私有仓库）
+          if [ -n "$HOMEBREW_TAP_TOKEN" ]; then
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token ${HOMEBREW_TAP_TOKEN}" https://api.github.com/repos/KrabsWong/homebrew-yes-sessions)
+          else
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://api.github.com/repos/KrabsWong/homebrew-yes-sessions)
+          fi
+
           if [ "$STATUS" = "200" ]; then
             echo "exists=true" >> $GITHUB_OUTPUT
             echo "✅ Homebrew Tap 仓库存在"
           else
             echo "exists=false" >> $GITHUB_OUTPUT
-            echo "⚠️ Homebrew Tap 仓库不存在 (状态码: $STATUS)"
+            echo "⚠️ Homebrew Tap 仓库不存在或无法访问 (状态码: $STATUS)"
             echo "如需启用自动推送，请创建仓库: https://github.com/new?name=homebrew-yes-sessions"
           fi
 
