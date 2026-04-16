@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v1.2.3)'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -12,7 +18,19 @@ jobs:
   release:
     runs-on: macos-latest
     steps:
+      - name: Resolve tag
+        id: resolve-tag
+        run: |
+          # workflow_dispatch 时使用 input 的 tag，push tag 时使用 GITHUB_REF_NAME
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          fi
+
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.resolve-tag.outputs.tag }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -26,7 +44,8 @@ jobs:
         id: verify-version
         run: |
           # 从 tag 获取版本号（去掉 v 前缀）
-          TAG_VERSION=${GITHUB_REF_NAME#v}
+          TAG_VERSION=${{ steps.resolve-tag.outputs.tag }}
+          TAG_VERSION=${TAG_VERSION#v}
 
           # 从 package.json 获取版本号
           PKG_VERSION=$(node -p "require('./package.json').version")
