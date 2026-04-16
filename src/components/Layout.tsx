@@ -14,8 +14,8 @@ export function Layout() {
 
   return (
     <div className="flex flex-col h-screen bg-background">
-      {/* Draggable title bar area for frameless window - 为系统按钮预留更多空间 */}
-      <div className="fixed top-0 left-0 right-0 h-16 z-40 app-drag-region" />
+      {/* Draggable title bar area for frameless window - z-30 低于 Header */}
+      <div className="fixed top-0 left-0 right-0 h-20 z-30 app-drag-region" />
 
       {/* 顶部导航栏 */}
       <Header selectedApp={selectedApp} onAppChange={setSelectedApp} />
