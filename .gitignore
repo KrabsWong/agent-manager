@@ -43,3 +43,6 @@ sidebar.png
 # Temporary files
 *.tmp
 *.temp
+
+# Pending logs
+docs/.pending_logs.md
