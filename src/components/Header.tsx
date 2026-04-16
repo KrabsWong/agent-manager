@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { SettingsDialog } from './SettingsDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
-import { APP_LABELS, getAppIcon, APP_COLORS } from './AppIcons';
+import { APP_ORDER, APP_LABELS, APP_COLORS, isAppSupported } from '@/config/apps';
+import { getAppIcon } from './AppIcons';
 import type { AppType } from '@/types';
 
 interface HeaderProps {
@@ -38,32 +39,19 @@ export function Header({ selectedApp, onAppChange }: HeaderProps) {
               </div>
             </SelectTrigger>
             <SelectContent className="min-w-[12rem] app-no-drag">
-              {(
-                [
-                  'codebuddy',
-                  'claude-internal',
-                  'claude',
-                  'opencode',
-                  'codex',
-                  'gemini',
-                ] as AppType[]
-              ).map((app) => {
-                const isSupported =
-                  app === 'claude' ||
-                  app === 'claude-internal' ||
-                  app === 'opencode' ||
-                  app === 'codebuddy';
+              {APP_ORDER.map((app) => {
+                const supported = isAppSupported(app);
                 return (
                   <SelectItem
                     key={app}
                     value={app}
-                    disabled={!isSupported}
-                    className={!isSupported ? 'opacity-50 cursor-not-allowed' : ''}
+                    disabled={!supported}
+                    className={!supported ? 'opacity-50 cursor-not-allowed' : ''}
                   >
                     <div className="flex items-center gap-2">
                       <span className={APP_COLORS[app]}>{getAppIcon(app)}</span>
                       <span>{APP_LABELS[app]}</span>
-                      {!isSupported && (
+                      {!supported && (
                         <span className="text-xs text-muted-foreground ml-2">
                           ({t('sessions.comingSoon')})
                         </span>

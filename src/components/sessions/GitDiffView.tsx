@@ -205,11 +205,13 @@ export function GitDiffView({
 
   const totalAdditions =
     status.staged.reduce((sum, f) => sum + f.additions, 0) +
-    status.unstaged.reduce((sum, f) => sum + f.additions, 0);
+    status.unstaged.reduce((sum, f) => sum + f.additions, 0) +
+    status.untracked.reduce((sum, f) => sum + f.additions, 0);
 
   const totalDeletions =
     status.staged.reduce((sum, f) => sum + f.deletions, 0) +
-    status.unstaged.reduce((sum, f) => sum + f.deletions, 0);
+    status.unstaged.reduce((sum, f) => sum + f.deletions, 0) +
+    status.untracked.reduce((sum, f) => sum + f.deletions, 0);
 
   if (totalChanges === 0) {
     return (

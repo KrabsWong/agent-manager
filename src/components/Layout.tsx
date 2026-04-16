@@ -3,12 +3,13 @@ import '@/lib/i18n';
 import { Header } from './Header';
 import { SessionsPage } from '@/pages/Sessions';
 import { useSettingsStore } from '@/stores/settings';
-import { APP_TYPES, type AppType } from '@/types';
+import { DEFAULT_APP } from '@/config/apps';
+import type { AppType } from '@/types';
 
 export function Layout() {
   const { defaultApp } = useSettingsStore();
   // 如果用户设置了默认应用则使用，否则使用第一个可用应用
-  const initialApp = defaultApp || APP_TYPES[0];
+  const initialApp = defaultApp || DEFAULT_APP;
   const [selectedApp, setSelectedApp] = useState<AppType>(initialApp);
 
   return (

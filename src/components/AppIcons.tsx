@@ -5,6 +5,7 @@
  */
 
 import type { AppType } from '@/types';
+import { APP_LABELS } from '@/config/apps';
 
 // CDN base URL for lobe-icons (mono version)
 const LOBE_ICONS_CDN = 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons';
@@ -114,32 +115,6 @@ export function getAppIcon(
   return <IconFromCDN appType={appType} size={size} className={className} />;
 }
 
-// App labels
-export const APP_LABELS: Record<AppType, string> = {
-  claude: 'Claude Code',
-  'claude-internal': 'Claude Code Internal',
-  codex: 'Codex CLI',
-  gemini: 'Gemini CLI',
-  opencode: 'OpenCode',
-  codebuddy: 'Codebuddy',
-};
-
-// All app types
-export const APP_TYPES: AppType[] = [
-  'claude',
-  'claude-internal',
-  'codex',
-  'codebuddy',
-  'gemini',
-  'opencode',
-];
-
-// App official websites
-export const APP_WEBSITES: Record<AppType, string> = {
-  claude: 'https://claude.ai/code',
-  'claude-internal': 'https://claude.ai/code',
-  codex: 'https://github.com/openai/codex',
-  gemini: 'https://ai.google.dev/gemini-cli',
-  opencode: 'https://opencode.com',
-  codebuddy: 'https://codebuddy.ai',
-};
+// Re-export from central config for backward compatibility
+// 请优先从 @/config/apps 导入
+export { APP_LABELS, APP_WEBSITES, APP_ORDER as APP_TYPES } from '@/config/apps';

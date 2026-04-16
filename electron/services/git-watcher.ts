@@ -16,6 +16,7 @@ interface WatchTarget {
 
 class GitWatcherService {
   private currentWatcher: fs.FSWatcher | null = null;
+  private indexWatcher: fs.FSWatcher | null = null;
   private currentTarget: WatchTarget | null = null;
   private debounceTimer: NodeJS.Timeout | null = null;
 
@@ -69,29 +70,31 @@ class GitWatcherService {
       });
 
       // Also watch .git/index specifically for git operations
-      const indexWatcher = fs.watch(gitIndexPath, () => {
+      this.indexWatcher = fs.watch(gitIndexPath, () => {
         this.debounceNotify();
       });
-
-      // Store both watchers
-      this.currentWatcher = {
-        close: () => {
-          this.currentWatcher?.close();
-          indexWatcher.close();
-        },
-      } as fs.FSWatcher;
     } catch (err) {
       console.error(`[GitWatcher] Failed to watch ${dirPath}:`, err);
       this.currentWatcher = null;
+      this.indexWatcher = null;
       this.currentTarget = null;
     }
   }
 
   public stopWatching(): void {
-    if (this.currentWatcher) {
+    if (this.currentWatcher || this.indexWatcher) {
       console.log(`[GitWatcher] Stopping watch on: ${this.currentTarget?.dirPath}`);
-      this.currentWatcher.close();
-      this.currentWatcher = null;
+
+      if (this.currentWatcher) {
+        this.currentWatcher.close();
+        this.currentWatcher = null;
+      }
+
+      if (this.indexWatcher) {
+        this.indexWatcher.close();
+        this.indexWatcher = null;
+      }
+
       this.currentTarget = null;
     }
 

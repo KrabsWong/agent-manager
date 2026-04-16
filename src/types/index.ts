@@ -6,14 +6,8 @@
 // ============ App Types ============
 export type AppType = 'claude' | 'claude-internal' | 'codex' | 'gemini' | 'opencode' | 'codebuddy';
 
-export const APP_TYPES: AppType[] = [
-  'claude',
-  'claude-internal',
-  'codex',
-  'codebuddy',
-  'gemini',
-  'opencode',
-];
+// 注意：应用顺序和配置请从 @/config/apps 导入
+// import { APP_ORDER } from '@/config/apps'
 
 // ============ Settings Types ============
 export type AccentColor =

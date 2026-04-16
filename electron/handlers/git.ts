@@ -141,6 +141,33 @@ async function getFileDiffStats(
 }
 
 /**
+ * Get line count for an untracked file
+ */
+async function getUntrackedFileLineCount(dirPath: string, filePath: string): Promise<number> {
+  try {
+    const fullPath = path.join(dirPath, filePath);
+
+    // Check if it's a binary file first
+    try {
+      const { stdout: fileType } = await execAsync(`file -b --mime-type "${fullPath}"`);
+      if (!fileType.includes('text') && !fileType.includes('json') && !fileType.includes('xml')) {
+        return 0; // Binary file
+      }
+    } catch {
+      // If file command fails, try to read it anyway
+    }
+
+    // Count lines using wc -l
+    const { stdout } = await execAsync(`wc -l < "${fullPath}"`);
+    const lineCount = parseInt(stdout.trim(), 10);
+    return isNaN(lineCount) ? 0 : lineCount;
+  } catch (error) {
+    log.error(`Failed to get line count for untracked file ${filePath}:`, error);
+    return 0;
+  }
+}
+
+/**
  * Get git status for a directory
  */
 export async function getGitStatus(dirPath: string): Promise<GitStatusResult> {
@@ -162,8 +189,10 @@ export async function getGitStatus(dirPath: string): Promise<GitStatusResult> {
     // Get branch and ahead/behind
     const [branch, aheadBehind] = await Promise.all([getBranch(dirPath), getAheadBehind(dirPath)]);
 
-    // Get status
-    const { stdout: statusOutput } = await execAsync('git status --porcelain', { cwd: dirPath });
+    // Get status with all untracked files (not just directories)
+    const { stdout: statusOutput } = await execAsync('git status --porcelain -uall', {
+      cwd: dirPath,
+    });
 
     const allChanges = parsePorcelainStatus(statusOutput);
 
@@ -198,6 +227,13 @@ export async function getGitStatus(dirPath: string): Promise<GitStatusResult> {
       const stats = await getFileDiffStats(dirPath, file.path, false);
       file.additions = stats.additions;
       file.deletions = stats.deletions;
+    }
+
+    // Get line count for untracked files (they show as additions)
+    for (const file of untracked) {
+      const lineCount = await getUntrackedFileLineCount(dirPath, file.path);
+      file.additions = lineCount;
+      file.deletions = 0;
     }
 
     return {

@@ -13,7 +13,8 @@ import { cn } from '@/lib/utils';
 import { useExperienceStore } from '@/stores/experience';
 import { useSettingsStore } from '@/stores/settings';
 import { type AppType } from '@/types';
-import { getAppIcon, APP_COLORS, APP_LABELS } from '@/components/AppIcons';
+import { APP_ORDER, APP_LABELS, APP_COLORS, isAppSupported } from '@/config/apps';
+import { getAppIcon } from '@/components/AppIcons';
 import { useToast } from '@/hooks/useToast';
 import {
   Select,
@@ -22,16 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
-// App order consistent with Header dropdown
-const APP_ORDER: AppType[] = [
-  'codebuddy',
-  'claude-internal',
-  'claude',
-  'opencode',
-  'codex',
-  'gemini',
-];
 
 interface SettingsDialogProps {
   open: boolean;
@@ -206,22 +197,18 @@ function GeneralSettings({ accentColor, onAccentColorChange }: GeneralSettingsPr
             </SelectTrigger>
             <SelectContent>
               {APP_ORDER.map((app) => {
-                const isSupported =
-                  app === 'claude' ||
-                  app === 'claude-internal' ||
-                  app === 'opencode' ||
-                  app === 'codebuddy';
+                const supported = isAppSupported(app);
                 return (
                   <SelectItem
                     key={app}
                     value={app}
-                    disabled={!isSupported}
-                    className={!isSupported ? 'opacity-50 cursor-not-allowed' : ''}
+                    disabled={!supported}
+                    className={!supported ? 'opacity-50 cursor-not-allowed' : ''}
                   >
                     <div className="flex items-center gap-2">
                       <span className={APP_COLORS[app]}>{getAppIcon(app, 14)}</span>
                       <span>{APP_LABELS[app]}</span>
-                      {!isSupported && (
+                      {!supported && (
                         <span className="text-xs text-muted-foreground ml-2">
                           ({t('sessions.comingSoon')})
                         </span>
