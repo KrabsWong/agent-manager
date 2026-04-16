@@ -13,7 +13,7 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -61,6 +61,6 @@ jobs:
             --base main \
             --head "$BRANCH" \
             --title "$TITLE" \
-            --body "$(printf '%s\n\n---\n_此 PR 由 GitHub Actions 自动创建。请在合并前添加版本标签：**major** / **minor** / **patch**_' "$BODY")")
+            --body "$(printf '%s\n\n---\n_此 PR 由 GitHub Actions 自动创建。_\n\n**合并前请添加版本标签（必选其一）：**\n- `major` — 重大版本升级\n- `minor` — 新功能\n- `patch` — 问题修复\n- `skip-release` — 无需发版（文档、配置等无关紧要的改动）_' "$BODY")")
 
           echo "✅ PR 已创建: $PR_URL"
