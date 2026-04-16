@@ -208,29 +208,35 @@ jobs:
           cd homebrew-yes-sessions
 
           # 更新 Cask：URL 指向公开的 homebrew-yes-sessions release
-          cat > Casks/yes-sessions.rb << EOF
-cask "yes-sessions" do
-  version "${VERSION}"
-  sha256 "${SHA256}"
+          # 用 python3 写文件避免 heredoc 在 YAML 中的语法问题
+          VERSION_VAL="${VERSION}" SHA256_VAL="${SHA256}" python3 -c "
+import os
+version = os.environ['VERSION_VAL']
+sha256 = os.environ['SHA256_VAL']
+content = f'''cask \"yes-sessions\" do
+  version \"{version}\"
+  sha256 \"{sha256}\"
 
-  url "https://github.com/KrabsWong/homebrew-yes-sessions/releases/download/v#{version}/Yes-Sessions-#{version}-arm64.dmg"
-  name "Yes Sessions"
-  desc "AI Session Manager - Browse and resume your AI conversations"
-  homepage "https://github.com/KrabsWong/agent-manager"
+  url \"https://github.com/KrabsWong/homebrew-yes-sessions/releases/download/v#{{version}}/Yes-Sessions-#{{version}}-arm64.dmg\"
+  name \"Yes Sessions\"
+  desc \"AI Session Manager - Browse and resume your AI conversations\"
+  homepage \"https://github.com/KrabsWong/agent-manager\"
 
   # Only support Apple Silicon
   depends_on arch: :arm64
 
-  app "Yes-Sessions.app"
+  app \"Yes-Sessions.app\"
 
   zap trash: [
-    "~/Library/Application Support/yes-sessions",
-    "~/Library/Preferences/com.yes-sessions.plist",
-    "~/Library/Logs/yes-sessions",
-    "~/Library/Saved Application State/com.yes-sessions.savedState",
+    \"~/Library/Application Support/yes-sessions\",
+    \"~/Library/Preferences/com.yes-sessions.plist\",
+    \"~/Library/Logs/yes-sessions\",
+    \"~/Library/Saved Application State/com.yes-sessions.savedState\",
   ]
 end
-EOF
+'''
+open('Casks/yes-sessions.rb', 'w').write(content)
+"
 
           git add .
           git commit -m "Update yes-sessions to ${VERSION}"
