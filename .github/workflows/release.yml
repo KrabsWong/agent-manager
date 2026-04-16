@@ -208,10 +208,10 @@ jobs:
           git clone https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/KrabsWong/homebrew-yes-sessions.git
           cd homebrew-yes-sessions
 
-          # 用 sed 替换版本号和 SHA256（macOS sed 需要 -i ''）
+          # 用 sed 替换版本号、SHA256、URL（macOS sed 需要 -i ''）
           sed -i '' "s/version \".*\"/version \"${VERSION}\"/" Casks/yes-sessions.rb
-          sed -i '' "s/sha256 \".*\"/sha256 \"${SHA256}\"/" Casks/yes-sessions.rb
-          sed -i '' "s|releases/download/v[^/]*/|releases/download/v${VERSION}/|" Casks/yes-sessions.rb
+          sed -i '' "s|sha256 .*|sha256 \"${SHA256}\"|" Casks/yes-sessions.rb
+          sed -i '' "s|url \".*\"|url \"https://github.com/KrabsWong/homebrew-yes-sessions/releases/download/v${VERSION}/Yes-Sessions-${VERSION}-arm64.dmg\"|" Casks/yes-sessions.rb
 
           git add .
           git commit -m "Update yes-sessions to ${VERSION}"
