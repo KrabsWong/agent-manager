@@ -8,20 +8,22 @@ on:
 
 jobs:
   bump-version:
-    # 只在 PR 被合并时触发
-    if: github.event.pull_request.merged == true
+    # 只在 PR 被合并时触发，且没有 skip-release 标签
+    if: |
+      github.event.pull_request.merged == true &&
+      !contains(github.event.pull_request.labels.*.name, 'skip-release')
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
 
@@ -141,7 +143,7 @@ jobs:
           fi
 
       - name: Comment on PR
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const newVersion = '${{ steps.new-version.outputs.new_version }}';
