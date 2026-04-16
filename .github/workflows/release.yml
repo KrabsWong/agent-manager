@@ -178,6 +178,33 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Generate changelog
+        id: changelog
+        run: |
+          VERSION=${{ steps.verify-version.outputs.version }}
+
+          # 获取上一个 tag
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+
+          # 生成更新日志
+          if [ -n "$PREV_TAG" ]; then
+            echo "Generating changelog from $PREV_TAG to v${VERSION}"
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" "$PREV_TAG"..HEAD | grep -v "chore(release)" | head -30)
+          else
+            echo "Generating changelog from start to v${VERSION}"
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)" | head -30)
+          fi
+
+          # 如果没有提交记录，添加默认信息
+          if [ -z "$CHANGELOG" ]; then
+            CHANGELOG="- Version ${VERSION}"
+          fi
+
+          # 设置多行输出
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Create Release in homebrew-yes-sessions (public)
         env:
           GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
@@ -185,12 +212,40 @@ jobs:
           VERSION=${{ steps.verify-version.outputs.version }}
           DMG_FILE=$(ls dist/Yes-Sessions-*-arm64.dmg)
 
+          # 构建 release notes
+          RELEASE_NOTES="## Yes Sessions v${VERSION}
+
+          ### 更新日志
+
+          ${{ steps.changelog.outputs.changelog }}
+
+          ---
+
+          ### 安装
+
+          详见 [README](https://github.com/KrabsWong/homebrew-yes-sessions#readme)
+
+          ---
+
+          ### 系统要求
+
+          - macOS 11.0+ (Big Sur)
+          - Apple Silicon 或 Intel Mac
+
+          ---
+
+          ### 文件校验
+
+          | 文件名 | SHA256 |
+          |--------|--------|
+          | Yes-Sessions-${VERSION}-arm64.dmg | ${{ steps.sha256.outputs.arm64 }} |"
+
           # 在 homebrew-yes-sessions 仓库创建 release 并上传 DMG
           # 使用公开仓库托管构建产物，确保 Homebrew 可以无认证下载
           gh release create "v${VERSION}" "$DMG_FILE" \
             --repo KrabsWong/homebrew-yes-sessions \
             --title "v${VERSION}" \
-            --notes "Yes Sessions v${VERSION}" \
+            --notes "$RELEASE_NOTES" \
             --latest
 
       - name: Update Homebrew Cask
