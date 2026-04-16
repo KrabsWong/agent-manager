@@ -79,10 +79,11 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && electron-builder",
-    "build:mac": "tsc && vite build && electron-builder --mac",
-    "build:win": "tsc && vite build && electron-builder --win",
-    "build:linux": "tsc && vite build && electron-builder --linux",
+    "build": "tsc && vite build && npm run cleanup:build && electron-builder",
+    "build:mac": "tsc && vite build && npm run cleanup:build && electron-builder --mac",
+    "build:win": "tsc && vite build && npm run cleanup:build && electron-builder --win",
+    "build:linux": "tsc && vite build && npm run cleanup:build && electron-builder --linux",
+    "cleanup:build": "bash scripts/cleanup-build.sh",
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
@@ -157,6 +158,7 @@
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.6",
+    "javascript-obfuscator": "^5.4.1",
     "jsdom": "^24.0.0",
     "png-to-ico": "^3.0.1",
     "postcss": "^8.4.38",
@@ -167,6 +169,7 @@
     "vite": "^5.0.0",
     "vite-plugin-electron": "^0.28.6",
     "vite-plugin-electron-renderer": "^0.14.5",
+    "vite-plugin-javascript-obfuscator": "^3.1.0",
     "vitest": "^1.5.0"
   },
   "engines": {
