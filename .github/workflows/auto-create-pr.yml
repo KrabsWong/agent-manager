@@ -1,0 +1,66 @@
+name: Auto Create PR
+
+on:
+  push:
+    branches:
+      - '**'
+      - '!main'
+
+jobs:
+  create-pr:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if PR already exists
+        id: check-pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${{ github.ref_name }}"
+          EXISTING=$(gh pr list --head "$BRANCH" --base main --json number --jq '.[0].number' 2>/dev/null || echo "")
+
+          if [ -n "$EXISTING" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "pr_number=$EXISTING" >> $GITHUB_OUTPUT
+            echo "✅ PR #$EXISTING 已存在，跳过创建"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "📝 未找到已有 PR，准备创建"
+          fi
+
+      - name: Get latest commit message
+        if: steps.check-pr.outputs.exists == 'false'
+        id: commit-info
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=format:"%s")
+          COMMIT_BODY=$(git log -1 --pretty=format:"%b")
+          echo "title=$COMMIT_MSG" >> $GITHUB_OUTPUT
+          # 多行内容需要用 EOF 方式写入
+          {
+            echo "body<<EOF"
+            echo "$COMMIT_BODY"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+      - name: Create PR
+        if: steps.check-pr.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${{ github.ref_name }}"
+          TITLE="${{ steps.commit-info.outputs.title }}"
+          BODY="${{ steps.commit-info.outputs.body }}"
+
+          PR_URL=$(gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "$TITLE" \
+            --body "$(printf '%s\n\n---\n_此 PR 由 GitHub Actions 自动创建。请在合并前添加版本标签：**major** / **minor** / **patch**_' "$BODY")")
+
+          echo "✅ PR 已创建: $PR_URL"
