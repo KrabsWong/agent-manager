@@ -15,23 +15,10 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - name: Check for WORKFLOW_PAT
-        id: check-pat
-        run: |
-          if [ -n "${{ secrets.WORKFLOW_PAT }}" ]; then
-            echo "has_pat=true" >> $GITHUB_OUTPUT
-            echo "✅ WORKFLOW_PAT 已配置"
-          else
-            echo "has_pat=false" >> $GITHUB_OUTPUT
-            echo "⚠️ WORKFLOW_PAT 未配置"
-          fi
-
-      # 使用 PAT 进行 checkout，这样 git credential 会自动配置
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.WORKFLOW_PAT || secrets.GITHUB_TOKEN }}
-          persist-credentials: true
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -91,10 +78,12 @@ jobs:
           echo "New version: $NEW_VERSION"
 
       - name: Update version and create tag
+        env:
+          WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
         run: |
           NEW_VERSION=${{ steps.new-version.outputs.new_version }}
 
-          # 配置 git（使用 checkout 已经配置好的 credential）
+          # 配置 git
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
 
@@ -105,14 +94,24 @@ jobs:
           git add package.json package-lock.json
           git commit -m "chore(release): bump version to ${NEW_VERSION} [skip ci]"
 
-          # 推送到 main（使用 checkout 配置的 PAT）
+          # 使用 PAT 显式设置 remote URL，确保推送能触发后续 workflow
+          # GITHUB_TOKEN 推送的事件不会触发其他 workflow（GitHub 安全限制）
+          # 必须使用 PAT 才能触发 release.yml
+          if [ -n "$WORKFLOW_PAT" ]; then
+            git remote set-url origin "https://x-access-token:${WORKFLOW_PAT}@github.com/${{ github.repository }}.git"
+            echo "✅ 使用 WORKFLOW_PAT 推送"
+          else
+            echo "⚠️ WORKFLOW_PAT 未配置，使用 GITHUB_TOKEN 推送（Release workflow 将不会自动触发）"
+          fi
+
+          # 推送到 main
           echo "正在推送到 main..."
           git push origin main
 
           # 创建 tag
           git tag "v${NEW_VERSION}"
 
-          # 推送 tag（使用 checkout 配置的 PAT，应该能触发 Release workflow）
+          # 推送 tag（使用 PAT 才能触发 Release workflow）
           echo "正在推送 tag v${NEW_VERSION}..."
           git push origin "v${NEW_VERSION}"
 
@@ -124,25 +123,13 @@ jobs:
           script: |
             const newVersion = '${{ steps.new-version.outputs.new_version }}';
             const bumpType = '${{ steps.bump-type.outputs.bump_type }}';
-            const hasPat = '${{ steps.check-pat.outputs.has_pat }}' === 'true';
-
-            let body = `🎉 **版本已自动更新**\n\n`;
-            body += `- 版本类型: **${bumpType}**\n`;
-            body += `- 新版本: **v${newVersion}**\n`;
-            body += `- Tag: [v${newVersion}](../../releases/tag/v${newVersion})\n\n`;
-
-            if (hasPat) {
-              body += `✅ 使用 WORKFLOW_PAT 推送，Release workflow 应该已自动触发。`;
-            } else {
-              body += `⚠️ **注意**：未配置 WORKFLOW_PAT，Release workflow 不会自动触发。`;
-            }
 
             try {
               await github.rest.issues.createComment({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                body: body
+                body: `🎉 **版本已自动更新**\n\n- 版本类型: **${bumpType}**\n- 新版本: **v${newVersion}**\n- Tag: [v${newVersion}](../../releases/tag/v${newVersion})\n\nRelease 构建将在几分钟后完成。`
               });
             } catch (error) {
               console.log('⚠️ 添加评论失败:', error.message);
