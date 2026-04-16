@@ -20,20 +20,18 @@ jobs:
         run: |
           if [ -n "${{ secrets.WORKFLOW_PAT }}" ]; then
             echo "has_pat=true" >> $GITHUB_OUTPUT
-            echo "✅ WORKFLOW_PAT 已配置，将使用 PAT 推送 tag 以触发 Release workflow"
+            echo "✅ WORKFLOW_PAT 已配置"
           else
             echo "has_pat=false" >> $GITHUB_OUTPUT
-            echo "⚠️ WORKFLOW_PAT 未配置，将使用 GITHUB_TOKEN"
-            echo "注意：使用 GITHUB_TOKEN 推送的 tag 不会触发其他 workflow"
-            echo "建议配置 WORKFLOW_PAT 以实现完全自动化"
+            echo "⚠️ WORKFLOW_PAT 未配置"
           fi
 
+      # 使用 PAT 进行 checkout，这样 git credential 会自动配置
       - uses: actions/checkout@v4
         with:
-          # 需要获取完整历史和所有标签
           fetch-depth: 0
-          # 使用 PAT 以便推送的 tag 能触发其他 workflow
           token: ${{ secrets.WORKFLOW_PAT || secrets.GITHUB_TOKEN }}
+          persist-credentials: true
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -43,11 +41,7 @@ jobs:
       - name: Determine version bump type
         id: bump-type
         run: |
-          # 获取 PR 的标签来决定版本升级类型
-          # 默认 patch（bugfix）
           BUMP_TYPE="patch"
-
-          # 检查 PR 标签
           PR_LABELS='${{ toJson(github.event.pull_request.labels) }}'
           echo "PR Labels: $PR_LABELS"
 
@@ -75,10 +69,8 @@ jobs:
           CURRENT_VERSION=${{ steps.current-version.outputs.current_version }}
           BUMP_TYPE=${{ steps.bump-type.outputs.bump_type }}
 
-          # 解析版本号
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
 
-          # 根据类型递增版本
           case $BUMP_TYPE in
             major)
               MAJOR=$((MAJOR + 1))
@@ -99,22 +91,12 @@ jobs:
           echo "New version: $NEW_VERSION"
 
       - name: Update version and create tag
-        env:
-          # 使用 PAT（如果配置了），否则使用 GITHUB_TOKEN
-          PUSH_TOKEN: ${{ secrets.WORKFLOW_PAT || secrets.GITHUB_TOKEN }}
-          HAS_PAT: ${{ steps.check-pat.outputs.has_pat }}
         run: |
           NEW_VERSION=${{ steps.new-version.outputs.new_version }}
 
-          # 配置 git
+          # 配置 git（使用 checkout 已经配置好的 credential）
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
-
-          # 如果需要 PAT，先设置 remote URL
-          if [ "$HAS_PAT" = "true" ]; then
-            git remote set-url origin "https://x-access-token:${PUSH_TOKEN}@github.com/${{ github.repository }}.git"
-            echo "✅ 已配置 WORKFLOW_PAT 用于推送"
-          fi
 
           # 更新 package.json 版本
           npm version $NEW_VERSION --no-git-tag-version
@@ -123,30 +105,18 @@ jobs:
           git add package.json package-lock.json
           git commit -m "chore(release): bump version to ${NEW_VERSION} [skip ci]"
 
-          # 推送到 main
+          # 推送到 main（使用 checkout 配置的 PAT）
+          echo "正在推送到 main..."
           git push origin main
 
           # 创建 tag
           git tag "v${NEW_VERSION}"
 
-          # 推送 tag
+          # 推送 tag（使用 checkout 配置的 PAT，应该能触发 Release workflow）
+          echo "正在推送 tag v${NEW_VERSION}..."
           git push origin "v${NEW_VERSION}"
 
-          if [ "$HAS_PAT" = "true" ]; then
-            echo "✅ 使用 WORKFLOW_PAT 推送，Release workflow 应该会自动触发"
-          else
-            echo "⚠️ 使用 GITHUB_TOKEN 推送，Release workflow 不会自动触发"
-          fi
-
-          echo "✅ Version bumped to ${NEW_VERSION} and tag v${NEW_VERSION} created"
-
-          if [ "$HAS_PAT" != "true" ]; then
-            echo ""
-            echo "⚠️ 警告：Release workflow 未自动触发"
-            echo "原因：GITHUB_TOKEN 推送的 tag 不会触发其他 workflow（GitHub 安全机制）"
-            echo "解决方案：在仓库 Settings -> Secrets -> Actions 中添加 WORKFLOW_PAT"
-            echo "WORKFLOW_PAT 需要权限：repo (full control)"
-          fi
+          echo "✅ Version bumped to ${NEW_VERSION}"
 
       - name: Comment on PR
         uses: actions/github-script@v7
@@ -162,10 +132,9 @@ jobs:
             body += `- Tag: [v${newVersion}](../../releases/tag/v${newVersion})\n\n`;
 
             if (hasPat) {
-              body += `Release 构建将在几分钟后完成。`;
+              body += `✅ 使用 WORKFLOW_PAT 推送，Release workflow 应该已自动触发。`;
             } else {
-              body += `⚠️ **注意**：由于未配置 WORKFLOW_PAT，Release 构建不会自动触发。\n\n`;
-              body += `请手动触发 Release 构建，或配置 WORKFLOW_PAT 以实现完全自动化。`;
+              body += `⚠️ **注意**：未配置 WORKFLOW_PAT，Release workflow 不会自动触发。`;
             }
 
             try {
@@ -175,8 +144,6 @@ jobs:
                 repo: context.repo.repo,
                 body: body
               });
-              console.log('✅ 评论已添加到 PR #' + context.issue.number);
             } catch (error) {
               console.log('⚠️ 添加评论失败:', error.message);
-              console.log('这不会影响版本升级');
             }
