@@ -12,6 +12,7 @@
 import { useMemo, useState, memo, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useExperienceStore } from '@/stores/experience';
+import * as Diff from 'diff';
 import {
   User,
   Wrench,
@@ -2039,49 +2040,46 @@ interface EditFileInputDisplayProps {
   searchQuery?: string;
 }
 
-// Simple diff algorithm to match old and new lines
-function computeDiff(oldLines: string[], newLines: string[]): Array<{ type: 'unchanged' | 'removed' | 'added'; oldLine?: string; newLine?: string; oldIndex?: number; newIndex?: number }> {
-  const result: Array<{ type: 'unchanged' | 'removed' | 'added'; oldLine?: string; newLine?: string; oldIndex?: number; newIndex?: number }> = [];
+// Compute diff using the 'diff' library for better accuracy
+type DiffLine = { type: 'unchanged' | 'removed' | 'added'; oldLine?: string; newLine?: string; oldIndex?: number; newIndex?: number };
+
+function computeDiff(oldLines: string[], newLines: string[]): DiffLine[] {
+  const oldContent = oldLines.join('\n');
+  const newContent = newLines.join('\n');
   
+  // Use diffLines with ignoreWhitespace option
+  const changes = Diff.diffLines(oldContent, newContent, { 
+    ignoreWhitespace: true,
+    newlineIsToken: false 
+  });
+  
+  const result: DiffLine[] = [];
   let oldIdx = 0;
   let newIdx = 0;
   
-  while (oldIdx < oldLines.length || newIdx < newLines.length) {
-    const oldLine = oldIdx < oldLines.length ? oldLines[oldIdx] : undefined;
-    const newLine = newIdx < newLines.length ? newLines[newIdx] : undefined;
+  for (const change of changes) {
+    const lines = change.value.replace(/\n$/, '').split('\n');
+    // Handle trailing newline
+    if (change.value.endsWith('\n') && lines[lines.length - 1] === '') {
+      lines.pop();
+    }
     
-    if (oldLine === undefined) {
-      // Only new lines left
-      result.push({ type: 'added', newLine, newIndex: newIdx });
-      newIdx++;
-    } else if (newLine === undefined) {
-      // Only old lines left
-      result.push({ type: 'removed', oldLine, oldIndex: oldIdx });
-      oldIdx++;
-    } else if (oldLine === newLine) {
-      // Lines match
-      result.push({ type: 'unchanged', oldLine, newLine, oldIndex: oldIdx, newIndex: newIdx });
-      oldIdx++;
-      newIdx++;
-    } else {
-      // Lines differ - check if this is a replacement
-      // Look ahead to see if old line appears later in new (deletion)
-      // or if new line appeared earlier in old (addition)
-      const oldLineInNew = newLines.slice(newIdx + 1).indexOf(oldLine);
-      const newLineInOld = oldLines.slice(oldIdx + 1).indexOf(newLine);
-      
-      if (oldLineInNew !== -1 && (newLineInOld === -1 || oldLineInNew <= newLineInOld)) {
-        // Old line was deleted
-        result.push({ type: 'removed', oldLine, oldIndex: oldIdx });
-        oldIdx++;
-      } else if (newLineInOld !== -1) {
-        // New line was added
-        result.push({ type: 'added', newLine, newIndex: newIdx });
+    if (change.added) {
+      // New lines added
+      for (const line of lines) {
+        result.push({ type: 'added', newLine: line, newIndex: newIdx });
         newIdx++;
-      } else {
-        // Replacement (different content)
-        result.push({ type: 'removed', oldLine, oldIndex: oldIdx });
-        result.push({ type: 'added', newLine, newIndex: newIdx });
+      }
+    } else if (change.removed) {
+      // Old lines removed
+      for (const line of lines) {
+        result.push({ type: 'removed', oldLine: line, oldIndex: oldIdx });
+        oldIdx++;
+      }
+    } else {
+      // Unchanged lines
+      for (const line of lines) {
+        result.push({ type: 'unchanged', oldLine: line, newLine: line, oldIndex: oldIdx, newIndex: newIdx });
         oldIdx++;
         newIdx++;
       }
