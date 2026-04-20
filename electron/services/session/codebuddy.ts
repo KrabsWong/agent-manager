@@ -61,7 +61,11 @@ interface CodebuddyMessageEntry {
     text: string;
   };
   status?: string;
-  model?: string; // AI model used for this message
+  providerData?: {
+    model?: string;
+    agent?: string;
+    messageId?: string;
+  }; // Provider-specific metadata including model info
 }
 
 export class CodebuddySessionService {
@@ -565,9 +569,9 @@ export class CodebuddySessionService {
         try {
           const entry = JSON.parse(line) as CodebuddyMessageEntry;
 
-          // Track model changes
-          if (entry.model) {
-            currentModel = entry.model;
+          // Track model changes from providerData.model
+          if (entry.providerData?.model) {
+            currentModel = entry.providerData.model;
           }
 
           if (entry.type === 'message' && entry.role === 'user') {
