@@ -97,9 +97,11 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
         setShowScrollToTop(container.scrollTop > 300);
 
         // Show scroll to bottom button when not at bottom and there's content to scroll
-        const isAtBottom =
-          container.scrollHeight - container.scrollTop - container.clientHeight < 50;
-        setShowScrollToBottom(!isAtBottom && container.scrollHeight > container.clientHeight);
+        // Use Math.ceil to avoid floating point precision issues
+        const { scrollHeight, scrollTop, clientHeight } = container;
+        const scrollBottom = Math.ceil(scrollTop + clientHeight);
+        const isAtBottom = scrollHeight - scrollBottom <= 50;
+        setShowScrollToBottom(!isAtBottom && scrollHeight > clientHeight);
 
         // Hide new messages tip if user scrolls to bottom
         if (showNewMessagesTip && isAtBottom) {
@@ -586,9 +588,24 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                       setShouldLoadAll(false);
                       // Keep the tip visible until user scrolls to bottom
                     }}
-                    onNewMessages={(count) => {
-                      setNewMessagesCount((prev) => prev + count);
-                      setShowNewMessagesTip(true);
+                    onNewMessages={(count, isAtBottom) => {
+                      if (isAtBottom) {
+                        // User is at bottom, auto-load and scroll
+                        setShouldLoadAll(true);
+                        // Scroll after a short delay to allow loading
+                        setTimeout(() => {
+                          if (scrollContainerRef.current) {
+                            scrollContainerRef.current.scrollTo({
+                              top: scrollContainerRef.current.scrollHeight,
+                              behavior: 'smooth',
+                            });
+                          }
+                        }, 100);
+                      } else {
+                        // User is not at bottom, show tip
+                        setNewMessagesCount((prev) => prev + count);
+                        setShowNewMessagesTip(true);
+                      }
                     }}
                   />
                 ) : (

@@ -631,7 +631,7 @@ interface ConversationViewProps {
   onLoadAll?: () => void;
   onViewSubAgentSession?: (sessionId: string, appType: string) => void;
   searchQuery?: string;
-  onNewMessages?: (count: number) => void;
+  onNewMessages?: (count: number, isAtBottom: boolean) => void;
   shouldLoadAll?: boolean;
   onLoadAllComplete?: () => void;
 }
@@ -747,11 +747,16 @@ export function ConversationView({
   const checkIsAtBottom = () => {
     const container = getScrollContainer();
     if (!container) return true;
-    const threshold = 100; // pixels from bottom to consider "at bottom"
-    return container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+
+    const { scrollHeight, scrollTop, clientHeight } = container;
+    // Use Math.ceil to avoid floating point precision issues
+    const scrollBottom = Math.ceil(scrollTop + clientHeight);
+    const threshold = 50; // pixels from bottom to consider "at bottom"
+
+    return scrollHeight - scrollBottom <= threshold;
   };
 
-  // Detect new messages and notify parent if not at bottom
+  // Detect new messages and notify parent
   useEffect(() => {
     const currentMessagesLength = messages.length;
     const prevMessagesLength = prevMessagesLengthRef.current;
@@ -760,9 +765,9 @@ export function ConversationView({
       const newCount = currentMessagesLength - prevMessagesLength;
       const isAtBottom = checkIsAtBottom();
 
-      if (!isAtBottom && onNewMessages) {
-        // User is not at bottom, notify parent
-        onNewMessages(newCount);
+      if (onNewMessages) {
+        // Notify parent with both count and whether user is at bottom
+        onNewMessages(newCount, isAtBottom);
       }
     }
 
