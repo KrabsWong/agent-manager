@@ -658,9 +658,46 @@ export function ConversationView({
 
   // New content notification
   const prevMessagesLengthRef = useRef(messages.length);
+  const prevLastMessageHashRef = useRef<string>('');
 
   // Track if user has loaded all content
   const hasLoadedAllRef = useRef(false);
+
+  // Track if user is at bottom
+  const isAtBottomRef = useRef(true);
+
+  // Flag to trigger auto-scroll after DOM update
+  const shouldAutoScrollRef = useRef(false);
+
+  // Track last turn hash for detecting content changes within turns
+  const prevLastTurnHashRef = useRef<string>('');
+
+  // Helper to get turn hash for change detection
+  const getTurnHash = (turn: MessageTurnWithCount | undefined): string => {
+    if (!turn) return '';
+    const userContent = turn.userMessage?.content || '';
+    const assistantContent = turn.assistantMessage?.content || '';
+    const reasoningContent = turn.assistantMessage?.reasoning_content || '';
+    const toolCount = turn.toolCalls.length;
+    return `${userContent.length}:${assistantContent.length}:${reasoningContent.length}:${toolCount}`;
+  };
+
+  // Helper to get message content hash for change detection
+  const getMessageHash = (msg: SessionMessage | undefined): string => {
+    if (!msg) return '';
+    return `${msg.type}:${msg.content || ''}:${msg.reasoning_content || ''}:${JSON.stringify(msg.tool_output || {})}`;
+  };
+
+  // Auto-scroll to bottom
+  const autoScrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
+    const container = getScrollContainer();
+    if (container) {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior,
+      });
+    }
+  };
 
   // Initialize displayed turns based on message count limit
   useEffect(() => {
@@ -743,36 +780,84 @@ export function ConversationView({
     return document.getElementById('conversation-scroll-container');
   };
 
-  // Check if scroll is at bottom
-  const checkIsAtBottom = () => {
+  // Track scroll position
+  useEffect(() => {
     const container = getScrollContainer();
-    if (!container) return true;
+    if (!container) return;
 
-    const { scrollHeight, scrollTop, clientHeight } = container;
-    // Use Math.ceil to avoid floating point precision issues
-    const scrollBottom = Math.ceil(scrollTop + clientHeight);
-    const threshold = 50; // pixels from bottom to consider "at bottom"
+    const handleScroll = () => {
+      const { scrollHeight, scrollTop, clientHeight } = container;
+      const scrollBottom = Math.ceil(scrollTop + clientHeight);
+      isAtBottomRef.current = scrollHeight - scrollBottom <= 50;
+    };
 
-    return scrollHeight - scrollBottom <= threshold;
-  };
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll(); // Initial check
 
-  // Detect new messages and notify parent
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Detect new messages and content changes, trigger auto-scroll if at bottom
   useEffect(() => {
     const currentMessagesLength = messages.length;
     const prevMessagesLength = prevMessagesLengthRef.current;
 
+    // Get last message hash for content change detection
+    const lastMessage = messages[messages.length - 1];
+    const currentLastMessageHash = getMessageHash(lastMessage);
+    const prevLastMessageHash = prevLastMessageHashRef.current;
+
+    // Case 1: New messages added
     if (currentMessagesLength > prevMessagesLength) {
       const newCount = currentMessagesLength - prevMessagesLength;
-      const isAtBottom = checkIsAtBottom();
+
+      // Mark that we should auto-scroll on next layout if user is at bottom
+      if (isAtBottomRef.current) {
+        shouldAutoScrollRef.current = true;
+      }
 
       if (onNewMessages) {
-        // Notify parent with both count and whether user is at bottom
-        onNewMessages(newCount, isAtBottom);
+        onNewMessages(newCount, isAtBottomRef.current);
+      }
+    }
+    // Case 2: Last message content changed (streaming updates like thinking, tool results, etc.)
+    else if (
+      currentMessagesLength === prevMessagesLength &&
+      currentMessagesLength > 0 &&
+      currentLastMessageHash !== prevLastMessageHash
+    ) {
+      // Mark for auto-scroll if at bottom
+      if (isAtBottomRef.current) {
+        shouldAutoScrollRef.current = true;
       }
     }
 
     prevMessagesLengthRef.current = currentMessagesLength;
-  }, [messages.length, onNewMessages]);
+    prevLastMessageHashRef.current = currentLastMessageHash;
+  }, [messages, onNewMessages]);
+
+  // Auto-scroll when displayedTurns changes (detect both new turns and content updates)
+  useEffect(() => {
+    const currentTurnCount = displayedTurns.length;
+    const lastTurn = displayedTurns[displayedTurns.length - 1];
+    const currentLastTurnHash = getTurnHash(lastTurn);
+    const prevLastTurnHash = prevLastTurnHashRef.current;
+
+    // Determine if we should auto-scroll:
+    // 1. Turn count increased (new user message)
+    // 2. Last turn content changed (assistant reply, thinking update, tool result)
+    const hasNewTurn = currentTurnCount > 0 && prevLastTurnHash !== '' && currentTurnCount >= (displayedTurns.length > 0 ? displayedTurns.length - 1 : 0);
+    const hasContentUpdate = currentLastTurnHash !== prevLastTurnHash && prevLastTurnHash !== '';
+
+    if (isAtBottomRef.current && (hasNewTurn || hasContentUpdate)) {
+      // Use setTimeout to ensure DOM is fully updated after state change
+      setTimeout(() => {
+        autoScrollToBottom('smooth');
+      }, 50);
+    }
+
+    prevLastTurnHashRef.current = currentLastTurnHash;
+  }, [displayedTurns]);
 
   // Filter turns based on search
   const filteredTurns = useMemo(() => {
@@ -1752,7 +1837,7 @@ function ToolCallBlock({
       {(!isCollapsibleTool || isExpanded) && toolUse?.tool_input && (
         <div className="px-3 py-2 border-b border-dashed">
           <div className="text-xs text-muted-foreground mb-1">Input</div>
-          <ToolInputDisplay input={toolUse.tool_input} searchQuery={searchQuery} />
+          <ToolInputDisplay input={toolUse.tool_input} searchQuery={searchQuery} toolName={toolName} />
         </div>
       )}
 
@@ -1912,11 +1997,17 @@ function getToolSummary(toolName: string, input?: Record<string, unknown>): stri
 interface ToolInputDisplayProps {
   input?: Record<string, unknown>;
   searchQuery?: string;
+  toolName?: string;
 }
 
-function ToolInputDisplay({ input, searchQuery = '' }: ToolInputDisplayProps) {
+function ToolInputDisplay({ input, searchQuery = '', toolName = '' }: ToolInputDisplayProps) {
   if (!input || Object.keys(input).length === 0) {
     return <span className="text-xs text-muted-foreground">No input</span>;
+  }
+
+  // Special handling for Edit tool - show diff view
+  if (toolName.toLowerCase() === 'edit') {
+    return <EditFileInputDisplay input={input} searchQuery={searchQuery} />;
   }
 
   // Format specific inputs nicely
@@ -1939,6 +2030,175 @@ function ToolInputDisplay({ input, searchQuery = '' }: ToolInputDisplayProps) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+interface EditFileInputDisplayProps {
+  input: Record<string, unknown>;
+  searchQuery?: string;
+}
+
+// Simple diff algorithm to match old and new lines
+function computeDiff(oldLines: string[], newLines: string[]): Array<{ type: 'unchanged' | 'removed' | 'added'; oldLine?: string; newLine?: string; oldIndex?: number; newIndex?: number }> {
+  const result: Array<{ type: 'unchanged' | 'removed' | 'added'; oldLine?: string; newLine?: string; oldIndex?: number; newIndex?: number }> = [];
+  
+  let oldIdx = 0;
+  let newIdx = 0;
+  
+  while (oldIdx < oldLines.length || newIdx < newLines.length) {
+    const oldLine = oldIdx < oldLines.length ? oldLines[oldIdx] : undefined;
+    const newLine = newIdx < newLines.length ? newLines[newIdx] : undefined;
+    
+    if (oldLine === undefined) {
+      // Only new lines left
+      result.push({ type: 'added', newLine, newIndex: newIdx });
+      newIdx++;
+    } else if (newLine === undefined) {
+      // Only old lines left
+      result.push({ type: 'removed', oldLine, oldIndex: oldIdx });
+      oldIdx++;
+    } else if (oldLine === newLine) {
+      // Lines match
+      result.push({ type: 'unchanged', oldLine, newLine, oldIndex: oldIdx, newIndex: newIdx });
+      oldIdx++;
+      newIdx++;
+    } else {
+      // Lines differ - check if this is a replacement
+      // Look ahead to see if old line appears later in new (deletion)
+      // or if new line appeared earlier in old (addition)
+      const oldLineInNew = newLines.slice(newIdx + 1).indexOf(oldLine);
+      const newLineInOld = oldLines.slice(oldIdx + 1).indexOf(newLine);
+      
+      if (oldLineInNew !== -1 && (newLineInOld === -1 || oldLineInNew <= newLineInOld)) {
+        // Old line was deleted
+        result.push({ type: 'removed', oldLine, oldIndex: oldIdx });
+        oldIdx++;
+      } else if (newLineInOld !== -1) {
+        // New line was added
+        result.push({ type: 'added', newLine, newIndex: newIdx });
+        newIdx++;
+      } else {
+        // Replacement (different content)
+        result.push({ type: 'removed', oldLine, oldIndex: oldIdx });
+        result.push({ type: 'added', newLine, newIndex: newIdx });
+        oldIdx++;
+        newIdx++;
+      }
+    }
+  }
+  
+  return result;
+}
+
+function EditFileInputDisplay({ input }: EditFileInputDisplayProps) {
+  const { t } = useTranslation();
+
+  const filePath = String(input.file_path || input.path || '');
+  // Support both snake_case and camelCase field names
+  const oldString = String(input.old_string || input.oldString || '');
+  const newString = String(input.new_string || input.newString || '');
+
+  // Split content into lines for diff display (handle empty strings)
+  const oldLines = oldString ? oldString.split('\n') : [];
+  const newLines = newString ? newString.split('\n') : [];
+  
+  // Compute diff
+  const diff = computeDiff(oldLines, newLines);
+
+  // Handle singular/plural for line count
+  const removedCount = diff.filter(d => d.type === 'removed').length;
+  const addedCount = diff.filter(d => d.type === 'added').length;
+  
+  const removedText = removedCount === 1
+    ? `-1 ${t('sessions.line', 'line')}`
+    : `-${removedCount} ${t('sessions.lines', 'lines')}`;
+  const addedText = addedCount === 1
+    ? `+1 ${t('sessions.line', 'line')}`
+    : `+${addedCount} ${t('sessions.lines', 'lines')}`;
+
+  return (
+    <div className="space-y-3">
+      {/* File Path */}
+      {filePath && (
+        <div className="flex gap-2 text-xs">
+          <span className="text-muted-foreground font-mono flex-shrink-0">file:</span>
+          <span className="font-mono text-primary">{filePath}</span>
+        </div>
+      )}
+
+      {/* Diff View */}
+      <div className="rounded-lg overflow-hidden border border-border">
+        {/* Header */}
+        <div className="flex items-center justify-between px-3 py-1.5 bg-muted/50 border-b border-border">
+          <span className="text-xs font-medium text-muted-foreground">{t('sessions.changes', 'Changes')}</span>
+          <div className="flex items-center gap-3 text-[10px]">
+            {removedCount > 0 && (
+              <span className="flex items-center gap-1">
+                <span className="font-mono text-red-500">{removedText}</span>
+              </span>
+            )}
+            {addedCount > 0 && (
+              <span className="flex items-center gap-1">
+                <span className="font-mono text-green-500">{addedText}</span>
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Unified Diff Content */}
+        {diff.length > 0 && (
+          <div className="max-h-[400px] overflow-auto">
+            <div className="text-xs font-mono">
+              {diff.map((item, index) => {
+                if (item.type === 'unchanged') {
+                  return (
+                    <div key={index} className="flex hover:bg-muted/30">
+                      <span className="w-12 flex-shrink-0 text-right pr-2 py-0.5 text-[10px] text-muted-foreground/40 select-none border-r border-border/30">
+                        {(item.oldIndex ?? 0) + 1}
+                      </span>
+                      <span className="w-6 flex-shrink-0 text-center py-0.5 text-muted-foreground/30">
+                        {' '}
+                      </span>
+                      <pre className="flex-1 px-2 py-0.5 text-muted-foreground/60 whitespace-pre-wrap break-all">
+                        {item.oldLine || ' '}
+                      </pre>
+                    </div>
+                  );
+                } else if (item.type === 'removed') {
+                  return (
+                    <div key={index} className="flex bg-red-500/5 dark:bg-red-500/10 hover:bg-red-500/10">
+                      <span className="w-12 flex-shrink-0 text-right pr-2 py-0.5 text-[10px] text-red-400/60 select-none border-r border-red-200/30 dark:border-red-800/30 bg-red-50/30 dark:bg-red-950/20">
+                        {(item.oldIndex ?? 0) + 1}
+                      </span>
+                      <span className="w-6 flex-shrink-0 text-center py-0.5 text-red-500 font-bold">
+                        -
+                      </span>
+                      <pre className="flex-1 px-2 py-0.5 text-red-700 dark:text-red-300 whitespace-pre-wrap break-all">
+                        {item.oldLine || ' '}
+                      </pre>
+                    </div>
+                  );
+                } else {
+                  return (
+                    <div key={index} className="flex bg-green-500/5 dark:bg-green-500/10 hover:bg-green-500/10">
+                      <span className="w-12 flex-shrink-0 text-right pr-2 py-0.5 text-[10px] text-green-400/60 select-none border-r border-green-200/30 dark:border-green-800/30 bg-green-50/30 dark:bg-green-950/20">
+                        {(item.newIndex ?? 0) + 1}
+                      </span>
+                      <span className="w-6 flex-shrink-0 text-center py-0.5 text-green-500 font-bold">
+                        +
+                      </span>
+                      <pre className="flex-1 px-2 py-0.5 text-green-700 dark:text-green-300 whitespace-pre-wrap break-all">
+                        {item.newLine || ' '}
+                      </pre>
+                    </div>
+                  );
+                }
+              })}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
