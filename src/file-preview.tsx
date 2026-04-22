@@ -245,17 +245,11 @@ function FilePreviewApp() {
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       >
         {sessionTitle && (
-          <p
-            className="text-sm font-bold truncate"
-            style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-          >
+          <p className="text-sm font-bold truncate">
             {sessionTitle}
           </p>
         )}
-        <div
-          className="flex items-center gap-2 min-w-0"
-          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-        >
+        <div className="flex items-center gap-2 min-w-0">
           <span className="text-xs text-muted-foreground truncate">
             {sessionDirectory.split('/').pop() || 'Workspace'}
           </span>
