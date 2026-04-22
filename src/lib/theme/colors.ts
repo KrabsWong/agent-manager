@@ -42,6 +42,25 @@ export interface ColorOption {
   };
 }
 
+interface HSL {
+  h: number;
+  s: number;
+  l: number;
+}
+
+function parseHSL(hslStr: string): HSL {
+  const parts = hslStr.trim().split(/\s+/);
+  return {
+    h: parseFloat(parts[0]),
+    s: parseFloat(parts[1]),
+    l: parseFloat(parts[2]),
+  };
+}
+
+function toHSLString(hsl: HSL): string {
+  return `${hsl.h} ${hsl.s}% ${hsl.l}%`;
+}
+
 // 预设颜色配置
 export const accentColors: ColorOption[] = [
   {
@@ -421,6 +440,7 @@ export function applyAccentColor(colorId: AccentColor, isDark: boolean): void {
 
   const color = getColorById(colorId);
   const theme = isDark ? color.dark : color.light;
+  const primaryHSL = parseHSL(theme.primary);
 
   const root = document.documentElement;
   root.style.setProperty('--primary', theme.primary);
@@ -430,6 +450,13 @@ export function applyAccentColor(colorId: AccentColor, isDark: boolean): void {
   root.style.setProperty('--accent', theme.accent);
   root.style.setProperty('--accent-foreground', isDark ? '0 0% 100%' : color.light.primary);
   root.style.setProperty('--ring', theme.primary);
+
+  // 派生色：从 primary 计算出的变体
+  root.style.setProperty('--primary-hover', toHSLString({ h: primaryHSL.h, s: primaryHSL.s, l: isDark ? Math.min(primaryHSL.l + 8, 90) : Math.max(primaryHSL.l - 8, 10) }));
+  root.style.setProperty('--primary-light', toHSLString({ h: primaryHSL.h, s: Math.min(primaryHSL.s, 70), l: isDark ? 20 : 94 }));
+  root.style.setProperty('--primary-muted', toHSLString({ h: primaryHSL.h, s: Math.min(primaryHSL.s, 40), l: isDark ? 15 : 96 }));
+  root.style.setProperty('--primary-border', toHSLString({ h: primaryHSL.h, s: Math.min(primaryHSL.s, 50), l: isDark ? 30 : 88 }));
+  root.style.setProperty('--primary-ring', toHSLString({ h: primaryHSL.h, s: Math.min(primaryHSL.s, 60), l: isDark ? 50 : 70 }));
 }
 
 // 重置为默认颜色
@@ -442,4 +469,9 @@ export function resetAccentColor(): void {
   root.style.removeProperty('--accent');
   root.style.removeProperty('--accent-foreground');
   root.style.removeProperty('--ring');
+  root.style.removeProperty('--primary-hover');
+  root.style.removeProperty('--primary-light');
+  root.style.removeProperty('--primary-muted');
+  root.style.removeProperty('--primary-border');
+  root.style.removeProperty('--primary-ring');
 }

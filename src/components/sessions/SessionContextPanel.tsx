@@ -482,7 +482,7 @@ export function SessionContextPanel({
             <div className="flex flex-col items-center py-2">
               <button
                 onClick={() => setIsCollapsed(false)}
-                className="p-2 hover:bg-muted rounded-md transition-colors"
+                className="p-2 hover:bg-primary-muted rounded-md transition-colors"
                 title={t('contextPanel.expand', 'Expand')}
               >
                 <PanelRightOpen className="h-4 w-4 text-muted-foreground" />
@@ -490,17 +490,17 @@ export function SessionContextPanel({
             </div>
           ) : (
             <>
-              <div className="px-3 py-2 border-b bg-muted/20 shrink-0">
+              <div className="px-3 py-2 border-b bg-primary-muted shrink-0">
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-2">
-                    <Folder className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    <Folder className="h-3 w-3 text-primary" />
+                    <span className="text-[10px] text-primary uppercase tracking-wider">
                       {t('contextPanel.workDir', 'Work')}
                     </span>
                   </div>
                   <button
                     onClick={() => setIsCollapsed(true)}
-                    className="p-1 hover:bg-muted rounded transition-colors"
+                    className="p-1 hover:bg-primary-light rounded transition-colors"
                     title={t('contextPanel.collapse', 'Collapse')}
                   >
                     <PanelRightClose className="h-3 w-3 text-muted-foreground" />
@@ -533,7 +533,7 @@ export function SessionContextPanel({
           <div className="flex flex-col items-center py-2">
             <button
               onClick={() => setIsCollapsed(false)}
-              className="p-2 hover:bg-muted rounded-md transition-colors"
+              className="p-2 hover:bg-primary-muted rounded-md transition-colors"
               title={t('contextPanel.expand', 'Expand')}
             >
               <PanelRightOpen className="h-4 w-4 text-muted-foreground" />
@@ -557,7 +557,7 @@ export function SessionContextPanel({
             className="flex flex-col h-full"
           >
             {/* Header with tabs and collapse button */}
-            <div className="border-b bg-muted/20 shrink-0">
+            <div className="border-b bg-primary-muted shrink-0">
               <div className="px-2 pt-2">
                 <div className="flex items-center justify-between mb-1">
                   <TabsList

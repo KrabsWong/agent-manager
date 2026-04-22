@@ -43,25 +43,26 @@ export function ThemeSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 h-8">
-          <Icon className="h-3.5 w-3.5" />
-          <span className="text-xs">{t(themeLabelKeys[theme])}</span>
+        <Button variant="outline" size="sm" className="gap-2 h-8 min-w-[100px]">
+          <Icon className="h-3.5 w-3.5 shrink-0" />
+          <span className="text-xs truncate">{t(themeLabelKeys[theme])}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         {(Object.keys(themeIcons) as Theme[]).map((themeKey) => {
           const ThemeIcon = themeIcons[themeKey];
+          const isSelected = theme === themeKey;
           return (
             <DropdownMenuItem
               key={themeKey}
               onClick={() => handleThemeChange(themeKey)}
-              className="gap-2"
+              className="gap-2 items-center"
             >
               <ThemeIcon className="h-4 w-4" />
               <span>{t(themeLabelKeys[themeKey])}</span>
-              {theme === themeKey && (
-                <span className="ml-auto text-xs text-muted-foreground">
-                  {resolvedTheme === 'dark' ? t('settings.themeDark') : t('settings.themeLight')}
+              {isSelected && themeKey === 'system' && (
+                <span className="ml-auto text-xs text-muted-foreground self-center">
+                  ({resolvedTheme === 'dark' ? t('settings.themeDark') : t('settings.themeLight')})
                 </span>
               )}
             </DropdownMenuItem>

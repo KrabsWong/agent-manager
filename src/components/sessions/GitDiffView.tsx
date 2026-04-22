@@ -53,8 +53,8 @@ function FileChangeRow({
     <button
       onClick={onClick}
       className={cn(
-        'w-full flex items-center gap-2 py-1.5 px-2 hover:bg-muted/50 transition-colors text-left group',
-        isSelected && 'bg-muted/70 hover:bg-muted/70'
+        'w-full flex items-center gap-2 py-1.5 px-2 hover:bg-primary-muted transition-colors text-left group',
+        isSelected && 'bg-primary-light hover:bg-primary-light'
       )}
     >
       <FileStatusIcon status={file.status} />
@@ -76,7 +76,7 @@ function FileChangeRow({
 // Section header component
 function SectionHeader({ title, count }: { title: string; count: number }) {
   return (
-    <div className="flex items-center justify-between px-2 py-1.5 bg-muted/30 border-y">
+    <div className="flex items-center justify-between px-2 py-1.5 bg-primary-muted border-y">
       <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
         {title}
       </span>

@@ -243,7 +243,7 @@ const markdownComponents = {
     // 2. content has no newlines (single line code should be inline)
     if (inline || !content.includes('\n')) {
       return (
-        <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
+        <code className="bg-primary-muted px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
           {children}
         </code>
       );
@@ -315,12 +315,12 @@ function MermaidDiagram({ content }: MermaidDiagramProps) {
   // Show raw code if user clicks the button while loading
   if (showRaw) {
     return (
-      <div className="rounded-md border border-border bg-muted/30">
-        <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/50">
-          <span className="text-xs text-muted-foreground">Mermaid (Raw)</span>
+      <div className="rounded-md border border-primary-border bg-primary-muted">
+        <div className="flex items-center justify-between px-3 py-2 border-b border-primary-border bg-primary-light">
+          <span className="text-xs text-primary">Mermaid (Raw)</span>
           <button
             onClick={() => setShowRaw(false)}
-            className="text-xs text-primary hover:underline"
+            className="text-xs text-primary hover:text-primary-hover underline"
           >
             Try render
           </button>
@@ -352,15 +352,15 @@ function MermaidDiagram({ content }: MermaidDiagramProps) {
 
   if (isLoading) {
     return (
-      <div className="rounded-md border border-border bg-muted/30 p-4">
+      <div className="rounded-md border border-primary-border bg-primary-muted p-4">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-muted-foreground">
+          <div className="flex items-center gap-2 text-primary">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
             <span className="text-sm">Rendering diagram...</span>
           </div>
           <button
             onClick={() => setShowRaw(true)}
-            className="text-xs text-muted-foreground hover:text-foreground underline"
+            className="text-xs text-primary hover:text-primary-hover underline"
           >
             View raw
           </button>
@@ -530,26 +530,26 @@ function MermaidDiagramWithZoom({ svg }: MermaidDiagramWithZoomProps) {
   };
 
   return (
-    <div className="rounded-md border border-border bg-background">
+    <div className="rounded-md border border-primary-border bg-background">
       {/* Zoom Controls */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
-        <span className="text-xs text-muted-foreground">Mermaid Diagram</span>
+      <div className="flex items-center justify-between px-3 py-2 border-b border-primary-border bg-primary-muted">
+        <span className="text-xs text-primary">Mermaid Diagram</span>
         <div className="flex items-center gap-1">
           <button
             onClick={handleZoomOut}
-            className="p-1 rounded hover:bg-muted transition-colors"
+            className="p-1 rounded hover:bg-primary-light text-primary transition-colors"
             title="Zoom out"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
             </svg>
           </button>
-          <span className="text-xs text-muted-foreground min-w-[50px] text-center">
+          <span className="text-xs text-primary min-w-[50px] text-center">
             {Math.round(scale * 100)}%
           </span>
           <button
             onClick={handleZoomIn}
-            className="p-1 rounded hover:bg-muted transition-colors"
+            className="p-1 rounded hover:bg-primary-light text-primary transition-colors"
             title="Zoom in"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -558,7 +558,7 @@ function MermaidDiagramWithZoom({ svg }: MermaidDiagramWithZoomProps) {
           </button>
           <button
             onClick={handleReset}
-            className="ml-2 px-2 py-1 text-xs rounded hover:bg-muted transition-colors text-muted-foreground"
+            className="ml-2 px-2 py-1 text-xs rounded hover:bg-primary-light transition-colors text-primary"
             title="Reset zoom"
           >
             Reset
@@ -569,7 +569,7 @@ function MermaidDiagramWithZoom({ svg }: MermaidDiagramWithZoomProps) {
       {/* Diagram Container */}
       <div
         ref={containerRef}
-        className="relative overflow-hidden cursor-grab active:cursor-grabbing bg-muted/10"
+        className="relative overflow-hidden cursor-grab active:cursor-grabbing bg-primary-muted/30"
         style={{ height: '500px' }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -589,8 +589,8 @@ function MermaidDiagramWithZoom({ svg }: MermaidDiagramWithZoomProps) {
       </div>
 
       {/* Hint */}
-      <div className="px-3 py-1.5 border-t border-border bg-muted/20">
-        <span className="text-[10px] text-muted-foreground">
+      <div className="px-3 py-1.5 border-t border-primary-border bg-primary-muted">
+        <span className="text-[10px] text-primary">
           Drag to pan • Ctrl/Cmd + scroll to zoom
         </span>
       </div>
@@ -658,11 +658,11 @@ function CollapsibleCodeBlock({ content, language }: CollapsibleCodeBlockProps) 
   return (
     <div className="relative">
       {!shouldHighlight && (
-        <div className="absolute top-0 right-0 z-10 px-2 py-1 text-[10px] text-muted-foreground bg-[#1a1b26]/80 rounded-bl">
+        <div className="absolute top-0 right-0 z-10 px-2 py-1 text-[10px] text-primary bg-primary-muted rounded-bl border-l border-b border-primary-border">
           已禁用高亮 ({totalLines} 行)
         </div>
       )}
-      <div ref={codeBlockRef} className="overflow-auto max-h-[600px] rounded-md">
+      <div ref={codeBlockRef} className="overflow-auto max-h-[600px] rounded-md border border-primary-border">
         {shouldHighlight ? (
           <SyntaxHighlighter
             language={language}
@@ -681,7 +681,7 @@ function CollapsibleCodeBlock({ content, language }: CollapsibleCodeBlockProps) 
         <div className="absolute bottom-0 left-0 right-0 flex items-center justify-center py-2 bg-gradient-to-t from-[#1a1b26] to-transparent">
           <button
             onClick={isFullyExpanded ? handleCollapse : handleExpand}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/80 hover:bg-muted text-xs font-medium text-muted-foreground hover:text-foreground transition-colors border border-border/50 shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary-muted/80 hover:bg-primary-muted text-xs font-medium text-primary hover:text-primary-hover transition-colors border border-primary-border/50 shadow-sm"
           >
             {isFullyExpanded ? (
               <>
@@ -1351,22 +1351,22 @@ const ConversationTurn = memo(function ConversationTurn({
 
       {/* Agent Response */}
       {turn.toolCalls.length > 0 ? (
-        <div className="flex gap-3">
-          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-            {getAppIcon(appType as AppType, 18)}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="font-medium text-sm">{APP_LABELS[appType as AppType] || APP_LABELS.claude}</span>
-              {turn.assistantMessage?.model && (
-                <span
-                  className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
-                  title="AI Model"
-                >
-                  {turn.assistantMessage.model}
-                </span>
-              )}
-            </div>
+    <div className="flex gap-3">
+      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary-muted flex items-center justify-center">
+        {getAppIcon(appType as AppType, 18)}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="font-medium text-sm">{APP_LABELS[appType as AppType] || APP_LABELS.claude}</span>
+          {turn.assistantMessage?.model && (
+            <span
+              className="text-xs px-1.5 py-0.5 rounded bg-primary-muted text-primary"
+              title="AI Model"
+            >
+              {turn.assistantMessage.model}
+            </span>
+          )}
+        </div>
             <div className="space-y-2">
               {turn.toolCalls.map((toolCall, index) => (
                 <ToolCallBlock
@@ -1489,8 +1489,8 @@ const SystemMessage = memo(function SystemMessage({
         return {
           icon: <Info className="h-3.5 w-3.5 text-muted-foreground" />,
           label: 'System',
-          bgColor: 'bg-muted/50',
-          borderColor: 'border-border',
+          bgColor: 'bg-primary-muted',
+          borderColor: 'border-primary-border',
           textColor: 'text-muted-foreground',
         };
     }
@@ -1523,7 +1523,7 @@ const SystemMessage = memo(function SystemMessage({
         <span className={`text-xs font-medium ${config.textColor}`}>{config.label}</span>
         {model && (
           <span
-            className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+            className="text-xs px-1.5 py-0.5 rounded bg-primary-muted text-primary"
             title="AI Model"
           >
             {model}
@@ -1563,7 +1563,7 @@ const UserMessage = memo(function UserMessage({
 
   return (
     <div className="flex gap-3">
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary-muted flex items-center justify-center">
         <User className="h-4 w-4 text-primary" />
       </div>
       <div className="flex-1 min-w-0">
@@ -1571,7 +1571,7 @@ const UserMessage = memo(function UserMessage({
           <span className="font-medium text-sm">You</span>
           {model && (
             <span
-              className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+              className="text-xs px-1.5 py-0.5 rounded bg-primary-muted text-primary"
               title="AI Model"
             >
               {model}
@@ -1579,7 +1579,7 @@ const UserMessage = memo(function UserMessage({
           )}
           <span className="text-xs text-muted-foreground">{formatTimestamp(timestamp)}</span>
         </div>
-        <div className="bg-primary/5 rounded-lg p-3 text-sm space-y-2">
+        <div className="bg-primary-muted rounded-lg p-3 text-sm space-y-2">
           {parsedContents.map((item, index) => (
             <ParsedContentBlock key={index} item={item} searchQuery={searchQuery} />
           ))}
@@ -1629,7 +1629,7 @@ function FileAttachment({ path, type, content }: FileAttachmentProps) {
       {/* File Header */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between px-3 py-2 hover:bg-muted/50 transition-colors text-left"
+        className="w-full flex items-center justify-between px-3 py-2 hover:bg-primary-muted transition-colors text-left"
       >
         <div className="flex items-center gap-2 min-w-0">
           <FileText className="h-4 w-4 text-primary flex-shrink-0" />
@@ -1770,7 +1770,7 @@ const AssistantMessage = memo(function AssistantMessage({
             {shouldTruncate && !isExpanded && !searchQuery && (
               <button
                 onClick={() => setIsExpanded(true)}
-                className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted hover:bg-muted/80 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors border border-border/50"
+                className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary-muted hover:bg-primary-light text-xs font-medium text-primary hover:text-primary-hover transition-colors border border-primary-border/50"
               >
                 <Maximize2 className="h-3.5 w-3.5" />
                 展开全部 ({(content.length / 1000).toFixed(1)}K 字符)
@@ -1788,7 +1788,7 @@ const AssistantMessage = memo(function AssistantMessage({
 
   return (
     <div className="flex gap-3">
-      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary-muted flex items-center justify-center">
         {getAppIcon(appType as AppType, 18)}
       </div>
       <div className="flex-1 min-w-0">
@@ -1796,7 +1796,7 @@ const AssistantMessage = memo(function AssistantMessage({
           <span className="font-medium text-sm">{assistantName}</span>
           {model && (
             <span
-              className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+              className="text-xs px-1.5 py-0.5 rounded bg-primary-muted text-primary"
               title="AI Model"
             >
               {model}
@@ -1827,8 +1827,7 @@ interface ClaudeCodeXMLViewerProps {
 }
 
 function ClaudeCodeXMLViewer({ data }: ClaudeCodeXMLViewerProps) {
-  // Track expanded state for each item
-  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set([0])); // Default expand first item
+  const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set([0]));
 
   const toggleExpanded = (index: number) => {
     setExpandedItems((prev) => {
@@ -1852,16 +1851,13 @@ function ClaudeCodeXMLViewer({ data }: ClaudeCodeXMLViewerProps) {
 
   const fileName = (path: string) => path.split('/').pop() || path;
 
-  // Get display path with at most 3 parent directory levels
   const getDisplayPath = (path: string): string => {
     if (!path) return '';
     const parts = path.split('/').filter(Boolean);
-    if (parts.length <= 1) return '.'; // Only filename
+    if (parts.length <= 1) return '.';
 
-    // Remove filename
     parts.pop();
 
-    // Keep at most 3 parent directories (last 3)
     if (parts.length > 3) {
       parts.splice(0, parts.length - 3);
     }
@@ -1871,19 +1867,18 @@ function ClaudeCodeXMLViewer({ data }: ClaudeCodeXMLViewerProps) {
 
   return (
     <div className="space-y-3">
-      {/* Expand/Collapse All buttons */}
       {data.length > 1 && (
         <div className="flex items-center justify-end gap-2">
           <button
             onClick={expandAll}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            className="text-xs text-primary hover:text-primary-hover transition-colors"
           >
             全部展开
           </button>
           <span className="text-muted-foreground/30">|</span>
           <button
             onClick={collapseAll}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            className="text-xs text-primary hover:text-primary-hover transition-colors"
           >
             全部收起
           </button>
@@ -1897,12 +1892,11 @@ function ClaudeCodeXMLViewer({ data }: ClaudeCodeXMLViewerProps) {
         return (
           <div
             key={index}
-            className="rounded-lg border border-border overflow-hidden bg-background/50"
+            className="rounded-lg border border-primary-border overflow-hidden bg-background/50"
           >
-            {/* Header with path - clickable */}
             <button
               onClick={() => toggleExpanded(index)}
-              className="w-full flex items-center justify-between px-3 py-2 bg-muted/50 border-b hover:bg-muted/70 transition-colors text-left"
+              className="w-full flex items-center justify-between px-3 py-2 bg-primary-muted border-b hover:bg-primary-light transition-colors text-left"
             >
               <div className="flex items-center gap-2 min-w-0">
                 {item.type === 'directory' ? (
@@ -1923,14 +1917,13 @@ function ClaudeCodeXMLViewer({ data }: ClaudeCodeXMLViewerProps) {
                   {displayPath}
                 </span>
                 {isExpanded ? (
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  <ChevronDown className="h-4 w-4 text-primary" />
                 ) : (
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight className="h-4 w-4 text-primary" />
                 )}
               </div>
             </button>
 
-            {/* Content */}
             {isExpanded && (
               <div className="border-t">
                 {item.type === 'directory' && item.entries && (
@@ -1944,7 +1937,7 @@ function ClaudeCodeXMLViewer({ data }: ClaudeCodeXMLViewerProps) {
                           {entry.endsWith('/') ? (
                             <Folder className="h-3.5 w-3.5 text-blue-500" />
                           ) : (
-                            <FileText className="h-3.5 w-3.5 text-gray-400" />
+                            <FileText className="h-3.5 w-3.5 text-primary" />
                           )}
                           <span>{entry}</span>
                         </div>
@@ -2071,17 +2064,17 @@ function ToolCallBlock({
     const summary = getToolSummary(toolName, undefined);
 
     return (
-      <div className="border rounded-lg overflow-hidden bg-muted/30">
+      <div className="border border-primary-border rounded-lg overflow-hidden bg-primary-muted">
         {/* Tool Header - Clickable to expand/collapse */}
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full flex items-center gap-2 px-3 py-2 bg-muted/50 border-b text-left cursor-pointer hover:bg-muted/70 transition-colors"
+          className="w-full flex items-center gap-2 px-3 py-2 bg-primary-light border-b border-primary-border text-left cursor-pointer hover:bg-primary-muted transition-colors"
         >
           {getToolIcon(toolType)}
           <span className="font-medium text-sm">{getToolDisplayName(toolName)}</span>
           {toolResult?.model && (
             <span
-              className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+              className="text-xs px-1.5 py-0.5 rounded bg-primary-muted text-primary"
               title="AI Model"
             >
               {toolResult.model}
@@ -2124,7 +2117,7 @@ function ToolCallBlock({
   const summary = getToolSummary(toolName, toolUse?.tool_input);
 
   return (
-    <div className="border rounded-lg overflow-hidden bg-muted/30">
+    <div className="border border-primary-border rounded-lg overflow-hidden bg-primary-muted">
       {/* Thinking / Reasoning Block */}
       {reasoningContent && showThinkingContent && (
         <div className="border-b border-amber-200/50 dark:border-amber-800/50 bg-amber-50/30 dark:bg-amber-900/10">
@@ -2160,13 +2153,13 @@ function ToolCallBlock({
       {/* Tool Header - Clickable to expand/collapse */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center gap-2 px-3 py-2 bg-muted/50 border-b text-left cursor-pointer hover:bg-muted/70 transition-colors"
+        className="w-full flex items-center gap-2 px-3 py-2 bg-primary-light border-b border-primary-border text-left cursor-pointer hover:bg-primary-muted transition-colors"
       >
         {getToolIcon(toolType)}
         <span className="font-medium text-sm">{getToolDisplayName(toolName)}</span>
         {(toolUse?.model || toolResult?.model) && (
           <span
-            className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+            className="text-xs px-1.5 py-0.5 rounded bg-primary-muted text-primary"
             title="AI Model"
           >
             {toolUse?.model || toolResult?.model}
@@ -2481,9 +2474,9 @@ function EditFileInputDisplay({ input }: EditFileInputDisplayProps) {
       )}
 
       {/* Diff View */}
-      <div className="rounded-lg overflow-hidden border border-border">
+      <div className="rounded-lg overflow-hidden border border-primary-border">
         {/* Header */}
-        <div className="flex items-center justify-between px-3 py-1.5 bg-muted/50 border-b border-border">
+        <div className="flex items-center justify-between px-3 py-1.5 bg-primary-muted border-b border-primary-border">
           <span className="text-xs font-medium text-muted-foreground">{t('sessions.changes', 'Changes')}</span>
           <div className="flex items-center gap-3 text-[10px]">
             {removedCount > 0 && (
@@ -2506,8 +2499,8 @@ function EditFileInputDisplay({ input }: EditFileInputDisplayProps) {
               {diff.map((item, index) => {
                 if (item.type === 'unchanged') {
                   return (
-                    <div key={index} className="flex hover:bg-muted/30">
-                      <span className="w-12 flex-shrink-0 text-right pr-2 py-0.5 text-[10px] text-muted-foreground/40 select-none border-r border-border/30">
+                    <div key={index} className="flex hover:bg-primary-muted">
+                      <span className="w-12 flex-shrink-0 text-right pr-2 py-0.5 text-[10px] text-primary/40 select-none border-r border-primary-border/30">
                         {(item.oldIndex ?? 0) + 1}
                       </span>
                       <span className="w-6 flex-shrink-0 text-center py-0.5 text-muted-foreground/30">
@@ -2591,7 +2584,7 @@ function ToolOutputDisplay({ output, searchQuery = '', toolName = '' }: ToolOutp
   if (!text) {
     const jsonStr = JSON.stringify(output, null, 2);
     return (
-      <pre className="text-xs font-mono bg-muted/50 rounded p-2 whitespace-pre-wrap break-all">
+      <pre className="text-xs font-mono bg-primary-muted rounded p-2 whitespace-pre-wrap break-all">
         {searchQuery ? <HighlightedText text={jsonStr} query={searchQuery} /> : jsonStr}
       </pre>
     );
@@ -2608,14 +2601,14 @@ function ToolOutputDisplay({ output, searchQuery = '', toolName = '' }: ToolOutp
 
   return (
     <div className="relative">
-      <pre className="text-xs font-mono bg-muted/50 rounded p-2 whitespace-pre-wrap break-all">
+      <pre className="text-xs font-mono bg-primary-muted rounded p-2 whitespace-pre-wrap break-all">
         {searchQuery ? <HighlightedText text={displayText} query={searchQuery} /> : displayText}
       </pre>
       {shouldCollapse && !searchQuery && (
         <div className="flex justify-center mt-2">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-1.5 px-3 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors border border-border/50 rounded-full bg-background/50 hover:bg-background"
+            className="flex items-center gap-1.5 px-3 py-1 text-xs text-primary hover:text-primary-hover transition-colors border border-primary-border/50 rounded-full bg-primary-muted hover:bg-primary-light"
           >
             {isExpanded ? (
               <>

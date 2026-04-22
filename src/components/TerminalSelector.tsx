@@ -82,8 +82,8 @@ export function TerminalSelector() {
               className={cn(
                 'w-full flex items-center gap-3 p-2.5 rounded-md border transition-all text-left',
                 isSelected
-                  ? 'border-primary/50 bg-primary/5'
-                  : 'border-border/60 hover:border-primary/30 hover:bg-accent/50',
+                  ? 'border-primary-border bg-primary-muted'
+                  : 'border-border/60 hover:border-primary-border hover:bg-primary-muted',
                 isDisabled && 'opacity-50 cursor-not-allowed'
               )}
             >

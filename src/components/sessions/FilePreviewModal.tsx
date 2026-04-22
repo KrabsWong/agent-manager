@@ -61,8 +61,8 @@ function TreeItem({
       <button
         onClick={handleClick}
         className={cn(
-          'w-full flex items-center gap-1.5 py-1 hover:bg-muted/50 transition-colors text-left group whitespace-nowrap',
-          isActive && 'bg-primary/10 hover:bg-primary/20'
+          'w-full flex items-center gap-1.5 py-1 hover:bg-primary-muted transition-colors text-left group whitespace-nowrap',
+          isActive && 'bg-primary-light hover:bg-primary-light'
         )}
         style={{ paddingLeft: `${12 + depth * 12}px` }}
         title={node.path}
@@ -243,10 +243,10 @@ export function FilePreviewModal({
       />
 
       {/* Modal Content */}
-      <div className="relative w-full h-full max-w-6xl bg-card rounded-xl shadow-2xl border overflow-hidden flex flex-col">
+      <div className="relative w-full h-full max-w-6xl bg-card rounded-xl shadow-2xl border border-primary-border overflow-hidden flex flex-col">
         {/* Header with close button */}
-        <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30 shrink-0">
-          <h2 className="text-sm font-semibold">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-primary-border bg-primary-muted shrink-0">
+          <h2 className="text-sm font-semibold text-primary">
             {sessionDirectory?.split('/').pop() || 'Workspace'}
           </h2>
           <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">

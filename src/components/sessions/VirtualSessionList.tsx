@@ -404,7 +404,7 @@ function SessionCard({ session, isSelected, onClick, viewMode }: SessionCardProp
     <button
       onClick={onClick}
       className={`w-full text-left py-1.5 px-2 rounded transition-all duration-150 relative group min-w-0 ${
-        isSelected ? 'bg-primary/15 text-primary shadow-sm' : 'hover:bg-accent/30 text-foreground'
+        isSelected ? 'bg-primary-light text-primary shadow-sm' : 'hover:bg-accent/30 text-foreground'
       }`}
     >
       {/* Left indicator bar for selected state - full height */}
@@ -425,7 +425,7 @@ function SessionCard({ session, isSelected, onClick, viewMode }: SessionCardProp
           <div className="flex items-center shrink-0">
             <span
               className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                isSelected ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
+                isSelected ? 'bg-primary-muted text-primary' : 'bg-muted text-muted-foreground'
               }`}
             >
               {formatDateTime(session.updatedAt)}

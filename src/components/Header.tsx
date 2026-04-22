@@ -30,8 +30,8 @@ export function Header({}: HeaderProps) {
             onClick={() => setSettingsOpen(true)}
             className={cn(
               'flex items-center justify-center w-9 h-9 rounded-lg transition-colors app-no-drag',
-              'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-              'focus:outline-none focus:ring-2 focus:ring-primary/50'
+              'text-muted-foreground hover:bg-primary-muted hover:text-primary',
+              'focus:outline-none focus:ring-2 focus:ring-primary-ring'
             )}
             title={t('nav.settings')}
           >

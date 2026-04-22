@@ -243,19 +243,19 @@ export function FilePreview({ fileName, content, onClose, className }: FilePrevi
   }, [isEditorReady]);
 
   return (
-    <div className={cn('flex flex-col h-full w-full min-w-0 bg-card border-l', className)}>
-      <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/30 shrink-0">
+    <div className={cn('flex flex-col h-full w-full min-w-0 bg-card border-l border-primary-border', className)}>
+      <div className="flex items-center justify-between px-3 py-2 border-b border-primary-border bg-primary-muted shrink-0">
         <div className="flex items-center gap-2 min-w-0 flex-1">
           {isImage ? (
-            <Image className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <Image className="h-4 w-4 text-primary flex-shrink-0" />
           ) : (
-            <FileText className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <FileText className="h-4 w-4 text-primary flex-shrink-0" />
           )}
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium truncate" title={fileName}>
+            <p className="text-sm font-medium truncate text-primary" title={fileName}>
               {fileName}
             </p>
-            <p className="text-[10px] text-muted-foreground truncate">
+            <p className="text-[10px] text-primary/70 truncate">
               {fileSize} • {isImage ? 'Image' : language}
             </p>
           </div>
@@ -263,10 +263,10 @@ export function FilePreview({ fileName, content, onClose, className }: FilePrevi
         <div className="flex items-center gap-1 ml-2">
           <button
             onClick={onClose}
-            className="p-1.5 hover:bg-muted rounded-md transition-colors"
+            className="p-1.5 hover:bg-primary-light rounded-md transition-colors"
             title="Close preview"
           >
-            <X className="h-3.5 w-3.5 text-muted-foreground" />
+            <X className="h-3.5 w-3.5 text-primary" />
           </button>
         </div>
       </div>
@@ -274,7 +274,7 @@ export function FilePreview({ fileName, content, onClose, className }: FilePrevi
       <div ref={containerRef} className="flex-1 relative min-h-0 min-w-0 w-full overflow-hidden">
         {isImage ? (
           // Image preview
-          <div className="w-full h-full flex items-center justify-center bg-muted/30 p-4 overflow-auto">
+          <div className="w-full h-full flex items-center justify-center bg-primary-muted/30 p-4 overflow-auto">
             <img
               src={content}
               alt={fileName}
@@ -288,8 +288,8 @@ export function FilePreview({ fileName, content, onClose, className }: FilePrevi
             {isLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-card z-10">
                 <div className="flex flex-col items-center gap-2">
-                  <div className="h-5 w-5 border-2 border-muted-foreground/20 border-t-muted-foreground/60 rounded-full animate-spin" />
-                  <p className="text-xs text-muted-foreground">Loading...</p>
+                  <div className="h-5 w-5 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+                  <p className="text-xs text-primary">Loading...</p>
                 </div>
               </div>
             )}
