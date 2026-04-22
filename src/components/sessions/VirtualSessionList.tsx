@@ -85,18 +85,15 @@ function useDateGroupedSessions(
 
     // Build virtual list items
     const items: Array<
-      | { type: 'header'; groupKey: string; sessionsCount: number; isFirst: boolean }
+      | { type: 'header'; groupKey: string; isFirst: boolean }
       | { type: 'session'; session: Session; groupKey: string }
     > = [];
 
     sortedDates.forEach((dateKey, index) => {
-      const sessionsCount = groups.get(dateKey)!.length;
-
       // Add header
       items.push({
         type: 'header',
         groupKey: dateKey,
-        sessionsCount,
         isFirst: index === 0,
       });
 
@@ -167,18 +164,15 @@ function useDirectoryGroupedSessions(
 
     // Build virtual list items
     const items: Array<
-      | { type: 'header'; groupKey: string; sessionsCount: number; isFirst: boolean }
+      | { type: 'header'; groupKey: string; isFirst: boolean }
       | { type: 'session'; session: Session; groupKey: string }
     > = [];
 
     sortedDirs.forEach((dirKey, index) => {
-      const sessionsCount = groups.get(dirKey)!.length;
-
       // Add header
       items.push({
         type: 'header',
         groupKey: dirKey,
-        sessionsCount,
         isFirst: index === 0,
       });
 
@@ -302,7 +296,6 @@ function ExpandCollapseControls({ allExpanded, allCollapsed }: ExpandCollapseCon
  */
 interface DateHeaderProps {
   dateKey: string;
-  sessionsCount: number;
   isFirst: boolean;
   isCollapsed: boolean;
   onToggle: () => void;
@@ -313,7 +306,6 @@ interface DateHeaderProps {
 
 function DateHeader({
   dateKey,
-  sessionsCount,
   isFirst,
   isCollapsed,
   onToggle,
@@ -332,7 +324,6 @@ function DateHeader({
         <h4 className="text-sm font-semibold text-foreground">
           {formatDateGroupLabel(dateKey, t)}
         </h4>
-        <span className="text-[10px] text-muted-foreground/70 font-medium">×{sessionsCount}</span>
       </button>
       {isFirst && <ExpandCollapseControls allExpanded={allExpanded} allCollapsed={allCollapsed} />}
     </div>
@@ -344,7 +335,6 @@ function DateHeader({
  */
 interface DirectoryHeaderProps {
   dirKey: string;
-  sessionsCount: number;
   isFirst: boolean;
   isCollapsed: boolean;
   onToggle: () => void;
@@ -354,7 +344,6 @@ interface DirectoryHeaderProps {
 
 function DirectoryHeader({
   dirKey,
-  sessionsCount,
   isFirst,
   isCollapsed,
   onToggle,
@@ -383,9 +372,6 @@ function DirectoryHeader({
             {parentPath}
           </span>
         )}
-        <span className="text-[10px] text-muted-foreground/70 font-medium shrink-0 ml-auto">
-          ×{sessionsCount}
-        </span>
       </button>
       {isFirst && <ExpandCollapseControls allExpanded={allExpanded} allCollapsed={allCollapsed} />}
     </div>
@@ -403,11 +389,6 @@ interface SessionCardProps {
 }
 
 function SessionCard({ session, isSelected, onClick, viewMode }: SessionCardProps) {
-  // Format time (HH:MM)
-  const formatTime = (timestamp: number) => {
-    return new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
   // Format date + time for directory view (MM/DD HH:MM)
   const formatDateTime = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -439,19 +420,18 @@ function SessionCard({ session, isSelected, onClick, viewMode }: SessionCardProp
           className={`text-xs flex-1 min-w-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}
         />
 
-        {/* Time and Count - minimal text only */}
-        <div className="flex items-center shrink-0">
-          <span
-            className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-              isSelected ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
-            }`}
-          >
-            {viewMode === 'date'
-              ? `@${formatTime(session.updatedAt)}`
-              : formatDateTime(session.updatedAt)}{' '}
-            ×{session.messageCount}
-          </span>
-        </div>
+        {/* Time - show only in directory mode */}
+        {viewMode === 'directory' && (
+          <div className="flex items-center shrink-0">
+            <span
+              className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                isSelected ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              {formatDateTime(session.updatedAt)}
+            </span>
+          </div>
+        )}
       </div>
     </button>
   );
@@ -537,7 +517,6 @@ export function VirtualSessionList({
                     viewMode === 'date' ? (
                       <DateHeader
                         dateKey={item.groupKey}
-                        sessionsCount={item.sessionsCount}
                         isFirst={item.isFirst}
                         isCollapsed={collapsedGroups.has(item.groupKey)}
                         onToggle={() => toggleGroup(item.groupKey)}
@@ -548,7 +527,6 @@ export function VirtualSessionList({
                     ) : (
                       <DirectoryHeader
                         dirKey={item.groupKey}
-                        sessionsCount={item.sessionsCount}
                         isFirst={item.isFirst}
                         isCollapsed={collapsedGroups.has(item.groupKey)}
                         onToggle={() => toggleGroup(item.groupKey)}

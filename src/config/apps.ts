@@ -15,6 +15,7 @@ export const APP_ORDER: AppType[] = [
   'claude-internal',
   'claude',
   'opencode',
+  'vscode-extension',
   'codex',
   'gemini',
 ];
@@ -27,6 +28,7 @@ export const APP_LABELS: Record<AppType, string> = {
   gemini: 'Gemini CLI',
   opencode: 'OpenCode',
   codebuddy: 'Codebuddy',
+  'vscode-extension': 'VS Code Extension',
 };
 
 // ============ 应用颜色类名（用于图标） ============
@@ -37,6 +39,7 @@ export const APP_COLORS: Record<AppType, string> = {
   gemini: 'text-blue-500',
   opencode: 'text-indigo-500',
   codebuddy: 'text-slate-700 dark:text-slate-300',
+  'vscode-extension': 'text-blue-600',
 };
 
 // ============ 应用官网 ============
@@ -47,6 +50,7 @@ export const APP_WEBSITES: Record<AppType, string> = {
   gemini: 'https://ai.google.dev/gemini-cli',
   opencode: 'https://opencode.com',
   codebuddy: 'https://codebuddy.ai',
+  'vscode-extension': 'https://code.visualstudio.com',
 };
 
 // ============ 应用支持状态 ============
@@ -55,6 +59,7 @@ export const APP_SUPPORT_STATUS: Record<AppType, boolean> = {
   'claude-internal': true,
   opencode: true,
   codebuddy: true,
+  'vscode-extension': true,
   codex: false,
   gemini: false,
 };
@@ -67,6 +72,7 @@ export const APP_DESCRIPTIONS: Record<AppType, string> = {
   gemini: 'Google 的 Gemini 代码助手（即将推出）',
   opencode: '社区驱动的开源 AI 编程工具',
   codebuddy: 'Codebuddy 智能编程助手',
+  'vscode-extension': 'VS Code AI 扩展（如工蜂 Copilot）',
 };
 
 // ============ 快捷访问 ============

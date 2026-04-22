@@ -4,7 +4,7 @@
  */
 
 // ============ App Types ============
-export type AppType = 'claude' | 'claude-internal' | 'codex' | 'gemini' | 'opencode' | 'codebuddy';
+export type AppType = 'claude' | 'claude-internal' | 'codex' | 'gemini' | 'opencode' | 'codebuddy' | 'vscode-extension';
 
 // 注意：应用顺序和配置请从 @/config/apps 导入
 // import { APP_ORDER } from '@/config/apps'

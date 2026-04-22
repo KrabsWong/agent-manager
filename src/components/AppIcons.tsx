@@ -18,6 +18,7 @@ const APP_ICON_URLS: Record<AppType, string> = {
   gemini: `${LOBE_ICONS_CDN}/gemini.svg`,
   opencode: `${LOBE_ICONS_CDN}/opencode.svg`,
   codebuddy: '', // Codebuddy uses inline SVG below
+  'vscode-extension': '/icons/vscode.png', // Local PNG icon
 };
 
 // Codebuddy Logo SVG Component (monochrome version for consistency)
@@ -74,6 +75,7 @@ export const APP_COLORS: Record<AppType, string> = {
   gemini: 'text-blue-500',
   opencode: 'text-indigo-500',
   codebuddy: 'text-slate-700 dark:text-slate-300', // Monochrome style for consistency
+  'vscode-extension': 'text-blue-600', // VS Code blue
 };
 
 // Icon component that renders SVG from CDN
@@ -101,17 +103,46 @@ const IconFromCDN = ({
   );
 };
 
+// VS Code Extension Icon Component
+const VSCodeIcon = ({ size = 16, className = '' }: { size?: number; className?: string }) => (
+  <div
+    className={`inline-flex items-center justify-center rounded bg-white dark:bg-black border border-slate-200 dark:border-slate-800 ${className}`}
+    style={{
+      width: size,
+      height: size,
+      display: 'inline-flex',
+      verticalAlign: 'middle',
+    }}
+  >
+    <img
+      src="/icons/vscode.png"
+      alt="VS Code Extension"
+      width={size * 0.75}
+      height={size * 0.75}
+      style={{ display: 'block' }}
+      className="invert dark:invert-0"
+    />
+  </div>
+);
+
 // Helper function to get icon component
 export function getAppIcon(
   appType: AppType,
   size: number | string = 16,
   className = ''
 ): React.ReactNode {
+  const sizeNum = typeof size === 'string' ? parseInt(size) : size;
+  
   // Use inline SVG for Codebuddy
   if (appType === 'codebuddy') {
-    const sizeNum = typeof size === 'string' ? parseInt(size) : size;
     return <CodebuddyIconSVG size={sizeNum} className={className} />;
   }
+  
+  // Use local PNG for VS Code Extension
+  if (appType === 'vscode-extension') {
+    return <VSCodeIcon size={sizeNum} className={className} />;
+  }
+  
   return <IconFromCDN appType={appType} size={size} className={className} />;
 }
 

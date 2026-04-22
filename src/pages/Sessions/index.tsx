@@ -34,7 +34,9 @@ import {
 import { ConversationView } from '@/components/sessions/ConversationView';
 import { VirtualSessionList, type ViewMode } from '@/components/sessions/VirtualSessionList';
 import { SessionContextPanel } from '@/components/sessions/SessionContextPanel';
-import { APP_LABELS, APP_WEBSITES } from '@/components/AppIcons';
+import { APP_LABELS, APP_WEBSITES, getAppIcon, APP_COLORS } from '@/components/AppIcons';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { APP_ORDER, isAppSupported } from '@/config/apps';
 import type { AppType, Session } from '@/types';
 
 interface SessionsPageProps {
@@ -144,10 +146,6 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
     setIsPreviewingFile(false);
   }, [selectedApp]);
 
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString();
-  };
-
   const isSupported = supportStatus?.supported ?? false;
 
   const handleSessionSelect = (session: Session) => {
@@ -234,6 +232,8 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
   // Handle resuming session
   const handleResumeSession = async () => {
     if (!selectedSession) return;
+    // VS Code Extension doesn't support resume
+    if (selectedApp === 'vscode-extension') return;
     await resumeMutation.mutateAsync({
       sessionId: selectedSession.id,
       appType: selectedApp,
@@ -242,10 +242,12 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
   };
 
   // Check if terminal supports resume (any modern terminal or Terminal.app)
+  // VS Code Extension doesn't support resume since it's not a CLI tool
   const canResume =
-    terminalInfo?.ghosttyInstalled ||
-    terminalInfo?.kittyInstalled ||
-    terminalInfo?.preferred === 'terminal';
+    selectedApp !== 'vscode-extension' &&
+    (terminalInfo?.ghosttyInstalled ||
+      terminalInfo?.kittyInstalled ||
+      terminalInfo?.preferred === 'terminal');
 
   // Track if user is previewing a file to auto-hide session list and resize detail
   const [isPreviewingFile, setIsPreviewingFile] = useState(false);
@@ -257,6 +259,41 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
         {/* Session List - hidden when previewing file */}
         {!isPreviewingFile && (
           <div className="flex flex-col min-h-0 border-r bg-card/50 overflow-hidden w-[320px] shrink-0">
+            {/* App Selector */}
+            <div className="px-3 py-2 border-b border-border/40 bg-card">
+              <Select value={selectedApp} onValueChange={(value) => onAppChange(value as AppType)}>
+                <SelectTrigger className="w-full h-9">
+                  <div className="flex items-center gap-2">
+                    <span className={APP_COLORS[selectedApp]}>{getAppIcon(selectedApp, 16)}</span>
+                    <span className="truncate font-medium">{APP_LABELS[selectedApp]}</span>
+                  </div>
+                </SelectTrigger>
+                <SelectContent className="min-w-[18rem]">
+                  {APP_ORDER.map((app) => {
+                    const supported = isAppSupported(app);
+                    return (
+                      <SelectItem
+                        key={app}
+                        value={app}
+                        disabled={!supported}
+                        className={!supported ? 'opacity-50 cursor-not-allowed' : ''}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className={APP_COLORS[app]}>{getAppIcon(app, 16)}</span>
+                          <span>{APP_LABELS[app]}</span>
+                          {!supported && (
+                            <span className="text-xs text-muted-foreground ml-2">
+                              ({t('sessions.comingSoon')})
+                            </span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* List Header */}
             <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/40 bg-card">
               {/* Stats */}
@@ -407,19 +444,8 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                     </h3>
                   </div>
 
-                  {/* Metadata row - Time, Messages, Session ID, Work */}
+                  {/* Metadata row - Session ID, Work */}
                   <div className="flex flex-col gap-1 mt-2">
-                    {/* Time and Messages */}
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span>{formatDate(selectedSession.updatedAt)}</span>
-                      <span className="text-border">·</span>
-                      <span>
-                        {sessionDetail?.messages
-                          ? `${sessionDetail.messages.length}/${selectedSession.messageCount} ${t('sessions.messages', 'messages')}`
-                          : `${selectedSession.messageCount} ${t('sessions.messages', 'messages')}`}
-                      </span>
-                    </div>
-
                     {/* Session ID */}
                     {selectedSession.id && (
                       <div className="flex items-center gap-2">

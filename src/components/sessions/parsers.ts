@@ -165,6 +165,54 @@ const defaultParser: ContentParser = (content: string) => [
 ];
 
 /**
+ * VS Code Extension 内容解析器
+ * 处理来自 VS Code AI 扩展的消息，清理可能的特殊格式
+ */
+const vscodeExtensionParser: ContentParser = (content: string) => {
+  if (!content) {
+    return [{ type: 'text', content: '' }];
+  }
+
+  // Check if content contains HTML tags (some extensions return HTML)
+  const hasHTMLTags = /<[a-z][\s\S]*?>/i.test(content);
+  
+  if (hasHTMLTags) {
+    // Convert common HTML tags to Markdown
+    let convertedContent = content
+      // Code blocks
+      .replace(/<pre[^>]*><code[^>]*>([\s\S]*?)<\/code><\/pre>/gi, '```\n$1\n```')
+      .replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, '```\n$1\n```')
+      .replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, '`$1`')
+      // Bold and italic
+      .replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, '**$1**')
+      .replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, '**$1**')
+      .replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, '*$1*')
+      .replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, '*$1*')
+      // Line breaks and paragraphs
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, '$1\n\n')
+      // Lists
+      .replace(/<ul[^>]*>([\s\S]*?)<\/ul>/gi, '$1')
+      .replace(/<ol[^>]*>([\s\S]*?)<\/ol>/gi, '$1')
+      .replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, '- $1\n')
+      // Remove remaining HTML tags
+      .replace(/<[^>]+>/g, '')
+      // Fix HTML entities
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&amp;/g, '&')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/&nbsp;/g, ' ');
+
+    return [{ type: 'text', content: convertedContent.trim() }];
+  }
+
+  // For non-HTML content, return as-is (it's likely already Markdown)
+  return [{ type: 'text', content: content }];
+};
+
+/**
  * 解析器注册表
  * key: appType, value: ContentParser
  */
@@ -172,6 +220,7 @@ const parserRegistry: Map<string, ContentParser> = new Map([
   ['opencode', opencodeFileParser],
   ['claude', claudeCodeParser],
   ['codebuddy', codebuddyParser],
+  ['vscode-extension', vscodeExtensionParser],
 ]);
 
 /**

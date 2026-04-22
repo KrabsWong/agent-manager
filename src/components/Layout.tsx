@@ -18,7 +18,7 @@ export function Layout() {
       <div className="fixed top-0 left-0 right-0 h-20 z-30 app-drag-region" />
 
       {/* 顶部导航栏 */}
-      <Header selectedApp={selectedApp} onAppChange={setSelectedApp} />
+      <Header />
 
       {/* 主内容区 - 直接显示 Sessions */}
       <main className="flex-1 overflow-hidden">

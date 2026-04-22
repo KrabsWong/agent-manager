@@ -36,6 +36,7 @@ const enTranslations = {
       gemini: 'Gemini CLI',
       opencode: 'OpenCode',
       codebuddy: 'Codebuddy',
+      'vscode-extension': 'VS Code Extension',
     },
   },
   settings: {
@@ -250,6 +251,7 @@ const zhTranslations = {
       gemini: 'Gemini CLI',
       opencode: 'OpenCode',
       codebuddy: 'Codebuddy',
+      'vscode-extension': 'VS Code 扩展',
     },
   },
   settings: {

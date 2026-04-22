@@ -141,8 +141,8 @@
       "codex": "Codex CLI",
       "gemini": "Gemini CLI",
       "opencode": "OpenCode",
-
-      "codebuddy": "Codebuddy"
+      "codebuddy": "Codebuddy",
+      "vscode-extension": "VS Code 扩展"
     }
   }
 }
