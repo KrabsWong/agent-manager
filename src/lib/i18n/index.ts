@@ -436,10 +436,16 @@ const resources = {
   zh: { translation: zhTranslations },
 };
 
+const getInitialLanguage = (): string | undefined => {
+  if (typeof window !== 'undefined' && window.__INITIAL_SETTINGS__?.language) {
+    return window.__INITIAL_SETTINGS__.language;
+  }
+  return undefined;
+};
+
 i18n.use(initReactI18next).init({
   resources,
-  // Don't set lng here - let SettingsInitializer load it from store
-  // or use browser detection. fallbackLng will be used if no language is set.
+  lng: getInitialLanguage(),
   fallbackLng: 'en',
   interpolation: {
     escapeValue: false,

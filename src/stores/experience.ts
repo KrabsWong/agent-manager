@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { globalSettings } from '@/main';
 
 interface ExperienceState {
   enableTitleMarquee: boolean;
@@ -14,12 +13,21 @@ interface ExperienceState {
   setShowThinkingContent: (enabled: boolean) => void;
 }
 
-// Use global settings if available, otherwise defaults
-const initialEnableTitleMarquee = globalSettings?.enableTitleMarquee ?? false;
-const initialCollapseBashBlocks = globalSettings?.collapseBashBlocks ?? true;
-const initialShowThinkingContent = globalSettings?.showThinkingContent ?? true;
+const getInitialSettings = () => {
+  if (typeof window !== 'undefined' && window.__INITIAL_SETTINGS__) {
+    return {
+      enableTitleMarquee: window.__INITIAL_SETTINGS__.enableTitleMarquee ?? false,
+      collapseBashBlocks: window.__INITIAL_SETTINGS__.collapseBashBlocks ?? true,
+      showThinkingContent: window.__INITIAL_SETTINGS__.showThinkingContent ?? true,
+    };
+  }
+  return {
+    enableTitleMarquee: false,
+    collapseBashBlocks: true,
+    showThinkingContent: true,
+  };
+};
 
-// Helper to sync to electron-store
 const syncToStore = async (key: string, value: boolean) => {
   try {
     await window.electronAPI.invoke('settings:update', { [key]: value });
@@ -29,10 +37,12 @@ const syncToStore = async (key: string, value: boolean) => {
   }
 };
 
+const initialExperienceSettings = getInitialSettings();
+
 export const useExperienceStore = create<ExperienceState>()((set, get) => ({
-  enableTitleMarquee: initialEnableTitleMarquee,
-  collapseBashBlocks: initialCollapseBashBlocks,
-  showThinkingContent: initialShowThinkingContent,
+  enableTitleMarquee: initialExperienceSettings.enableTitleMarquee,
+  collapseBashBlocks: initialExperienceSettings.collapseBashBlocks,
+  showThinkingContent: initialExperienceSettings.showThinkingContent,
 
   toggleTitleMarquee: () => {
     const newValue = !get().enableTitleMarquee;

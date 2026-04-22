@@ -1,17 +1,20 @@
 import { create } from 'zustand';
 import type { AppType } from '@/types';
-import { globalSettings } from '@/main';
 
 interface SettingsState {
   defaultApp: AppType | null;
   setDefaultApp: (app: AppType | null) => void;
 }
 
-// Use global settings if available, otherwise null
-const initialDefaultApp = globalSettings?.defaultApp || null;
+const getInitialDefaultApp = (): AppType | null => {
+  if (typeof window !== 'undefined' && window.__INITIAL_SETTINGS__?.defaultApp) {
+    return window.__INITIAL_SETTINGS__.defaultApp as AppType;
+  }
+  return null;
+};
 
 export const useSettingsStore = create<SettingsState>()((set) => ({
-  defaultApp: initialDefaultApp,
+  defaultApp: getInitialDefaultApp(),
 
   setDefaultApp: async (app) => {
     set({ defaultApp: app });
