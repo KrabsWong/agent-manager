@@ -1349,23 +1349,51 @@ const ConversationTurn = memo(function ConversationTurn({
         />
       )}
 
-      {/* Tool Calls */}
-      {turn.toolCalls.length > 0 && (
-        <div className="space-y-2 ml-11">
-          {turn.toolCalls.map((toolCall, index) => (
-            <ToolCallBlock
-              key={index}
-              toolUse={toolCall.toolUse}
-              toolResult={toolCall.toolResult}
-              onViewSubAgentSession={onViewSubAgentSession}
-              searchQuery={searchQuery}
-            />
-          ))}
+      {/* Agent Response */}
+      {turn.toolCalls.length > 0 ? (
+        <div className="flex gap-3">
+          <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+            {getAppIcon(appType as AppType, 18)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="font-medium text-sm">{APP_LABELS[appType as AppType] || APP_LABELS.claude}</span>
+              {turn.assistantMessage?.model && (
+                <span
+                  className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
+                  title="AI Model"
+                >
+                  {turn.assistantMessage.model}
+                </span>
+              )}
+            </div>
+            <div className="space-y-2">
+              {turn.toolCalls.map((toolCall, index) => (
+                <ToolCallBlock
+                  key={index}
+                  toolUse={toolCall.toolUse}
+                  toolResult={toolCall.toolResult}
+                  onViewSubAgentSession={onViewSubAgentSession}
+                  searchQuery={searchQuery}
+                />
+              ))}
+            </div>
+            {(turn.assistantMessage?.content || turn.assistantMessage?.reasoning_content) && (
+              <div className="mt-3">
+                <AssistantMessage
+                  hideAvatar
+                  content={turn.assistantMessage.content || ''}
+                  reasoningContent={turn.assistantMessage.reasoning_content}
+                  timestamp={turn.assistantMessage.timestamp}
+                  appType={appType}
+                  model={turn.assistantMessage.model}
+                  searchQuery={searchQuery}
+                />
+              </div>
+            )}
+          </div>
         </div>
-      )}
-
-      {/* Assistant Response */}
-      {(turn.assistantMessage?.content || turn.assistantMessage?.reasoning_content) && (
+      ) : (turn.assistantMessage?.content || turn.assistantMessage?.reasoning_content) ? (
         <AssistantMessage
           content={turn.assistantMessage.content || ''}
           reasoningContent={turn.assistantMessage.reasoning_content}
@@ -1374,7 +1402,7 @@ const ConversationTurn = memo(function ConversationTurn({
           model={turn.assistantMessage.model}
           searchQuery={searchQuery}
         />
-      )}
+      ) : null}
     </div>
   );
 });
@@ -1639,6 +1667,7 @@ interface AssistantMessageProps {
   appType?: string;
   model?: string;
   searchQuery?: string;
+  hideAvatar?: boolean;
 }
 
 const AssistantMessage = memo(function AssistantMessage({
@@ -1648,6 +1677,7 @@ const AssistantMessage = memo(function AssistantMessage({
   appType = 'claude',
   model,
   searchQuery = '',
+  hideAvatar = false,
 }: AssistantMessageProps) {
   const assistantName = APP_LABELS[appType as AppType] || APP_LABELS.claude;
   const [isExpanded, setIsExpanded] = useState(false);
@@ -1685,6 +1715,77 @@ const AssistantMessage = memo(function AssistantMessage({
   const displayContent =
     isExpanded || !shouldTruncate ? content : content.slice(0, MAX_TEXT_LENGTH) + '\n\n...';
 
+  const contentSection = (
+    <div
+      className={content && reasoningContent && showThinkingContent ? 'space-y-2' : undefined}
+    >
+      {/* Reasoning / Thinking Block */}
+      {reasoningContent && showThinkingContent && (
+        <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/20 overflow-hidden">
+          <button
+            onClick={() => setIsReasoningExpanded(!isReasoningExpanded)}
+            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-amber-100/50 dark:hover:bg-amber-900/30 transition-colors"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+            <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
+              Thinking
+            </span>
+            <span className="text-xs text-amber-600/70 dark:text-amber-500/70 ml-auto">
+              {isReasoningExpanded ? '收起' : '展开'}
+            </span>
+            {isReasoningExpanded ? (
+              <ChevronDown className="h-3.5 w-3.5 text-amber-500" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5 text-amber-500" />
+            )}
+          </button>
+          {isReasoningExpanded && (
+            <div className="px-3 pb-3 text-sm text-amber-800/80 dark:text-amber-300/80 leading-relaxed prose prose-sm dark:prose-invert max-w-none [&_p]:break-words [&_pre]:bg-[#1e1e1e] [&_pre]:p-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto border-t border-amber-200/50 dark:border-amber-800/50 pt-2">
+              {searchQuery ? (
+                <HighlightedText text={reasoningContent} query={searchQuery} />
+              ) : (
+                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                  {reasoningContent}
+                </ReactMarkdown>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none [&_p]:break-words [&_pre]:bg-[#1e1e1e] [&_pre]:p-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto">
+        {/* Check for Claude Code XML format */}
+        {parsedXML && parsedXML.length > 0 ? (
+          <ClaudeCodeXMLViewer data={parsedXML} />
+        ) : (
+          <>
+            {searchQuery ? (
+              <HighlightedText text={displayContent} query={searchQuery} />
+            ) : (
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                {displayContent}
+              </ReactMarkdown>
+            )}
+            {shouldTruncate && !isExpanded && !searchQuery && (
+              <button
+                onClick={() => setIsExpanded(true)}
+                className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted hover:bg-muted/80 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors border border-border/50"
+              >
+                <Maximize2 className="h-3.5 w-3.5" />
+                展开全部 ({(content.length / 1000).toFixed(1)}K 字符)
+              </button>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  if (hideAvatar) {
+    return contentSection;
+  }
+
   return (
     <div className="flex gap-3">
       <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
@@ -1703,70 +1804,7 @@ const AssistantMessage = memo(function AssistantMessage({
           )}
           <span className="text-xs text-muted-foreground">{formatTimestamp(timestamp)}</span>
         </div>
-        <div
-          className={content && reasoningContent && showThinkingContent ? 'space-y-2' : undefined}
-        >
-          {/* Reasoning / Thinking Block */}
-          {reasoningContent && showThinkingContent && (
-            <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/20 overflow-hidden">
-              <button
-                onClick={() => setIsReasoningExpanded(!isReasoningExpanded)}
-                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-amber-100/50 dark:hover:bg-amber-900/30 transition-colors"
-              >
-                <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-                <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
-                  Thinking
-                </span>
-                <span className="text-xs text-amber-600/70 dark:text-amber-500/70 ml-auto">
-                  {isReasoningExpanded ? '收起' : '展开'}
-                </span>
-                {isReasoningExpanded ? (
-                  <ChevronDown className="h-3.5 w-3.5 text-amber-500" />
-                ) : (
-                  <ChevronRight className="h-3.5 w-3.5 text-amber-500" />
-                )}
-              </button>
-              {isReasoningExpanded && (
-                <div className="px-3 pb-3 text-sm text-amber-800/80 dark:text-amber-300/80 leading-relaxed prose prose-sm dark:prose-invert max-w-none [&_p]:break-words [&_pre]:bg-[#1e1e1e] [&_pre]:p-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto border-t border-amber-200/50 dark:border-amber-800/50 pt-2">
-                  {searchQuery ? (
-                    <HighlightedText text={reasoningContent} query={searchQuery} />
-                  ) : (
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                      {reasoningContent}
-                    </ReactMarkdown>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Main Content */}
-          <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none [&_p]:break-words [&_pre]:bg-[#1e1e1e] [&_pre]:p-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto">
-            {/* Check for Claude Code XML format */}
-            {parsedXML && parsedXML.length > 0 ? (
-              <ClaudeCodeXMLViewer data={parsedXML} />
-            ) : (
-              <>
-                {searchQuery ? (
-                  <HighlightedText text={displayContent} query={searchQuery} />
-                ) : (
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                    {displayContent}
-                  </ReactMarkdown>
-                )}
-                {shouldTruncate && !isExpanded && !searchQuery && (
-                  <button
-                    onClick={() => setIsExpanded(true)}
-                    className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-muted hover:bg-muted/80 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors border border-border/50"
-                  >
-                    <Maximize2 className="h-3.5 w-3.5" />
-                    展开全部 ({(content.length / 1000).toFixed(1)}K 字符)
-                  </button>
-                )}
-              </>
-            )}
-          </div>
-        </div>
+        {contentSection}
       </div>
     </div>
   );
