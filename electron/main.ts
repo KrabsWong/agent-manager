@@ -41,6 +41,7 @@ const getPackageJson = (): { version: string } => {
 // Keep a global reference of the window object
 let mainWindow: BrowserWindow | null = null;
 let splashWindow: BrowserWindow | null = null;
+let filePreviewWindow: BrowserWindow | null = null;
 
 // Create splash screen
 const createSplashWindow = () => {
@@ -299,6 +300,63 @@ ipcMain.handle('shell:openPath', async (_event, filePath: string) => {
   const result = await shell.openPath(filePath);
   if (result) {
     log.warn(`Failed to open path: ${filePath}, error: ${result}`);
+  }
+});
+
+// Register file preview window handler
+ipcMain.handle('file-preview:open', async (_event, dirPath: string) => {
+  try {
+    if (filePreviewWindow && !filePreviewWindow.isDestroyed()) {
+      filePreviewWindow.focus();
+      filePreviewWindow.webContents.send('file-preview:directory', dirPath);
+      return { success: true };
+    }
+
+    filePreviewWindow = new BrowserWindow({
+      width: 1000,
+      height: 700,
+      minWidth: 700,
+      minHeight: 500,
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.js'),
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+      titleBarStyle: 'hiddenInset',
+      show: false,
+    });
+
+    filePreviewWindow.on('closed', () => {
+      filePreviewWindow = null;
+    });
+
+    if (process.env.VITE_DEV_SERVER_URL) {
+      const url = new URL(process.env.VITE_DEV_SERVER_URL);
+      url.pathname = '/file-preview.html';
+      url.searchParams.set('dir', dirPath);
+      filePreviewWindow.loadURL(url.toString());
+      filePreviewWindow.webContents.openDevTools();
+    } else {
+      const filePath = path.join(app.getAppPath(), 'dist', 'file-preview.html');
+      const fileUrl = new URL(`file://${filePath}`);
+      fileUrl.searchParams.set('dir', dirPath);
+      filePreviewWindow.loadURL(fileUrl.toString());
+    }
+
+    filePreviewWindow.once('ready-to-show', () => {
+      filePreviewWindow?.show();
+    });
+
+    if (!process.env.VITE_DEV_SERVER_URL) {
+      filePreviewWindow.webContents.on('devtools-opened', () => {
+        filePreviewWindow?.webContents.closeDevTools();
+      });
+    }
+
+    return { success: true };
+  } catch (error) {
+    log.error('Failed to open file preview window:', error);
+    return { success: false, error: String(error) };
   }
 });
 
