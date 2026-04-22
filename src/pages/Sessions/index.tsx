@@ -203,7 +203,15 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
 
   const handleOpenFilePreview = async () => {
     if (!selectedSession?.directory) return;
-    await window.electronAPI.invoke('file-preview:open', selectedSession.directory);
+    const sessionTitle = selectedSession.firstMessage
+      ? selectedSession.firstMessage.slice(0, 50)
+      : selectedSession.fileName || 'Untitled';
+    await window.electronAPI.invoke(
+      'file-preview:open',
+      selectedSession.directory,
+      sessionTitle,
+      selectedApp
+    );
   };
 
   return (

@@ -18,6 +18,7 @@ import {
   ChevronDown,
   FolderOpen,
   FileText,
+  MessageSquare,
 } from 'lucide-react';
 import { cn } from './lib/utils';
 import { treeApi, gitApi, type TreeNode } from './lib/api';
@@ -25,6 +26,8 @@ import { FilePreview } from './components/sessions/FilePreview';
 import { GitDiffView } from './components/sessions/GitDiffView';
 import { GitDiffPreview } from './components/sessions/GitDiffPreview';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
+import { getAppIcon, APP_COLORS } from './components/AppIcons';
+import type { AppType } from './types';
 import './index.css';
 import './lib/i18n';
 
@@ -133,11 +136,22 @@ function FilePreviewApp() {
     modified: string;
   } | null>(null);
 
+  const [sessionTitle, setSessionTitle] = useState<string>('');
+  const [appType, setAppType] = useState<string>('');
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const dir = params.get('dir');
+    const session = params.get('session');
+    const app = params.get('app');
     if (dir) {
       setSessionDirectory(dir);
+    }
+    if (session) {
+      setSessionTitle(decodeURIComponent(session));
+    }
+    if (app) {
+      setAppType(app);
     }
   }, []);
 
@@ -238,15 +252,33 @@ function FilePreviewApp() {
         className="flex items-center px-4 py-3 border-b bg-muted/30 shrink-0 pl-20"
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       >
-        <h2 className="text-sm font-semibold" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-          {sessionDirectory.split('/').pop() || 'Workspace'}
-        </h2>
-        <span
-          className="ml-2 text-xs text-muted-foreground truncate"
+        {sessionTitle && (
+          <div
+            className="flex items-center gap-1.5 mr-3 px-2 py-0.5 rounded-md bg-muted/60 shrink-0 max-w-[40%]"
+            style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+          >
+            {appType && (
+              <span className={APP_COLORS[appType as AppType] || ''}>
+                {getAppIcon(appType as AppType, 12)}
+              </span>
+            )}
+            <MessageSquare className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+            <span className="text-xs text-muted-foreground truncate" title={sessionTitle}>
+              {sessionTitle}
+            </span>
+          </div>
+        )}
+        <div
+          className="flex items-center gap-2 min-w-0"
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
-          {sessionDirectory}
-        </span>
+          <h2 className="text-sm font-semibold">
+            {sessionDirectory.split('/').pop() || 'Workspace'}
+          </h2>
+          <span className="text-xs text-muted-foreground truncate">
+            {sessionDirectory}
+          </span>
+        </div>
       </div>
 
       <div className="flex-1 flex min-h-0">
