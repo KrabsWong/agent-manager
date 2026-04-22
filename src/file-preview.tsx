@@ -25,8 +25,15 @@ import { FilePreview } from './components/sessions/FilePreview';
 import { GitDiffView } from './components/sessions/GitDiffView';
 import { GitDiffPreview } from './components/sessions/GitDiffPreview';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
+import {
+  applyAccentColor,
+  type AccentColor,
+} from './lib/theme/colors';
 import './index.css';
 import './lib/i18n';
+
+type Theme = 'light' | 'dark' | 'system';
+type ResolvedTheme = 'light' | 'dark';
 
 interface TreeItemProps {
   node: TreeNode;
@@ -119,6 +126,8 @@ function FilePreviewApp() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('files');
   const [hasGitChanges, setHasGitChanges] = useState(false);
+  const [theme, setTheme] = useState<Theme>('system');
+  const [accentColor, setAccentColor] = useState<AccentColor>('default');
 
   const [previewFile, setPreviewFile] = useState<{
     path: string;
@@ -139,12 +148,66 @@ function FilePreviewApp() {
     const params = new URLSearchParams(window.location.search);
     const dir = params.get('dir');
     const session = params.get('session');
+    const themeParam = params.get('theme') as Theme | null;
+    const accentParam = params.get('accentColor') as AccentColor | null;
     if (dir) {
       setSessionDirectory(dir);
     }
     if (session) {
       setSessionTitle(decodeURIComponent(session));
     }
+    if (themeParam) {
+      setTheme(themeParam);
+    }
+    if (accentParam) {
+      setAccentColor(accentParam);
+    }
+  }, []);
+
+  const applyTheme = useCallback((currentTheme: Theme, currentAccent: AccentColor) => {
+    let resolved: ResolvedTheme;
+    if (currentTheme === 'system') {
+      resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    } else {
+      resolved = currentTheme;
+    }
+
+    if (resolved === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+
+    applyAccentColor(currentAccent, resolved === 'dark');
+  }, []);
+
+  useEffect(() => {
+    applyTheme(theme, accentColor);
+  }, [theme, accentColor, applyTheme]);
+
+  useEffect(() => {
+    if (theme !== 'system') return;
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+      applyTheme(theme, accentColor);
+    };
+
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, [theme, accentColor, applyTheme]);
+
+  useEffect(() => {
+    const handleThemeChanged = (...args: unknown[]) => {
+      const [_theme, _accentColor] = args as [Theme, AccentColor];
+      setTheme(_theme);
+      setAccentColor(_accentColor);
+    };
+
+    window.electronAPI.on('theme:changed', handleThemeChanged);
+    return () => {
+      window.electronAPI.removeAllListeners('theme:changed');
+    };
   }, []);
 
   const loadTree = useCallback(async () => {

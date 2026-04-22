@@ -252,7 +252,17 @@ const registerAppHandlers = () => {
   // Update settings
   ipcRegistry.register('settings:update', async (_event, ...args: unknown[]) => {
     const [settings] = args as [Record<string, unknown>];
+    const oldSettings = configStore.getSettings();
     configStore.updateSettings(settings);
+
+    if (settings.theme !== undefined || settings.accentColor !== undefined) {
+      const theme = (settings.theme as 'light' | 'dark' | 'system') || oldSettings.theme;
+      const accentColor = (settings.accentColor as string) || oldSettings.accentColor || 'default';
+
+      BrowserWindow.getAllWindows().forEach((win) => {
+        win.webContents.send('theme:changed', { theme, accentColor });
+      });
+    }
   });
 
   // Reset settings
@@ -330,10 +340,16 @@ ipcMain.handle('file-preview:open', async (_event, dirPath: string, sessionTitle
       filePreviewWindows.delete(dirPath);
     });
 
+    const settings = configStore.getSettings();
+    const theme = settings.theme || 'system';
+    const accentColor = settings.accentColor || 'default';
+
     if (process.env.VITE_DEV_SERVER_URL) {
       const url = new URL(process.env.VITE_DEV_SERVER_URL);
       url.pathname = '/file-preview.html';
       url.searchParams.set('dir', dirPath);
+      url.searchParams.set('theme', theme);
+      url.searchParams.set('accentColor', accentColor);
       if (sessionTitle) url.searchParams.set('session', sessionTitle);
       if (appType) url.searchParams.set('app', appType);
       win.loadURL(url.toString());
@@ -342,6 +358,8 @@ ipcMain.handle('file-preview:open', async (_event, dirPath: string, sessionTitle
       const filePath = path.join(app.getAppPath(), 'dist', 'file-preview.html');
       const fileUrl = new URL(`file://${filePath}`);
       fileUrl.searchParams.set('dir', dirPath);
+      fileUrl.searchParams.set('theme', theme);
+      fileUrl.searchParams.set('accentColor', accentColor);
       if (sessionTitle) fileUrl.searchParams.set('session', sessionTitle);
       if (appType) fileUrl.searchParams.set('app', appType);
       win.loadURL(fileUrl.toString());
