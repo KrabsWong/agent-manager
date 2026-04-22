@@ -4,18 +4,15 @@
  * View and browse local conversation sessions from AI applications
  */
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AlertCircle,
-  Copy,
-  Check,
   Play,
   AlertTriangle,
   ChevronUp,
   ExternalLink,
-  Search,
-  X,
+  Folder,
   RefreshCw,
   ArrowUp,
   ArrowDown,
@@ -33,8 +30,10 @@ import {
 } from '@/hooks/useSessions';
 import { ConversationView } from '@/components/sessions/ConversationView';
 import { VirtualSessionList, type ViewMode } from '@/components/sessions/VirtualSessionList';
-import { SessionContextPanel } from '@/components/sessions/SessionContextPanel';
-import { APP_LABELS, APP_WEBSITES } from '@/components/AppIcons';
+import { FilePreviewModal } from '@/components/sessions/FilePreviewModal';
+import { APP_LABELS, APP_WEBSITES, getAppIcon, APP_COLORS } from '@/components/AppIcons';
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
+import { APP_ORDER, isAppSupported } from '@/config/apps';
 import type { AppType, Session } from '@/types';
 
 interface SessionsPageProps {
@@ -53,21 +52,6 @@ function truncateText(text: string, maxLength: number): string {
 export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
   const { t } = useTranslation();
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
-  const [copied, setCopied] = useState(false);
-
-  // Search state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
-
-  // Debounce search query to avoid excessive re-renders while typing
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearchQuery(searchQuery);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
 
   // View mode and collapse state for session list
   const [viewMode, setViewMode] = useState<ViewMode>('date');
@@ -138,49 +122,16 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
     }
   }, [sessions, selectedSession]);
 
-  // Reset selected session and close Monaco when app changes
+  // Reset selected session when app changes
   useEffect(() => {
     setSelectedSession(null);
-    setIsPreviewingFile(false);
   }, [selectedApp]);
-
-  const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString();
-  };
 
   const isSupported = supportStatus?.supported ?? false;
 
   const handleSessionSelect = (session: Session) => {
     setSelectedSession(session);
-    // Clear search when switching sessions
-    setSearchQuery('');
   };
-
-  // Calculate matching messages count for search display (using debounced query)
-  const matchCount = useMemo(() => {
-    if (!debouncedSearchQuery.trim() || !sessionDetail?.messages) return 0;
-
-    const query = debouncedSearchQuery.toLowerCase();
-    let count = 0;
-
-    sessionDetail.messages.forEach((msg) => {
-      const searchableContent = [
-        msg.content,
-        msg.reasoning_content,
-        msg.redacted_content,
-        msg.sub_agent_session_id,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-
-      if (searchableContent.includes(query)) {
-        count++;
-      }
-    });
-
-    return count;
-  }, [debouncedSearchQuery, sessionDetail?.messages]);
 
   // Toggle collapse state for a group
   const toggleGroup = (groupKey: string) => {
@@ -234,6 +185,8 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
   // Handle resuming session
   const handleResumeSession = async () => {
     if (!selectedSession) return;
+    // VS Code Extension doesn't support resume
+    if (selectedApp === 'vscode-extension') return;
     await resumeMutation.mutateAsync({
       sessionId: selectedSession.id,
       appType: selectedApp,
@@ -242,21 +195,57 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
   };
 
   // Check if terminal supports resume (any modern terminal or Terminal.app)
+  // VS Code Extension doesn't support resume since it's not a CLI tool
   const canResume =
-    terminalInfo?.ghosttyInstalled ||
-    terminalInfo?.kittyInstalled ||
-    terminalInfo?.preferred === 'terminal';
+    selectedApp !== 'vscode-extension' &&
+    (terminalInfo?.ghosttyInstalled ||
+      terminalInfo?.kittyInstalled ||
+      terminalInfo?.preferred === 'terminal');
 
-  // Track if user is previewing a file to auto-hide session list and resize detail
-  const [isPreviewingFile, setIsPreviewingFile] = useState(false);
+  // Control file preview modal visibility
+  const [showFileModal, setShowFileModal] = useState(false);
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Main Content */}
       <div className={cn('flex gap-0 flex-1 min-h-0 p-4 transition-all duration-300')}>
-        {/* Session List - hidden when previewing file */}
-        {!isPreviewingFile && (
-          <div className="flex flex-col min-h-0 border-r bg-card/50 overflow-hidden w-[320px] shrink-0">
+        {/* Session List - always visible */}
+        <div className="flex flex-col min-h-0 border-r bg-card/50 overflow-hidden w-[320px] shrink-0">
+            {/* App Selector */}
+            <div className="px-3 py-2 border-b border-border/40 bg-card">
+              <Select value={selectedApp} onValueChange={(value) => onAppChange(value as AppType)}>
+                <SelectTrigger className="w-full h-9">
+                  <div className="flex items-center gap-2">
+                    <span className={APP_COLORS[selectedApp]}>{getAppIcon(selectedApp, 16)}</span>
+                    <span className="truncate font-medium">{APP_LABELS[selectedApp]}</span>
+                  </div>
+                </SelectTrigger>
+                <SelectContent className="min-w-[18rem]">
+                  {APP_ORDER.map((app) => {
+                    const supported = isAppSupported(app);
+                    return (
+                      <SelectItem
+                        key={app}
+                        value={app}
+                        disabled={!supported}
+                        className={!supported ? 'opacity-50 cursor-not-allowed' : ''}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className={APP_COLORS[app]}>{getAppIcon(app, 16)}</span>
+                          <span>{APP_LABELS[app]}</span>
+                          {!supported && (
+                            <span className="text-xs text-muted-foreground ml-2">
+                              ({t('sessions.comingSoon')})
+                            </span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* List Header */}
             <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/40 bg-card">
               {/* Stats */}
@@ -377,29 +366,18 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
               </div>
             )}
           </div>
-        )}
 
         {/* Session Detail */}
         <div
-          className={cn(
-            'overflow-hidden flex flex-col h-full min-h-0 relative transition-all duration-300 border-r',
-            isPreviewingFile ? 'w-[500px] shrink-0' : 'flex-1'
-          )}
+          className="overflow-hidden flex flex-col h-full min-h-0 relative transition-all duration-300 flex-1"
         >
           {selectedSession ? (
             <>
               {/* Header */}
               <div className="flex items-start justify-between border-b p-4 shrink-0 gap-4">
                 <div className="flex-1 min-w-0">
-                  {/* Title row with Live indicator */}
+                  {/* Title row */}
                   <div className="flex items-center gap-2">
-                    {/* Live refresh indicator - always shown at the front */}
-                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/10 border border-primary/20 shrink-0">
-                      <RefreshCw className="h-3 w-3 animate-spin text-primary" />
-                      <span className="text-[10px] text-primary font-medium">
-                        {t('sessions.liveRefresh', 'Live')}
-                      </span>
-                    </div>
                     <h3 className="font-semibold truncate">
                       {selectedSession.firstMessage
                         ? truncateText(selectedSession.firstMessage, 100)
@@ -407,41 +385,63 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                     </h3>
                   </div>
 
-                  {/* Metadata row - Time, Messages, Session ID, Work */}
+                  {/* Metadata row - Session ID, Work */}
                   <div className="flex flex-col gap-1 mt-2">
-                    {/* Time and Messages */}
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span>{formatDate(selectedSession.updatedAt)}</span>
-                      <span className="text-border">·</span>
-                      <span>
-                        {sessionDetail?.messages
-                          ? `${sessionDetail.messages.length}/${selectedSession.messageCount} ${t('sessions.messages', 'messages')}`
-                          : `${selectedSession.messageCount} ${t('sessions.messages', 'messages')}`}
-                      </span>
-                    </div>
-
-                    {/* Session ID */}
+                    {/* Session ID with Resume Button */}
                     {selectedSession.id && (
                       <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider shrink-0">
                           Session ID:
                         </span>
-                        <span className="text-xs font-mono truncate">{selectedSession.id}</span>
                         <button
                           onClick={() => {
                             navigator.clipboard.writeText(selectedSession.id || '');
-                            setCopied(true);
-                            setTimeout(() => setCopied(false), 2000);
                           }}
-                          className="p-1 hover:bg-muted rounded-md transition-colors"
-                          title="Copy Session ID"
+                          className="text-xs font-mono truncate hover:text-primary transition-colors"
+                          title="Click to copy Session ID"
                         >
-                          {copied ? (
-                            <Check className="h-3 w-3 text-green-500" />
-                          ) : (
-                            <Copy className="h-3 w-3 text-muted-foreground" />
-                          )}
+                          {selectedSession.id}
                         </button>
+                        {/* Resume Button - small, right after Session ID */}
+                        <TooltipProvider delayDuration={200}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="default"
+                                size="sm"
+                                className="h-6 px-2 py-0 text-[10px] flex items-center gap-1 shrink-0 bg-foreground text-background hover:bg-foreground/90 ml-1"
+                                onClick={handleResumeSession}
+                                disabled={!canResume || resumeMutation.isPending}
+                              >
+                                {resumeMutation.isPending ? (
+                                  <>
+                                    <RefreshCw className="h-3 w-3 animate-spin" />
+                                    <span>{t('sessions.opening', 'Opening...')}</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Play className="h-3 w-3" />
+                                    <span>{t('sessions.resume', 'Resume')}</span>
+                                  </>
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom">
+                              <p>
+                                {!canResume
+                                  ? t('sessions.installTerminalTip', 'Install Ghostty or Kitty for best experience')
+                                  : t('sessions.resumeInTerminal', {
+                                      terminal:
+                                        terminalInfo?.preferred === 'ghostty'
+                                          ? 'Ghostty'
+                                          : terminalInfo?.preferred === 'kitty'
+                                            ? 'Kitty'
+                                            : 'Terminal',
+                                    })}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     )}
 
@@ -458,111 +458,26 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                     )}
                   </div>
                 </div>
-                {/* Search and Resume Buttons */}
-                <div className="flex items-center gap-2">
-                  {/* Search Input - Compact inline */}
+                  {/* File Preview Modal Button */}
                   <div className="flex items-center">
-                    {isSearchExpanded ? (
-                      <div className="flex items-center gap-1.5">
-                        <div className="relative">
-                          <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-                          <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder={t('search.placeholder', 'Search...')}
-                            className="w-48 pl-7 pr-6 py-1 text-xs border rounded bg-background focus:outline-none focus:ring-1 focus:ring-primary/50"
-                            autoFocus
-                          />
-                          {searchQuery && (
-                            <button
-                              onClick={() => setSearchQuery('')}
-                              className="absolute right-1.5 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          )}
-                        </div>
-                        <button
-                          onClick={() => {
-                            setIsSearchExpanded(false);
-                            setSearchQuery('');
-                          }}
-                          className="p-1 text-muted-foreground hover:text-foreground rounded"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                        {debouncedSearchQuery && (
-                          <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                            {matchCount} {t('search.matchesShort', 'matches')}
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <TooltipProvider delayDuration={200}>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 shrink-0"
-                              onClick={() => setIsSearchExpanded(true)}
-                            >
-                              <Search className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="bottom">
-                            <p>{t('search.placeholder', 'Search in conversation')}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
+                    <TooltipProvider delayDuration={200}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 shrink-0"
+                            onClick={() => setShowFileModal(true)}
+                          >
+                            <Folder className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                          <p>{t('sessions.showFiles', 'Show files')}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
-
-                  {/* Resume Button */}
-                  <TooltipProvider delayDuration={200}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="flex items-center gap-1.5 shrink-0 bg-foreground text-background hover:bg-foreground/90"
-                          onClick={handleResumeSession}
-                          disabled={!canResume || resumeMutation.isPending}
-                        >
-                          {resumeMutation.isPending ? (
-                            <>
-                              <RefreshCw className="h-4 w-4 animate-spin" />
-                              <span>{t('sessions.opening', 'Opening...')}</span>
-                            </>
-                          ) : (
-                            <>
-                              <Play className="h-4 w-4" />
-                              <span>{t('sessions.resume', 'Resume')}</span>
-                            </>
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom">
-                        <p>
-                          {!canResume
-                            ? t(
-                                'sessions.installTerminalTip',
-                                'Install Ghostty or Kitty for best experience'
-                              )
-                            : t('sessions.resumeInTerminal', {
-                                terminal:
-                                  terminalInfo?.preferred === 'ghostty'
-                                    ? 'Ghostty'
-                                    : terminalInfo?.preferred === 'kitty'
-                                      ? 'Kitty'
-                                      : 'Terminal',
-                              })}
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
               </div>
 
               {/* Messages */}
@@ -581,7 +496,7 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                 ) : sessionDetail?.messages && sessionDetail.messages.length > 0 ? (
                   <ConversationView
                     messages={sessionDetail.messages}
-                    searchQuery={debouncedSearchQuery}
+                    searchQuery=""
                     appType={selectedApp}
                     shouldLoadAll={shouldLoadAll}
                     onLoadAllComplete={() => {
@@ -702,17 +617,16 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
             </div>
           )}
         </div>
-
-        {/* Session Context Panel */}
-        {selectedSession && (
-          <SessionContextPanel
-            sessionDirectory={selectedSession.directory}
-            onPreviewStart={() => setIsPreviewingFile(true)}
-            onPreviewEnd={() => setIsPreviewingFile(false)}
-            className={isPreviewingFile ? 'flex-1 min-w-0' : 'shrink-0'}
-          />
-        )}
       </div>
+
+      {/* File Preview Modal - Full screen overlay */}
+      {selectedSession && (
+        <FilePreviewModal
+          isOpen={showFileModal}
+          onClose={() => setShowFileModal(false)}
+          sessionDirectory={selectedSession.directory}
+        />
+      )}
     </div>
   );
 }

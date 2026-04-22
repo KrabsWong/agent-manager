@@ -308,7 +308,7 @@ export function FilePreview({ fileName, content, onClose, className }: FilePrevi
                 lineNumbers: 'on',
                 renderWhitespace: 'selection',
                 wordWrap: 'on',
-                automaticLayout: false,
+                automaticLayout: true,
                 folding: true,
                 lineHeight: 1.6,
                 padding: { top: 12, bottom: 12 },

@@ -5,7 +5,7 @@
  * Features: collapsible sidebar, horizontal scroll, auto-resize
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useTranslation, Trans } from 'react-i18next';
 import {
   FileText,
@@ -40,6 +40,7 @@ interface SessionContextPanelProps {
   className?: string;
   onPreviewStart?: () => void;
   onPreviewEnd?: () => void;
+  isVisible?: boolean;
 }
 
 interface TreeItemProps {
@@ -147,6 +148,7 @@ export function SessionContextPanel({
   className,
   onPreviewStart,
   onPreviewEnd,
+  isVisible = true,
 }: SessionContextPanelProps) {
   const { t } = useTranslation();
   const [tree, setTree] = useState<TreeNode[]>([]);
@@ -422,17 +424,57 @@ export function SessionContextPanel({
     onPreviewEnd?.();
   }, [onPreviewEnd]);
 
+  // Hide panel completely when not visible
+  useEffect(() => {
+    if (!isVisible) {
+      // Close any open previews when hiding
+      if (previewFile) {
+        handleClosePreview();
+      }
+      if (diffPreview) {
+        setDiffPreview(null);
+        onPreviewEnd?.();
+      }
+    }
+  }, [isVisible, previewFile, diffPreview, handleClosePreview, onPreviewEnd]);
+
+  // Store refs for cleanup
+  const previewFileRef = useRef(previewFile);
+  const diffPreviewRef = useRef(diffPreview);
+  const onPreviewEndRef = useRef(onPreviewEnd);
+
+  useEffect(() => {
+    previewFileRef.current = previewFile;
+    diffPreviewRef.current = diffPreview;
+    onPreviewEndRef.current = onPreviewEnd;
+  });
+
+  // Cleanup when component unmounts
+  useEffect(() => {
+    return () => {
+      // Ensure preview state is reset when component unmounts
+      if (previewFileRef.current || diffPreviewRef.current) {
+        onPreviewEndRef.current?.();
+      }
+    };
+  }, []);
+
+  if (!isVisible) {
+    return null;
+  }
+
   // Handle no session directory - still show collapsible panel
   const hasAnyPreview = previewFile || diffPreview;
   const showCollapsed = isCollapsed && !hasAnyPreview;
-  const workDirWidth = hasAnyPreview ? 'w-[200px]' : showCollapsed ? 'w-10' : 'w-72';
+  // File tree width: narrower when previewing to give more space to preview panel
+  const workDirWidth = hasAnyPreview ? 'w-48' : showCollapsed ? 'w-10' : 'w-72';
 
   if (!sessionDirectory) {
     return (
-      <div className={cn('h-full flex', className)}>
+      <div className={cn('h-full flex w-72', className)}>
         <div
           className={cn(
-            'h-full border-l bg-card/30 flex flex-col min-h-0 transition-all duration-200 shrink-0',
+            'h-full bg-card/30 flex flex-col min-h-0 transition-all duration-200 shrink-0',
             workDirWidth
           )}
         >
@@ -478,11 +520,11 @@ export function SessionContextPanel({
   }
 
   return (
-    <div className={cn('h-full flex', className)}>
+    <div className={cn('h-full flex', hasAnyPreview ? 'w-[800px]' : 'w-72', className)}>
       {/* Directory Tree Panel */}
       <div
         className={cn(
-          'h-full border-l bg-card/30 flex flex-col min-h-0 transition-all duration-200 shrink-0',
+          'h-full bg-card/30 flex flex-col min-h-0 transition-all duration-200 shrink-0',
           workDirWidth
         )}
       >
@@ -541,15 +583,6 @@ export function SessionContextPanel({
                       </TabsTrigger>
                     )}
                   </TabsList>
-                  {!previewFile && (
-                    <button
-                      onClick={() => setIsCollapsed(true)}
-                      className="p-1 hover:bg-muted rounded transition-colors ml-1"
-                      title={t('contextPanel.collapse', 'Collapse')}
-                    >
-                      <PanelRightClose className="h-3 w-3 text-muted-foreground" />
-                    </button>
-                  )}
                 </div>
               </div>
               <div className="px-3 pb-2">

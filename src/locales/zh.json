@@ -25,7 +25,9 @@
     "viewByDirectory": "按目录查看",
     "date": "日期",
     "directory": "目录",
-    "unknownDirectory": "未知目录"
+    "unknownDirectory": "未知目录",
+    "showFiles": "显示文件",
+    "hideFiles": "隐藏文件"
   },
   "settings": {
     "title": "设置",
@@ -141,8 +143,8 @@
       "codex": "Codex CLI",
       "gemini": "Gemini CLI",
       "opencode": "OpenCode",
-
-      "codebuddy": "Codebuddy"
+      "codebuddy": "Codebuddy",
+      "vscode-extension": "VS Code 扩展"
     }
   }
 }

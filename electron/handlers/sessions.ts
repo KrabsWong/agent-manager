@@ -9,6 +9,7 @@ import { claudeSessionService } from '../services/session/claude';
 import { claudeInternalSessionService } from '../services/session/claude-internal';
 import { opencodeSessionService } from '../services/session/opencode';
 import { codebuddySessionService } from '../services/session/codebuddy';
+import { vscodeExtensionSessionService } from '../services/session/vscode-extension';
 import { resumeSessionInTerminal, getTerminalInfo } from '../services/terminal/launcher';
 import type { AppType } from '../../src/types';
 import log from 'electron-log';
@@ -33,6 +34,9 @@ export function registerSessionsHandlers(): void {
       }
       if (appType === 'codebuddy') {
         return await codebuddySessionService.getAllSessions();
+      }
+      if (appType === 'vscode-extension') {
+        return vscodeExtensionSessionService.getAllSessions();
       }
       // Return empty array for unsupported apps
       return [];
@@ -59,6 +63,9 @@ export function registerSessionsHandlers(): void {
       if (appType === 'codebuddy') {
         return await codebuddySessionService.getSessionDetail(sessionId);
       }
+      if (appType === 'vscode-extension') {
+        return vscodeExtensionSessionService.getSessionDetail(sessionId);
+      }
       // Try to infer from sessionId format or try both services
       const claudeSession = claudeSessionService.getSessionDetail(sessionId);
       if (claudeSession) {
@@ -67,6 +74,10 @@ export function registerSessionsHandlers(): void {
       const claudeInternalSession = claudeInternalSessionService.getSessionDetail(sessionId);
       if (claudeInternalSession) {
         return claudeInternalSession;
+      }
+      const vscodeSession = vscodeExtensionSessionService.getSessionDetail(sessionId);
+      if (vscodeSession) {
+        return vscodeSession;
       }
       return await opencodeSessionService.getSessionDetail(sessionId);
     } catch (error) {
@@ -91,6 +102,9 @@ export function registerSessionsHandlers(): void {
       }
       if (appType === 'codebuddy') {
         return await codebuddySessionService.getStats();
+      }
+      if (appType === 'vscode-extension') {
+        return vscodeExtensionSessionService.getStats();
       }
       return { totalSessions: 0, totalMessages: 0 };
     } catch (error) {
@@ -134,6 +148,11 @@ export function registerSessionsHandlers(): void {
         supported: true,
         status: 'full',
         isAvailable: codebuddySessionService.isAvailable(),
+      },
+      'vscode-extension': {
+        supported: true,
+        status: 'full',
+        isAvailable: vscodeExtensionSessionService.isAvailable(),
       },
     };
 

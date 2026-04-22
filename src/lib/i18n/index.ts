@@ -36,6 +36,7 @@ const enTranslations = {
       gemini: 'Gemini CLI',
       opencode: 'OpenCode',
       codebuddy: 'Codebuddy',
+      'vscode-extension': 'VS Code Extension',
     },
   },
   settings: {
@@ -142,6 +143,8 @@ const enTranslations = {
     resumeInTerminal: 'Resume in {{terminal}}',
     resuming: 'Opening...',
     liveRefresh: 'Live',
+    showFiles: 'Show files',
+    hideFiles: 'Hide files',
     noWorkingDir: 'Cannot resume: working directory not found in session data',
     installTerminalTip: 'Install Ghostty or Kitty for best experience',
     orphanedResult: 'orphaned result',
@@ -250,6 +253,7 @@ const zhTranslations = {
       gemini: 'Gemini CLI',
       opencode: 'OpenCode',
       codebuddy: 'Codebuddy',
+      'vscode-extension': 'VS Code 扩展',
     },
   },
   settings: {
@@ -355,6 +359,8 @@ const zhTranslations = {
     resumeInTerminal: '在 {{terminal}} 中回放',
     resuming: '正在打开...',
     liveRefresh: '实时',
+    showFiles: '显示文件',
+    hideFiles: '隐藏文件',
     noWorkingDir: '无法回放：会话数据中未找到工作目录',
     installTerminalTip: '安装 Ghostty 或 Kitty 以获得最佳体验',
     orphanedResult: '孤立结果',
