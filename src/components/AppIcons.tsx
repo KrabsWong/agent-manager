@@ -6,6 +6,7 @@
 
 import type { AppType } from '@/types';
 import { APP_LABELS } from '@/config/apps';
+import vscodeIconUrl from '/icons/vscode.png';
 
 // CDN base URL for lobe-icons (mono version)
 const LOBE_ICONS_CDN = 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons';
@@ -18,7 +19,7 @@ const APP_ICON_URLS: Record<AppType, string> = {
   gemini: `${LOBE_ICONS_CDN}/gemini.svg`,
   opencode: `${LOBE_ICONS_CDN}/opencode.svg`,
   codebuddy: '', // Codebuddy uses inline SVG below
-  'vscode-extension': '/icons/vscode.png', // Local PNG icon
+  'vscode-extension': vscodeIconUrl, // Imported PNG icon for proper bundling
 };
 
 // Codebuddy Logo SVG Component (monochrome version for consistency)
@@ -115,7 +116,7 @@ const VSCodeIcon = ({ size = 16, className = '' }: { size?: number; className?: 
     }}
   >
     <img
-      src="/icons/vscode.png"
+      src={vscodeIconUrl}
       alt="VS Code Extension"
       width={size * 0.75}
       height={size * 0.75}

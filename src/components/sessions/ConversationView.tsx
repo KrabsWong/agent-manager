@@ -1994,33 +1994,15 @@ function ToolCallBlock({
     }
   }, [searchQuery, reasoningContent]);
 
-  // Determine if this tool should be collapsible (bash, read, write, edit, search, mcp, etc.)
-  const toolNameLower = toolName.toLowerCase();
-  const isCollapsibleTool =
-    ['bash', 'read', 'write', 'edit', 'glob', 'grep', 'ls', 'mkdir'].includes(toolNameLower) ||
-    toolNameLower.startsWith('mcp_') ||
-    ['fetch', 'search', 'websearch'].includes(toolNameLower) ||
-    [
-      'deferexecutetool',
-      'toolsearch',
-      'enterplanmode',
-      'askuserquestion',
-      'todowrite',
-      'taskupdate',
-      'taskcreate',
-      'exitplanmode',
-      'multiedit',
-      'task',
-      'taskoutput',
-    ].includes(toolNameLower);
-
-  // Default collapsed state based on setting (only for collapsible tools)
-  const shouldDefaultCollapse = isCollapsibleTool && collapseBashBlocks;
+  // All tool calls are collapsible by default - this applies to ALL tool types
+  // (bash, read, write, mcp, task planning, skills, terminal, etc.)
+  // Previously used a whitelist approach which was hard to maintain
+  const shouldDefaultCollapse = collapseBashBlocks;
   const [isExpanded, setIsExpanded] = useState(!shouldDefaultCollapse);
 
   // Auto-expand only when this specific tool's input/output matches search
   useEffect(() => {
-    if (!searchQuery || !isCollapsibleTool) return;
+    if (!searchQuery) return;
 
     const query = searchQuery.toLowerCase();
     const inputStr = toolUse?.tool_input ? JSON.stringify(toolUse.tool_input).toLowerCase() : '';
@@ -2032,7 +2014,7 @@ function ToolCallBlock({
     if (hasMatch) {
       setIsExpanded(true);
     }
-  }, [searchQuery, toolUse?.tool_input, toolResult?.tool_output, isCollapsibleTool]);
+  }, [searchQuery, toolUse?.tool_input, toolResult?.tool_output]);
 
   // Use SubAgentCard for sub-agent calls
   if (toolType === 'subagent') {
@@ -2052,13 +2034,10 @@ function ToolCallBlock({
 
     return (
       <div className="border rounded-lg overflow-hidden bg-muted/30">
-        {/* Tool Header - Clickable to expand/collapse for collapsible tools */}
+        {/* Tool Header - Clickable to expand/collapse */}
         <button
-          onClick={() => isCollapsibleTool && setIsExpanded(!isExpanded)}
-          className={cn(
-            'w-full flex items-center gap-2 px-3 py-2 bg-muted/50 border-b text-left',
-            isCollapsibleTool && 'cursor-pointer hover:bg-muted/70 transition-colors'
-          )}
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full flex items-center gap-2 px-3 py-2 bg-muted/50 border-b text-left cursor-pointer hover:bg-muted/70 transition-colors"
         >
           {getToolIcon(toolType)}
           <span className="font-medium text-sm">{getToolDisplayName(toolName)}</span>
@@ -2078,15 +2057,13 @@ function ToolCallBlock({
               {summary}
             </span>
           )}
-          {isCollapsibleTool && (
-            <div className="flex-shrink-0">
-              {isExpanded ? (
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-              ) : (
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              )}
-            </div>
-          )}
+          <div className="flex-shrink-0">
+            {isExpanded ? (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            )}
+          </div>
           <span
             className="text-[10px] text-amber-500/70 flex-shrink-0"
             title={t('sessions.inputNotAvailable', 'Input not available')}
@@ -2096,7 +2073,7 @@ function ToolCallBlock({
         </button>
 
         {/* Tool Output */}
-        {(!isCollapsibleTool || isExpanded) && toolResult?.tool_output && (
+        {isExpanded && toolResult?.tool_output && (
           <div className="px-3 py-2">
             <div className="text-xs text-muted-foreground mb-1">Output</div>
             <ToolOutputDisplay output={toolResult.tool_output} searchQuery={searchQuery} />
@@ -2142,13 +2119,10 @@ function ToolCallBlock({
         </div>
       )}
 
-      {/* Tool Header - Clickable to expand/collapse for collapsible tools */}
+      {/* Tool Header - Clickable to expand/collapse */}
       <button
-        onClick={() => isCollapsibleTool && setIsExpanded(!isExpanded)}
-        className={cn(
-          'w-full flex items-center gap-2 px-3 py-2 bg-muted/50 border-b text-left',
-          isCollapsibleTool && 'cursor-pointer hover:bg-muted/70 transition-colors'
-        )}
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center gap-2 px-3 py-2 bg-muted/50 border-b text-left cursor-pointer hover:bg-muted/70 transition-colors"
       >
         {getToolIcon(toolType)}
         <span className="font-medium text-sm">{getToolDisplayName(toolName)}</span>
@@ -2168,19 +2142,17 @@ function ToolCallBlock({
             {summary}
           </span>
         )}
-        {isCollapsibleTool && (
-          <div className="flex-shrink-0">
-            {isExpanded ? (
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            )}
-          </div>
-        )}
+        <div className="flex-shrink-0">
+          {isExpanded ? (
+            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          )}
+        </div>
       </button>
 
       {/* Tool Input */}
-      {(!isCollapsibleTool || isExpanded) && toolUse?.tool_input && (
+      {isExpanded && toolUse?.tool_input && (
         <div className="px-3 py-2 border-b border-dashed">
           <div className="text-xs text-muted-foreground mb-1">Input</div>
           <ToolInputDisplay input={toolUse.tool_input} searchQuery={searchQuery} toolName={toolName} />
@@ -2188,7 +2160,7 @@ function ToolCallBlock({
       )}
 
       {/* Tool Output */}
-      {(!isCollapsibleTool || isExpanded) && toolResult?.tool_output && (
+      {isExpanded && toolResult?.tool_output && (
         <div className="px-3 py-2">
           <div className="text-xs text-muted-foreground mb-1">Output</div>
           <ToolOutputDisplay
