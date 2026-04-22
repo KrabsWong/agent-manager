@@ -12,6 +12,11 @@
     --popover-foreground: 222.2 84% 4.9%;
     --primary: 222.2 47.4% 11.2%;
     --primary-foreground: 210 40% 98%;
+    --primary-hover: 222.2 47.4% 20%;
+    --primary-light: 222.2 47% 94%;
+    --primary-muted: 222.2 40% 96%;
+    --primary-border: 222.2 47% 88%;
+    --primary-ring: 222.2 47% 70%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
     --muted: 210 40% 96.1%;
@@ -35,6 +40,11 @@
     --popover-foreground: 210 40% 98%;
     --primary: 210 40% 98%;
     --primary-foreground: 222.2 47.4% 11.2%;
+    --primary-hover: 210 40% 90%;
+    --primary-light: 222.2 47% 20%;
+    --primary-muted: 222.2 40% 15%;
+    --primary-border: 222.2 47% 30%;
+    --primary-ring: 222.2 47% 50%;
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
     --muted: 217.2 32.6% 17.5%;
@@ -69,5 +79,35 @@
   .app-no-drag {
     -webkit-app-region: no-drag;
     app-region: no-drag;
+  }
+}
+
+/* Scrollbar with primary accent color */
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary-border)) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary-border));
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary-hover));
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
   }
 }

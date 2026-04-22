@@ -62,7 +62,7 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
           </span>
         </div>
         <DialogTrigger asChild>
-          <button className="flex items-center justify-center w-8 h-8 rounded-md border border-border/60 hover:border-primary/50 hover:bg-accent/50 transition-colors shrink-0">
+          <button className="flex items-center justify-center w-8 h-8 rounded-md border border-border/60 hover:border-primary-border hover:bg-primary-muted transition-colors shrink-0">
             <Palette className="h-4 w-4 text-muted-foreground" />
           </button>
         </DialogTrigger>
@@ -83,7 +83,7 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
                 className={cn(
                   'group relative flex flex-col items-center gap-2 p-2 rounded-lg transition-all',
                   'hover:bg-accent',
-                  isSelected && 'bg-primary/10'
+                  isSelected && 'bg-primary-muted'
                 )}
                 title={t(`settings.colors.${color.id}`) || color.name}
               >

@@ -48,7 +48,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             <TabsList className="w-full justify-start rounded-none bg-transparent p-0 h-10 gap-6">
               <TabsTrigger
                 value="general"
-                className="relative rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 py-2 h-10 gap-2"
+                className="relative rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-0 py-2 h-10 gap-2"
               >
                 <Settings className="h-4 w-4" />
                 <span className="hidden sm:inline">{t('settings.generalTitle')}</span>
@@ -58,7 +58,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               </TabsTrigger>
               <TabsTrigger
                 value="experience"
-                className="relative rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 py-2 h-10 gap-2"
+                className="relative rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-0 py-2 h-10 gap-2"
               >
                 <Sparkles className="h-4 w-4" />
                 <span className="hidden sm:inline">
@@ -70,7 +70,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
               </TabsTrigger>
               <TabsTrigger
                 value="terminal"
-                className="relative rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-0 py-2 h-10 gap-2"
+                className="relative rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-0 py-2 h-10 gap-2"
               >
                 <Monitor className="h-4 w-4" />
                 <span className="hidden sm:inline">
@@ -284,8 +284,8 @@ function ExperienceSettings() {
         className={cn(
           'w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left',
           enableTitleMarquee
-            ? 'border-primary/50 bg-primary/5'
-            : 'border-border hover:border-primary/30 hover:bg-accent/50'
+            ? 'border-primary border-opacity-50 bg-primary-muted'
+            : 'border-border hover:border-primary-border hover:bg-accent/50'
         )}
       >
         <div
@@ -328,8 +328,8 @@ function ExperienceSettings() {
         className={cn(
           'w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left',
           collapseBashBlocks
-            ? 'border-primary/50 bg-primary/5'
-            : 'border-border hover:border-primary/30 hover:bg-accent/50'
+            ? 'border-primary border-opacity-50 bg-primary-muted'
+            : 'border-border hover:border-primary-border hover:bg-accent/50'
         )}
       >
         <div
@@ -372,8 +372,8 @@ function ExperienceSettings() {
         className={cn(
           'w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left',
           showThinkingContent
-            ? 'border-primary/50 bg-primary/5'
-            : 'border-border hover:border-primary/30 hover:bg-accent/50'
+            ? 'border-primary border-opacity-50 bg-primary-muted'
+            : 'border-border hover:border-primary-border hover:bg-accent/50'
         )}
       >
         <div

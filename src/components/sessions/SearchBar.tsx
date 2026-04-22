@@ -106,7 +106,7 @@ export function SearchBar({
           placeholder={t('search.placeholder')}
           className={cn(
             'pl-8 pr-16 h-8 text-sm',
-            'bg-background border focus-visible:ring-1 focus-visible:ring-primary',
+            'bg-background border focus-visible:ring-2 focus-visible:ring-primary-ring',
             'placeholder:text-muted-foreground/60'
           )}
           autoFocus
@@ -114,7 +114,7 @@ export function SearchBar({
         {query && (
           <button
             onClick={handleClear}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-sm hover:bg-muted transition-colors"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-sm hover:bg-primary-muted transition-colors"
             title={t('search.clear')}
           >
             <X className="h-3 w-3 text-muted-foreground" />

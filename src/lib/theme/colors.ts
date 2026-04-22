@@ -42,6 +42,25 @@ export interface ColorOption {
   };
 }
 
+interface HSL {
+  h: number;
+  s: number;
+  l: number;
+}
+
+function parseHSL(hslStr: string): HSL {
+  const parts = hslStr.trim().split(/\s+/);
+  return {
+    h: parseFloat(parts[0]),
+    s: parseFloat(parts[1]),
+    l: parseFloat(parts[2]),
+  };
+}
+
+function toHSLString(hsl: HSL): string {
+  return `${hsl.h} ${hsl.s}% ${hsl.l}%`;
+}
+
 // 预设颜色配置
 export const accentColors: ColorOption[] = [
   {
@@ -413,14 +432,9 @@ export function getColorById(id: AccentColor): ColorOption {
 
 // 应用颜色到 CSS 变量
 export function applyAccentColor(colorId: AccentColor, isDark: boolean): void {
-  // 如果是默认颜色，重置为 CSS 默认变量
-  if (colorId === 'default') {
-    resetAccentColor();
-    return;
-  }
-
   const color = getColorById(colorId);
   const theme = isDark ? color.dark : color.light;
+  const primaryHSL = parseHSL(theme.primary);
 
   const root = document.documentElement;
   root.style.setProperty('--primary', theme.primary);
@@ -430,9 +444,16 @@ export function applyAccentColor(colorId: AccentColor, isDark: boolean): void {
   root.style.setProperty('--accent', theme.accent);
   root.style.setProperty('--accent-foreground', isDark ? '0 0% 100%' : color.light.primary);
   root.style.setProperty('--ring', theme.primary);
+
+  // 派生色：从 primary 计算出的变体（对 default 也生效）
+  root.style.setProperty('--primary-hover', toHSLString({ h: primaryHSL.h, s: primaryHSL.s, l: isDark ? Math.min(primaryHSL.l + 8, 90) : Math.max(primaryHSL.l - 8, 10) }));
+  root.style.setProperty('--primary-light', toHSLString({ h: primaryHSL.h, s: Math.min(primaryHSL.s, 70), l: isDark ? 20 : 94 }));
+  root.style.setProperty('--primary-muted', toHSLString({ h: primaryHSL.h, s: Math.min(primaryHSL.s, 40), l: isDark ? 15 : 96 }));
+  root.style.setProperty('--primary-border', toHSLString({ h: primaryHSL.h, s: Math.min(primaryHSL.s, 50), l: isDark ? 30 : 88 }));
+  root.style.setProperty('--primary-ring', toHSLString({ h: primaryHSL.h, s: Math.min(primaryHSL.s, 60), l: isDark ? 50 : 70 }));
 }
 
-// 重置为默认颜色
+// 重置为默认颜色（不清除派生变量，因为 index.css 已有默认值）
 export function resetAccentColor(): void {
   const root = document.documentElement;
   root.style.removeProperty('--primary');
@@ -442,4 +463,5 @@ export function resetAccentColor(): void {
   root.style.removeProperty('--accent');
   root.style.removeProperty('--accent-foreground');
   root.style.removeProperty('--ring');
+  // 不清除 primary-* 派生变量，让 CSS 默认值生效
 }

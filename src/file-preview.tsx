@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { cn } from './lib/utils';
 import { treeApi, gitApi, type TreeNode } from './lib/api';
+import { ThemeProvider } from './components/ThemeProvider';
 import { FilePreview } from './components/sessions/FilePreview';
 import { GitDiffView } from './components/sessions/GitDiffView';
 import { GitDiffPreview } from './components/sessions/GitDiffPreview';
@@ -68,8 +69,8 @@ function TreeItem({
       <button
         onClick={handleClick}
         className={cn(
-          'w-full flex items-center gap-1.5 py-1 hover:bg-muted/50 transition-colors text-left group whitespace-nowrap',
-          isActive && 'bg-primary/10 hover:bg-primary/20'
+          'w-full flex items-center gap-1.5 py-1 hover:bg-primary-muted transition-colors text-left group whitespace-nowrap',
+          isActive && 'bg-primary-light hover:bg-primary-light'
         )}
         style={{ paddingLeft: `${12 + depth * 12}px` }}
         title={node.path}
@@ -304,26 +305,26 @@ function FilePreviewApp() {
   return (
     <div className="h-screen flex flex-col bg-card">
       <div
-        className="px-4 py-2 border-b bg-muted/30 shrink-0 pl-20"
+        className="px-4 py-2 border-b border-primary-border bg-primary-muted shrink-0 pl-20"
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       >
         {sessionTitle && (
-          <p className="text-sm font-bold truncate">
+          <p className="text-sm font-bold truncate text-primary">
             {sessionTitle}
           </p>
         )}
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-xs text-muted-foreground truncate">
+          <span className="text-xs text-primary/70 truncate">
             {sessionDirectory.split('/').pop() || 'Workspace'}
           </span>
-          <span className="text-[10px] text-muted-foreground/60 truncate">
+          <span className="text-[10px] text-primary/50 truncate">
             {sessionDirectory}
           </span>
         </div>
       </div>
 
       <div className="flex-1 flex min-h-0">
-        <div className="w-64 border-r bg-card/50 flex flex-col shrink-0">
+        <div className="w-64 border-r border-primary-border bg-card/50 flex flex-col shrink-0">
           <Tabs
             value={activeTab}
             onValueChange={setActiveTab}
@@ -405,6 +406,8 @@ function FilePreviewApp() {
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <FilePreviewApp />
+    <ThemeProvider>
+      <FilePreviewApp />
+    </ThemeProvider>
   </React.StrictMode>
 );

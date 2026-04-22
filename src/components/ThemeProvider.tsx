@@ -31,11 +31,29 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   const initialSettings = window.__INITIAL_SETTINGS__ || {};
 
   const [theme, setThemeState] = useState<Theme>(initialSettings.theme || 'system');
-  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>('light');
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => {
+    if (initialSettings.theme === 'dark') return 'dark';
+    if (initialSettings.theme === 'light') return 'light';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
   const [accentColor, setAccentColorState] = useState<AccentColor>(
     (initialSettings.accentColor as AccentColor) || defaultAccentColor
   );
   const isLoaded = true;
+
+  // Apply dark class immediately on init (before React renders)
+  if (typeof window !== 'undefined') {
+    const initialResolvedTheme = theme === 'system'
+      ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      : theme;
+    if (initialResolvedTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    // Apply accent color immediately
+    applyAccentColor(accentColor, initialResolvedTheme === 'dark');
+  }
 
   // Verify settings are correct on mount (in case preload failed)
   useEffect(() => {
