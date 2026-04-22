@@ -1,22 +1,29 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import type { AppType } from '@/types';
 
 interface SettingsState {
-  // 默认展示的应用
   defaultApp: AppType | null;
-  // 设置默认应用
   setDefaultApp: (app: AppType | null) => void;
 }
 
-export const useSettingsStore = create<SettingsState>()(
-  persist(
-    (set) => ({
-      defaultApp: null, // 默认未选择，将按顺序展示第一个
-      setDefaultApp: (app) => set({ defaultApp: app }),
-    }),
-    {
-      name: 'settings-storage',
+const getInitialDefaultApp = (): AppType | null => {
+  if (typeof window !== 'undefined' && window.__INITIAL_SETTINGS__?.defaultApp) {
+    return window.__INITIAL_SETTINGS__.defaultApp as AppType;
+  }
+  return null;
+};
+
+export const useSettingsStore = create<SettingsState>()((set) => ({
+  defaultApp: getInitialDefaultApp(),
+
+  setDefaultApp: async (app) => {
+    set({ defaultApp: app });
+    
+    try {
+      await window.electronAPI.invoke('settings:update', { defaultApp: app });
+      console.log('[SettingsStore] Saved defaultApp:', app);
+    } catch (error) {
+      console.error('[SettingsStore] Failed to save defaultApp:', error);
     }
-  )
-);
+  },
+}));

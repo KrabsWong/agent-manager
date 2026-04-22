@@ -36,7 +36,7 @@ const enTranslations = {
       gemini: 'Gemini CLI',
       opencode: 'OpenCode',
       codebuddy: 'Codebuddy',
-      'vscode-extension': 'VS Code Extension',
+      'vscode-extension': 'VSC Codebuddy Extension',
     },
   },
   settings: {
@@ -117,7 +117,7 @@ const enTranslations = {
     error: 'Failed to load sessions',
     noSessions: 'No Sessions Found',
     noSessionsDesc: 'No conversation history found for this application.',
-    comingSoon: 'Coming Soon',
+    comingSoon: 'No Plans',
     notInstalled: 'Not Installed',
     unsupportedApp: 'Session viewing is not yet supported for this application.',
     notInstalledDesc: 'Install {{app}} to view your conversation history.',
@@ -253,7 +253,7 @@ const zhTranslations = {
       gemini: 'Gemini CLI',
       opencode: 'OpenCode',
       codebuddy: 'Codebuddy',
-      'vscode-extension': 'VS Code 扩展',
+      'vscode-extension': 'VSC Codebuddy 扩展',
     },
   },
   settings: {
@@ -334,7 +334,7 @@ const zhTranslations = {
     error: '加载会话失败',
     noSessions: '未找到会话',
     noSessionsDesc: '未找到此应用程序的对话历史。',
-    comingSoon: '即将推出',
+    comingSoon: '没计划推出',
     notInstalled: '未安装',
     unsupportedApp: '此应用程序暂不支持查看会话记录。',
     notInstalledDesc: '安装 {{app}} 后即可查看会话记录。',
@@ -436,9 +436,16 @@ const resources = {
   zh: { translation: zhTranslations },
 };
 
+const getInitialLanguage = (): string | undefined => {
+  if (typeof window !== 'undefined' && window.__INITIAL_SETTINGS__?.language) {
+    return window.__INITIAL_SETTINGS__.language;
+  }
+  return undefined;
+};
+
 i18n.use(initReactI18next).init({
   resources,
-  lng: 'zh',
+  lng: getInitialLanguage(),
   fallbackLng: 'en',
   interpolation: {
     escapeValue: false,

@@ -40,9 +40,12 @@ export interface AppSettings {
   accentColor: AccentColor;
   autoStart: boolean;
   lightweightMode: boolean;
+  defaultApp: AppType | null;
 
   // Display
   collapseBashBlocks: boolean;
+  enableTitleMarquee: boolean;
+  showThinkingContent: boolean;
 
   // Terminal
   preferredTerminal: 'auto' | 'ghostty' | 'kitty' | 'terminal';
@@ -54,7 +57,10 @@ export const DEFAULT_SETTINGS: AppSettings = {
   accentColor: 'default',
   autoStart: false,
   lightweightMode: false,
+  defaultApp: null,
   collapseBashBlocks: true,
+  enableTitleMarquee: false,
+  showThinkingContent: true,
   preferredTerminal: 'auto',
 };
 

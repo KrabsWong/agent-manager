@@ -28,7 +28,7 @@ export const APP_LABELS: Record<AppType, string> = {
   gemini: 'Gemini CLI',
   opencode: 'OpenCode',
   codebuddy: 'Codebuddy',
-  'vscode-extension': 'VS Code Extension',
+  'vscode-extension': 'VSC Codebuddy Extension',
 };
 
 // ============ 应用颜色类名（用于图标） ============
@@ -68,11 +68,11 @@ export const APP_SUPPORT_STATUS: Record<AppType, boolean> = {
 export const APP_DESCRIPTIONS: Record<AppType, string> = {
   claude: 'Anthropic 推出的 AI 编程助手',
   'claude-internal': 'Anthropic 内部版 Claude Code',
-  codex: 'OpenAI 的编程助手（即将推出）',
-  gemini: 'Google 的 Gemini 代码助手（即将推出）',
+  codex: 'OpenAI 的编程助手（没计划推出）',
+  gemini: 'Google 的 Gemini 代码助手（没计划推出）',
   opencode: '社区驱动的开源 AI 编程工具',
   codebuddy: 'Codebuddy 智能编程助手',
-  'vscode-extension': 'VS Code AI 扩展（如工蜂 Copilot）',
+  'vscode-extension': 'VSC Codebuddy AI 扩展（VS Code 插件）',
 };
 
 // ============ 快捷访问 ============

@@ -27,33 +27,39 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  const [theme, setThemeState] = useState<Theme>('system');
-  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>('light');
-  const [accentColor, setAccentColorState] = useState<AccentColor>(defaultAccentColor);
-  const [isLoaded, setIsLoaded] = useState(false);
+  // Use synchronously injected initial settings if available
+  const initialSettings = window.__INITIAL_SETTINGS__ || {};
 
-  // Load theme and accent color from settings on mount
+  const [theme, setThemeState] = useState<Theme>(initialSettings.theme || 'system');
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>('light');
+  const [accentColor, setAccentColorState] = useState<AccentColor>(
+    (initialSettings.accentColor as AccentColor) || defaultAccentColor
+  );
+  const isLoaded = true;
+
+  // Verify settings are correct on mount (in case preload failed)
   useEffect(() => {
-    const loadSettings = async () => {
+    const verifySettings = async () => {
       try {
         const settings = (await window.electronAPI.invoke('settings:get')) as
           | { theme?: Theme; accentColor?: AccentColor }
           | undefined;
 
-        if (settings?.theme) {
+        if (settings?.theme && settings.theme !== theme) {
           setThemeState(settings.theme);
         }
-        if (settings?.accentColor) {
-          setAccentColorState(settings.accentColor);
+        if (settings?.accentColor && settings.accentColor !== accentColor) {
+          setAccentColorState(settings.accentColor as AccentColor);
         }
-        setIsLoaded(true);
       } catch (error) {
-        console.error('Failed to load theme settings:', error);
-        setIsLoaded(true);
+        console.error('Failed to verify theme settings:', error);
       }
     };
 
-    loadSettings();
+    // Only verify if we didn't get initial settings from preload
+    if (!window.__INITIAL_SETTINGS__) {
+      verifySettings();
+    }
   }, []);
 
   // Apply theme and accent color to document

@@ -1,44 +1,79 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 
 interface ExperienceState {
-  // 标题跑马灯效果
   enableTitleMarquee: boolean;
-  // 切换跑马灯效果
-  toggleTitleMarquee: () => void;
-  // 设置跑马灯效果
-  setTitleMarquee: (enabled: boolean) => void;
-  // Bash 输出块默认收起
   collapseBashBlocks: boolean;
-  // 切换 Bash 输出块收起状态
-  toggleCollapseBashBlocks: () => void;
-  // 设置 Bash 输出块收起状态
-  setCollapseBashBlocks: (enabled: boolean) => void;
-  // 是否显示 Thinking 内容
   showThinkingContent: boolean;
-  // 切换 Thinking 内容显示
+
+  toggleTitleMarquee: () => void;
+  setTitleMarquee: (enabled: boolean) => void;
+  toggleCollapseBashBlocks: () => void;
+  setCollapseBashBlocks: (enabled: boolean) => void;
   toggleShowThinkingContent: () => void;
-  // 设置 Thinking 内容显示
   setShowThinkingContent: (enabled: boolean) => void;
 }
 
-export const useExperienceStore = create<ExperienceState>()(
-  persist(
-    (set) => ({
-      enableTitleMarquee: false, // 默认关闭
-      toggleTitleMarquee: () => set((state) => ({ enableTitleMarquee: !state.enableTitleMarquee })),
-      setTitleMarquee: (enabled) => set({ enableTitleMarquee: enabled }),
-      collapseBashBlocks: true, // 默认收起
-      toggleCollapseBashBlocks: () =>
-        set((state) => ({ collapseBashBlocks: !state.collapseBashBlocks })),
-      setCollapseBashBlocks: (enabled) => set({ collapseBashBlocks: enabled }),
-      showThinkingContent: true, // 默认显示 thinking 内容
-      toggleShowThinkingContent: () =>
-        set((state) => ({ showThinkingContent: !state.showThinkingContent })),
-      setShowThinkingContent: (enabled) => set({ showThinkingContent: enabled }),
-    }),
-    {
-      name: 'experience-storage',
-    }
-  )
-);
+const getInitialSettings = () => {
+  if (typeof window !== 'undefined' && window.__INITIAL_SETTINGS__) {
+    return {
+      enableTitleMarquee: window.__INITIAL_SETTINGS__.enableTitleMarquee ?? false,
+      collapseBashBlocks: window.__INITIAL_SETTINGS__.collapseBashBlocks ?? true,
+      showThinkingContent: window.__INITIAL_SETTINGS__.showThinkingContent ?? true,
+    };
+  }
+  return {
+    enableTitleMarquee: false,
+    collapseBashBlocks: true,
+    showThinkingContent: true,
+  };
+};
+
+const syncToStore = async (key: string, value: boolean) => {
+  try {
+    await window.electronAPI.invoke('settings:update', { [key]: value });
+    console.log('[ExperienceStore] Saved', key, ':', value);
+  } catch (error) {
+    console.error('[ExperienceStore] Failed to save', key, ':', error);
+  }
+};
+
+const initialExperienceSettings = getInitialSettings();
+
+export const useExperienceStore = create<ExperienceState>()((set, get) => ({
+  enableTitleMarquee: initialExperienceSettings.enableTitleMarquee,
+  collapseBashBlocks: initialExperienceSettings.collapseBashBlocks,
+  showThinkingContent: initialExperienceSettings.showThinkingContent,
+
+  toggleTitleMarquee: () => {
+    const newValue = !get().enableTitleMarquee;
+    set({ enableTitleMarquee: newValue });
+    syncToStore('enableTitleMarquee', newValue);
+  },
+
+  setTitleMarquee: (enabled) => {
+    set({ enableTitleMarquee: enabled });
+    syncToStore('enableTitleMarquee', enabled);
+  },
+
+  toggleCollapseBashBlocks: () => {
+    const newValue = !get().collapseBashBlocks;
+    set({ collapseBashBlocks: newValue });
+    syncToStore('collapseBashBlocks', newValue);
+  },
+
+  setCollapseBashBlocks: (enabled) => {
+    set({ collapseBashBlocks: enabled });
+    syncToStore('collapseBashBlocks', enabled);
+  },
+
+  toggleShowThinkingContent: () => {
+    const newValue = !get().showThinkingContent;
+    set({ showThinkingContent: newValue });
+    syncToStore('showThinkingContent', newValue);
+  },
+
+  setShowThinkingContent: (enabled) => {
+    set({ showThinkingContent: enabled });
+    syncToStore('showThinkingContent', enabled);
+  },
+}));

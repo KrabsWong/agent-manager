@@ -8,9 +8,21 @@ export interface IElectronAPI {
   removeAllListeners: (channel: string) => void;
 }
 
+export interface InitialSettings {
+  theme?: 'light' | 'dark' | 'system';
+  accentColor?: string;
+  language?: 'en' | 'zh' | 'ja';
+  defaultApp?: string;
+  enableTitleMarquee?: boolean;
+  collapseBashBlocks?: boolean;
+  showThinkingContent?: boolean;
+  preferredTerminal?: 'auto' | 'ghostty' | 'kitty' | 'terminal';
+}
+
 declare global {
   interface Window {
     electronAPI: IElectronAPI;
+    __INITIAL_SETTINGS__?: InitialSettings;
   }
 }
 

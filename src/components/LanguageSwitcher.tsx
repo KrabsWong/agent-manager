@@ -17,10 +17,20 @@ export function LanguageSwitcher() {
     { code: 'zh', name: '中文' },
   ];
 
-  const currentLanguage = i18n.language || 'zh';
+  const currentLanguage = i18n.language || 'en';
 
-  const handleLanguageChange = (value: string) => {
-    i18n.changeLanguage(value);
+  const handleLanguageChange = async (value: string) => {
+    // Change language immediately
+    await i18n.changeLanguage(value);
+
+    // Persist to electron-store
+    try {
+      await window.electronAPI.invoke('settings:update', { language: value });
+      console.log('[LanguageSwitcher] Language saved:', value);
+    } catch (error) {
+      console.error('[LanguageSwitcher] Failed to save language:', error);
+    }
+
     toast({
       title: t('settings.languageChanged', 'Language changed'),
       description: languages.find((l) => l.code === value)?.name,

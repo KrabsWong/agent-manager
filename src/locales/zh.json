@@ -9,7 +9,7 @@
     "selectApp": "选择应用",
     "loading": "正在加载会话...",
     "error": "加载会话失败",
-    "comingSoon": "即将推出",
+    "comingSoon": "没计划推出",
     "unsupportedApp": "此应用暂不支持会话查看。",
     "noSessions": "未找到会话",
     "noSessionsDesc": "未找到此应用的对话历史。",
@@ -144,7 +144,7 @@
       "gemini": "Gemini CLI",
       "opencode": "OpenCode",
       "codebuddy": "Codebuddy",
-      "vscode-extension": "VS Code 扩展"
+      "vscode-extension": "VSC Codebuddy 扩展"
     }
   }
 }

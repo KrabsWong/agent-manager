@@ -8,6 +8,7 @@ import { ThemeProvider } from './components/ThemeProvider';
 import { Toaster } from './components/ui/toaster';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
+import './lib/i18n';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -19,5 +20,5 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         </ThemeProvider>
       </QueryClientProvider>
     </ErrorBoundary>
-  </React.StrictMode>
+  </React.StrictMode>,
 );
