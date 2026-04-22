@@ -91,10 +91,11 @@ export class ClaudeInternalSessionService {
 
   /**
    * Escape project path for directory name
-   * Replaces forward slashes with hyphens. Note: existing hyphens in path are preserved.
+   * Replaces forward slashes and underscores with hyphens.
+   * Note: existing hyphens in path are preserved.
    */
   private escapeProjectPath(projectPath: string): string {
-    return projectPath.replace(/\//g, '-');
+    return projectPath.replace(/[/_,]/g, '-');
   }
 
   /**
