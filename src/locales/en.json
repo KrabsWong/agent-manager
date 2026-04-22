@@ -25,7 +25,9 @@
     "viewByDirectory": "View by Directory",
     "date": "Date",
     "directory": "Directory",
-    "unknownDirectory": "Unknown"
+    "unknownDirectory": "Unknown",
+    "showFiles": "Show files",
+    "hideFiles": "Hide files"
   },
   "settings": {
     "title": "Settings",
