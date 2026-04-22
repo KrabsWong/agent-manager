@@ -9,7 +9,7 @@
     "selectApp": "Select Application",
     "loading": "Loading sessions...",
     "error": "Failed to load sessions",
-    "comingSoon": "Coming Soon",
+    "comingSoon": "No Plans",
     "unsupportedApp": "Session viewing is not yet supported for this application.",
     "noSessions": "No Sessions Found",
     "noSessionsDesc": "No conversation history found for this application.",
@@ -144,7 +144,7 @@
       "gemini": "Gemini CLI",
       "opencode": "OpenCode",
       "codebuddy": "Codebuddy",
-      "vscode-extension": "VS Code Extension"
+      "vscode-extension": "VSC Codebuddy Extension"
     }
   }
 }

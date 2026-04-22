@@ -26,15 +26,7 @@ interface StoreSchema {
 const schema = {
   settings: {
     type: 'object',
-    properties: {
-      language: { type: 'string', default: 'en' },
-      theme: { type: 'string', default: 'system' },
-      accentColor: { type: 'string', default: 'default' },
-      autoStart: { type: 'boolean', default: false },
-      lightweightMode: { type: 'boolean', default: false },
-      collapseBashBlocks: { type: 'boolean', default: true },
-      preferredTerminal: { type: 'string', default: 'auto' },
-    },
+    // Only define defaults at the object level to avoid validation conflicts
     default: DEFAULT_SETTINGS,
   },
   windowBounds: {

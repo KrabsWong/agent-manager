@@ -107,6 +107,26 @@ const createWindow = () => {
     mainWindow.maximize();
   }
 
+  // Disable refresh shortcuts (Cmd+R, Ctrl+R, F5) in production
+  // In dev mode, allow refresh for debugging but with a warning
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    const isRefreshShortcut =
+      (input.meta && input.key.toLowerCase() === 'r') || // Cmd+R (macOS)
+      (input.control && input.key.toLowerCase() === 'r') || // Ctrl+R (Windows/Linux)
+      input.key === 'F5'; // F5
+
+    if (isRefreshShortcut) {
+      if (process.env.VITE_DEV_SERVER_URL) {
+        // In dev mode, allow but log a warning
+        log.warn('Page refresh detected in dev mode. Note: Main process changes require app restart.');
+      } else {
+        // In production, prevent refresh
+        event.preventDefault();
+        log.info('Refresh shortcut blocked in production');
+      }
+    }
+  });
+
   // Save window state on change
   mainWindow.on('resize', () => {
     if (mainWindow && !mainWindow.isMaximized()) {
@@ -218,9 +238,14 @@ const registerAppHandlers = () => {
     return getPackageJson().version;
   });
 
-  // Get settings
+  // Get settings (async)
   ipcRegistry.register('settings:get', () => {
     return configStore.getSettings();
+  });
+
+  // Get settings synchronously for preload script
+  ipcMain.on('settings:getSync', (event) => {
+    event.returnValue = configStore.getSettings();
   });
 
   // Update settings
