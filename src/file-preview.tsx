@@ -234,11 +234,17 @@ function FilePreviewApp() {
 
   return (
     <div className="h-screen flex flex-col bg-card">
-      <div className="flex items-center px-4 py-3 border-b bg-muted/30 shrink-0">
-        <h2 className="text-sm font-semibold">
+      <div
+        className="flex items-center px-4 py-3 border-b bg-muted/30 shrink-0 pl-20"
+        style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+      >
+        <h2 className="text-sm font-semibold" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
           {sessionDirectory.split('/').pop() || 'Workspace'}
         </h2>
-        <span className="ml-2 text-xs text-muted-foreground truncate">
+        <span
+          className="ml-2 text-xs text-muted-foreground truncate"
+          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+        >
           {sessionDirectory}
         </span>
       </div>
