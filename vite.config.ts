@@ -109,12 +109,18 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: false, // 生产环境禁用 sourcemap
+    sourcemap: false,
     minify: isProduction ? 'terser' : false,
     terserOptions: {
       compress: {
-        drop_console: true, // 移除 console.log
-        drop_debugger: true, // 移除 debugger
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        'file-preview': path.resolve(__dirname, 'file-preview.html'),
       },
     },
   },

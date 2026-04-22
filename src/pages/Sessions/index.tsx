@@ -30,7 +30,6 @@ import {
 } from '@/hooks/useSessions';
 import { ConversationView } from '@/components/sessions/ConversationView';
 import { VirtualSessionList, type ViewMode } from '@/components/sessions/VirtualSessionList';
-import { FilePreviewModal } from '@/components/sessions/FilePreviewModal';
 import { APP_LABELS, APP_WEBSITES, getAppIcon, APP_COLORS } from '@/components/AppIcons';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { APP_ORDER, isAppSupported } from '@/config/apps';
@@ -202,8 +201,18 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
       terminalInfo?.kittyInstalled ||
       terminalInfo?.preferred === 'terminal');
 
-  // Control file preview modal visibility
-  const [showFileModal, setShowFileModal] = useState(false);
+  const handleOpenFilePreview = async () => {
+    if (!selectedSession?.directory) return;
+    const sessionTitle = selectedSession.firstMessage
+      ? selectedSession.firstMessage.slice(0, 50)
+      : selectedSession.fileName || 'Untitled';
+    await window.electronAPI.invoke(
+      'file-preview:open',
+      selectedSession.directory,
+      sessionTitle,
+      selectedApp
+    );
+  };
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -467,7 +476,7 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8 shrink-0"
-                            onClick={() => setShowFileModal(true)}
+                            onClick={handleOpenFilePreview}
                           >
                             <Folder className="h-4 w-4" />
                           </Button>
@@ -619,14 +628,6 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
         </div>
       </div>
 
-      {/* File Preview Modal - Full screen overlay */}
-      {selectedSession && (
-        <FilePreviewModal
-          isOpen={showFileModal}
-          onClose={() => setShowFileModal(false)}
-          sessionDirectory={selectedSession.directory}
-        />
-      )}
     </div>
   );
 }

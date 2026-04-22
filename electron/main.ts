@@ -41,6 +41,7 @@ const getPackageJson = (): { version: string } => {
 // Keep a global reference of the window object
 let mainWindow: BrowserWindow | null = null;
 let splashWindow: BrowserWindow | null = null;
+const filePreviewWindows = new Map<string, BrowserWindow>();
 
 // Create splash screen
 const createSplashWindow = () => {
@@ -299,6 +300,69 @@ ipcMain.handle('shell:openPath', async (_event, filePath: string) => {
   const result = await shell.openPath(filePath);
   if (result) {
     log.warn(`Failed to open path: ${filePath}, error: ${result}`);
+  }
+});
+
+// Register file preview window handler
+ipcMain.handle('file-preview:open', async (_event, dirPath: string, sessionTitle?: string, appType?: string) => {
+  try {
+    const existing = filePreviewWindows.get(dirPath);
+    if (existing && !existing.isDestroyed()) {
+      existing.focus();
+      return { success: true };
+    }
+
+    const win = new BrowserWindow({
+      width: 1000,
+      height: 700,
+      minWidth: 700,
+      minHeight: 500,
+      webPreferences: {
+        preload: path.join(__dirname, 'preload.js'),
+        contextIsolation: true,
+        nodeIntegration: false,
+      },
+      titleBarStyle: 'hiddenInset',
+      show: false,
+    });
+
+    win.on('closed', () => {
+      filePreviewWindows.delete(dirPath);
+    });
+
+    if (process.env.VITE_DEV_SERVER_URL) {
+      const url = new URL(process.env.VITE_DEV_SERVER_URL);
+      url.pathname = '/file-preview.html';
+      url.searchParams.set('dir', dirPath);
+      if (sessionTitle) url.searchParams.set('session', sessionTitle);
+      if (appType) url.searchParams.set('app', appType);
+      win.loadURL(url.toString());
+      win.webContents.openDevTools();
+    } else {
+      const filePath = path.join(app.getAppPath(), 'dist', 'file-preview.html');
+      const fileUrl = new URL(`file://${filePath}`);
+      fileUrl.searchParams.set('dir', dirPath);
+      if (sessionTitle) fileUrl.searchParams.set('session', sessionTitle);
+      if (appType) fileUrl.searchParams.set('app', appType);
+      win.loadURL(fileUrl.toString());
+    }
+
+    win.once('ready-to-show', () => {
+      win.show();
+    });
+
+    if (!process.env.VITE_DEV_SERVER_URL) {
+      win.webContents.on('devtools-opened', () => {
+        win.webContents.closeDevTools();
+      });
+    }
+
+    filePreviewWindows.set(dirPath, win);
+
+    return { success: true };
+  } catch (error) {
+    log.error('Failed to open file preview window:', error);
+    return { success: false, error: String(error) };
   }
 });
 
