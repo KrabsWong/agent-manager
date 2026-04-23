@@ -240,7 +240,7 @@ export function FilePreviewModal({
       />
 
       {/* Modal Content */}
-      <div className="relative w-full h-full max-w-6xl bg-card rounded-xl shadow-2xl border border-primary-border overflow-hidden flex flex-col">
+      <div className="relative w-full h-full max-w-[1400px] bg-card rounded-xl shadow-2xl border border-primary-border overflow-hidden flex flex-col">
         {/* Header with close button */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-primary-border bg-primary-muted shrink-0">
           <h2 className="text-sm font-semibold text-primary">

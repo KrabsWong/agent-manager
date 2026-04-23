@@ -217,6 +217,21 @@ const enTranslations = {
     clear: 'Clear search',
     shortcut: 'Press {{key}} to search',
   },
+  diff: {
+    split: 'Split',
+    splitView: 'Split View',
+    unified: 'Unified',
+    unifiedView: 'Unified View',
+    original: 'Original',
+    modified: 'Modified',
+    lines: 'lines',
+    noOriginal: 'New file',
+    noModified: 'Deleted',
+  },
+  preview: {
+    unsupportedFile: 'Unsupported File Format',
+    cannotPreview: 'This file format cannot be previewed',
+  },
 };
 
 // Chinese translations
@@ -430,6 +445,21 @@ const zhTranslations = {
     loadingAll: '正在加载全部消息...',
     clear: '清除搜索',
     shortcut: '按 {{key}} 开始搜索',
+  },
+  diff: {
+    split: '分栏',
+    splitView: '分栏视图',
+    unified: '行内',
+    unifiedView: '行内视图',
+    original: '原始',
+    modified: '修改后',
+    lines: '行',
+    noOriginal: '新增文件',
+    noModified: '已删除',
+  },
+  preview: {
+    unsupportedFile: '不支持的文件格式',
+    cannotPreview: '无法预览此文件格式',
   },
 };
 
