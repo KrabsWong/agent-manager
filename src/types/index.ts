@@ -89,7 +89,19 @@ export type IpcChannel =
   // Git
   | 'git:status'
   | 'git:diff'
-  | 'git:fileDiff';
+  | 'git:fileDiff'
+  | 'git:watch:start'
+  | 'git:watch:stop'
+  // Shell
+  | 'shell:openExternal'
+  | 'shell:openPath'
+  // File Preview
+  | 'file-preview:open'
+  // File
+  | 'file:read'
+  | 'file:readImage'
+  // Tree
+  | 'tree:get';
 
 // ============ API Response Types ============
 export interface ApiResponse<T> {

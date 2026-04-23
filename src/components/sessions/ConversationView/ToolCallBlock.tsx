@@ -9,7 +9,7 @@ import { ChevronDown, ChevronRight, Sparkles, Wrench, Terminal, Puzzle, Bot, Lis
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useTranslation } from 'react-i18next';
-import { useExperienceStore } from '@/stores/experience';
+import { useSettingsStore } from '@/stores/settings';
 import { cn } from '@/lib/utils';
 import { SubAgentCard } from '../SubAgentCard';
 import { HighlightedText } from '../HighlightedText';
@@ -79,7 +79,7 @@ export const ToolCallBlock = memo(function ToolCallBlock({
   searchQuery = '',
 }: ToolCallBlockProps) {
   const { t } = useTranslation();
-  const { collapseBashBlocks, showThinkingContent } = useExperienceStore();
+  const { collapseBashBlocks, showThinkingContent } = useSettingsStore();
 
   const toolName = toolUse?.tool_name || toolResult?.tool_name || 'unknown';
   const toolType = getToolType(toolName);
@@ -406,7 +406,7 @@ function EditFileInputDisplay({ input, searchQuery: _searchQuery }: { input: Rec
 
 // Tool Output Display
 function ToolOutputDisplay({ output, searchQuery = '', toolName = '' }: ToolOutputDisplayProps) {
-  const { collapseBashBlocks } = useExperienceStore();
+  const { collapseBashBlocks } = useSettingsStore();
   const isBashTool = toolName.toLowerCase() === 'bash';
   const shouldDefaultCollapse = isBashTool && collapseBashBlocks;
   const [isExpanded, setIsExpanded] = useState(!shouldDefaultCollapse);

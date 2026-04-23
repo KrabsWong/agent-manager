@@ -8,7 +8,7 @@ import { useState, useEffect, useMemo, memo } from 'react';
 import { User, Info, FileText, ChevronDown, ChevronRight, Maximize2, Sparkles, Terminal, Folder } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { useExperienceStore } from '@/stores/experience';
+import { useSettingsStore } from '@/stores/settings';
 import { getAppIcon } from '@/components/AppIcons';
 import { APP_LABELS } from '@/config/apps';
 import { parseMessageContent, hasSpecialParser } from '../parsers';
@@ -422,7 +422,7 @@ export const AssistantMessage = memo(function AssistantMessage({
   const assistantName = APP_LABELS[appType as AppType] || APP_LABELS.claude;
   const [isExpanded, setIsExpanded] = useState(false);
   const [isReasoningExpanded, setIsReasoningExpanded] = useState(false);
-  const { showThinkingContent } = useExperienceStore();
+  const { showThinkingContent } = useSettingsStore();
 
   useEffect(() => {
     if (!searchQuery || !reasoningContent) return;

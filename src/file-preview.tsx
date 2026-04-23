@@ -20,7 +20,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { cn } from './lib/utils';
-import { treeApi, gitApi, type TreeNode } from './lib/api';
+import { api, treeApi, gitApi, type TreeNode } from './lib/api';
 import { ThemeProvider } from './components/ThemeProvider';
 import { FilePreview } from './components/sessions/FilePreview';
 import { GitDiffView } from './components/sessions/GitDiffView';
@@ -253,12 +253,9 @@ function FilePreviewApp() {
       const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'svg'];
       const isImage = imageExts.some((ext) => name.toLowerCase().endsWith(ext));
 
-      let content: string;
-      if (isImage) {
-        content = (await window.electronAPI.invoke('file:readImage', path)) as string;
-      } else {
-        content = (await window.electronAPI.invoke('file:read', path)) as string;
-      }
+      const content = isImage
+        ? await api.file.readImage(path)
+        : await api.file.read(path);
 
       setPreviewFile({ path, name, content });
       setDiffPreview(null);

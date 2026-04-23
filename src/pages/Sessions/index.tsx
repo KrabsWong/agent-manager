@@ -30,6 +30,7 @@ import {
   useTerminalInfo,
 } from '@/hooks/useSessions';
 import { ConversationView } from '@/components/sessions/ConversationView';
+import { api } from '@/lib/api';
 import { VirtualSessionList, type ViewMode } from '@/components/sessions/VirtualSessionList';
 import { APP_LABELS, APP_WEBSITES, APP_COLORS } from '@/config/apps';
 import { getAppIcon } from '@/components/AppIcons';
@@ -214,12 +215,7 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
     const sessionTitle = selectedSession.firstMessage
       ? selectedSession.firstMessage.slice(0, 50)
       : selectedSession.fileName || 'Untitled';
-    await window.electronAPI.invoke(
-      'file-preview:open',
-      selectedSession.directory,
-      sessionTitle,
-      selectedApp
-    );
+    await api.filePreview.open(selectedSession.directory, sessionTitle, selectedApp);
   };
 
   return (

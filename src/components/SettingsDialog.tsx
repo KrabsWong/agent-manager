@@ -10,7 +10,6 @@ import { useVersion } from '@/hooks/useVersion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
-import { useExperienceStore } from '@/stores/experience';
 import { useSettingsStore } from '@/stores/settings';
 import { type AppType } from '@/types';
 import { APP_ORDER, APP_LABELS, APP_COLORS, isAppSupported } from '@/config/apps';
@@ -235,7 +234,7 @@ function ExperienceSettings() {
     toggleCollapseBashBlocks,
     showThinkingContent,
     toggleShowThinkingContent,
-  } = useExperienceStore();
+  } = useSettingsStore();
   const { toast } = useToast();
 
   const handleToggleTitleMarquee = () => {

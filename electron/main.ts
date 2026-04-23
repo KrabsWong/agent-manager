@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
+import { readFile } from 'fs/promises';
 import log from 'electron-log';
 import { dbManager } from './database';
 import { configStore } from './utils/config-store';
@@ -10,6 +11,7 @@ import { performanceMonitor } from './services/performance/monitor';
 import { registerSessionsHandlers } from './handlers/sessions';
 import { buildDirectoryTree } from './handlers/tree';
 import { initializeGitWatcher } from './services/git-watcher';
+import { getGitStatus, getGitDiff, getFileDiffContent } from './handlers/git.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -280,42 +282,24 @@ const registerAppHandlers = () => {
     const [data] = args as [Record<string, unknown>];
     configStore.importConfig(data);
   });
-};
 
-// App event handlers
-app.whenReady().then(initializeApp);
+  // Shell handlers
+  ipcRegistry.register('shell:openExternal', async (_event, ...args: unknown[]) => {
+    const [url] = args as [string];
+    await shell.openExternal(url);
+  });
 
-app.on('window-all-closed', () => {
-  // Close database connection
-  dbManager.close();
+  ipcRegistry.register('shell:openPath', async (_event, ...args: unknown[]) => {
+    const [filePath] = args as [string];
+    const result = await shell.openPath(filePath);
+    if (result) {
+      log.warn(`Failed to open path: ${filePath}, error: ${result}`);
+    }
+  });
 
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
-
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
-});
-
-// Register shell handler for opening external links
-ipcMain.handle('shell:openExternal', async (_event, url: string) => {
-  await shell.openExternal(url);
-});
-
-// Register shell handler for opening files/directories
-ipcMain.handle('shell:openPath', async (_event, filePath: string) => {
-  const result = await shell.openPath(filePath);
-  if (result) {
-    log.warn(`Failed to open path: ${filePath}, error: ${result}`);
-  }
-});
-
-// Register file preview window handler
-ipcMain.handle('file-preview:open', async (_event, dirPath: string, sessionTitle?: string, appType?: string) => {
-  try {
+  // File preview window handler
+  ipcRegistry.register('file-preview:open', async (_event, ...args: unknown[]) => {
+    const [dirPath, sessionTitle, appType] = args as [string, string | undefined, string | undefined];
     const existing = filePreviewWindows.get(dirPath);
     if (existing && !existing.isDestroyed()) {
       existing.focus();
@@ -378,27 +362,18 @@ ipcMain.handle('file-preview:open', async (_event, dirPath: string, sessionTitle
     filePreviewWindows.set(dirPath, win);
 
     return { success: true };
-  } catch (error) {
-    log.error('Failed to open file preview window:', error);
-    return { success: false, error: String(error) };
-  }
-});
+  });
 
-// Register tree handler for directory listing
-ipcMain.handle('tree:get', async (_event, dirPath: string) => {
-  try {
+  // Tree handler for directory listing
+  ipcRegistry.register('tree:get', async (_event, ...args: unknown[]) => {
+    const [dirPath] = args as [string];
     const nodes = await buildDirectoryTree(dirPath);
-    return { success: true, data: nodes };
-  } catch (error) {
-    log.error('Failed to build directory tree:', error);
-    return { success: false, error: String(error) };
-  }
-});
+    return nodes;
+  });
 
-// Register file read handler
-import { readFile } from 'fs/promises';
-ipcMain.handle('file:read', async (_event, filePath: string) => {
-  try {
+  // File read handlers (return raw content via ApiResponse.data)
+  ipcRegistry.register('file:read', async (_event, ...args: unknown[]) => {
+    const [filePath] = args as [string];
     // Validate file path (basic security)
     if (!filePath || typeof filePath !== 'string') {
       throw new Error('Invalid file path');
@@ -414,15 +389,10 @@ ipcMain.handle('file:read', async (_event, filePath: string) => {
     }
     const content = await readFile(filePath, 'utf-8');
     return content;
-  } catch (error) {
-    log.error('Failed to read file:', error);
-    throw error;
-  }
-});
+  });
 
-// Register image file read handler (returns base64)
-ipcMain.handle('file:readImage', async (_event, filePath: string) => {
-  try {
+  ipcRegistry.register('file:readImage', async (_event, ...args: unknown[]) => {
+    const [filePath] = args as [string];
     // Validate file path (basic security)
     if (!filePath || typeof filePath !== 'string') {
       throw new Error('Invalid file path');
@@ -457,60 +427,43 @@ ipcMain.handle('file:readImage', async (_event, filePath: string) => {
     const mimeType = mimeTypes[ext] || 'image/png';
     const base64 = buffer.toString('base64');
     return `data:${mimeType};base64,${base64}`;
-  } catch (error) {
-    log.error('Failed to read image:', error);
-    throw error;
-  }
-});
+  });
 
-// Register git handlers
-import { getGitStatus, getGitDiff, getFileDiffContent } from './handlers/git.js';
-
-ipcMain.handle('git:status', async (_event, dirPath: string) => {
-  try {
+  // Git handlers
+  ipcRegistry.register('git:status', async (_event, ...args: unknown[]) => {
+    const [dirPath] = args as [string];
     const result = await getGitStatus(dirPath);
-    return { success: true, data: result };
-  } catch (error) {
-    log.error('Failed to get git status:', error);
-    return {
-      success: false,
-      error: {
-        code: 'GIT_ERROR',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      },
-    };
-  }
-});
+    return result;
+  });
 
-ipcMain.handle('git:diff', async (_event, dirPath: string, filePath?: string) => {
-  try {
+  ipcRegistry.register('git:diff', async (_event, ...args: unknown[]) => {
+    const [dirPath, filePath] = args as [string, string | undefined];
     const result = await getGitDiff(dirPath, filePath);
-    return { success: true, data: result };
-  } catch (error) {
-    log.error('Failed to get git diff:', error);
-    return {
-      success: false,
-      error: {
-        code: 'GIT_ERROR',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      },
-    };
+    return result;
+  });
+
+  ipcRegistry.register('git:fileDiff', async (_event, ...args: unknown[]) => {
+    const [dirPath, filePath] = args as [string, string];
+    const result = await getFileDiffContent(dirPath, filePath);
+    return result;
+  });
+};
+
+// App event handlers
+app.whenReady().then(initializeApp);
+
+app.on('window-all-closed', () => {
+  // Close database connection
+  dbManager.close();
+
+  if (process.platform !== 'darwin') {
+    app.quit();
   }
 });
 
-ipcMain.handle('git:fileDiff', async (_event, dirPath: string, filePath: string) => {
-  try {
-    const result = await getFileDiffContent(dirPath, filePath);
-    return { success: true, data: result };
-  } catch (error) {
-    log.error('Failed to get file diff content:', error);
-    return {
-      success: false,
-      error: {
-        code: 'GIT_ERROR',
-        message: error instanceof Error ? error.message : 'Unknown error',
-      },
-    };
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
   }
 });
 
