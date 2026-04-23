@@ -307,10 +307,10 @@ const registerAppHandlers = () => {
     }
 
     const win = new BrowserWindow({
-      width: 1000,
-      height: 700,
-      minWidth: 700,
-      minHeight: 500,
+      width: 1400,
+      height: 800,
+      minWidth: 900,
+      minHeight: 600,
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
         contextIsolation: true,

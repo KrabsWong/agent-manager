@@ -1,7 +1,7 @@
 /**
  * Session Context Panel with File Preview
  *
- * Shows directory tree and Monaco-based file preview
+ * Shows directory tree and CodeMirror-based file preview
  * Features: collapsible sidebar, horizontal scroll, auto-resize
  */
 
@@ -294,7 +294,7 @@ export function SessionContextPanel({
   // Check if file needs confirmation before opening externally
   const needsConfirmation = useCallback((fileName: string): boolean => {
     const ext = fileName.split('.').pop()?.toLowerCase() || '';
-    // Binary files that should not be opened directly in Monaco
+    // Binary files that should not be opened directly in preview
     const binaryExts = [
       // Archives
       'zip',
@@ -514,7 +514,7 @@ export function SessionContextPanel({
   }
 
   return (
-    <div className={cn('h-full flex', hasAnyPreview ? 'w-[800px]' : 'w-72', className)}>
+    <div className={cn('h-full flex', hasAnyPreview ? 'w-[1250px]' : 'w-72', className)}>
       {/* Directory Tree Panel */}
       <div
         className={cn(

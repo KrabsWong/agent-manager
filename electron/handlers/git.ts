@@ -278,7 +278,17 @@ export interface FileDiffResult {
 }
 
 /**
+ * Check if a file is an image based on extension
+ */
+function isImageFile(filePath: string): boolean {
+  const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.svg', '.ico'];
+  const ext = path.extname(filePath).toLowerCase();
+  return imageExtensions.includes(ext);
+}
+
+/**
  * Get original (HEAD) and modified (working tree) versions of a file
+ * For image files, returns base64 encoded content
  */
 export async function getFileDiffContent(
   dirPath: string,
@@ -290,24 +300,50 @@ export async function getFileDiffContent(
       throw new Error('Not a git repository');
     }
 
-    // Get the current working tree version
     const fullPath = path.join(dirPath, filePath);
-    let modified = '';
-    try {
-      modified = await fs.promises.readFile(fullPath, 'utf-8');
-    } catch (err) {
-      // File might be deleted in working tree
-      modified = '';
-    }
+    const isImage = isImageFile(filePath);
 
-    // Get the HEAD version
+    let modified = '';
     let original = '';
-    try {
-      const { stdout } = await execAsync(`git show HEAD:"${filePath}"`, { cwd: dirPath });
-      original = stdout;
-    } catch (err) {
-      // File might be new (not in HEAD)
-      original = '';
+
+    if (isImage) {
+      // For image files, read as binary and convert to base64
+      try {
+        const buffer = await fs.promises.readFile(fullPath);
+        modified = buffer.toString('base64');
+      } catch (err) {
+        // File might be deleted in working tree
+        modified = '';
+      }
+
+      // Get the HEAD version as base64
+      try {
+        const { stdout } = await execAsync(
+          `git show HEAD:"${filePath}" | base64`,
+          { cwd: dirPath }
+        );
+        original = stdout.trim();
+      } catch (err) {
+        // File might be new (not in HEAD)
+        original = '';
+      }
+    } else {
+      // For text files, read as utf-8
+      try {
+        modified = await fs.promises.readFile(fullPath, 'utf-8');
+      } catch (err) {
+        // File might be deleted in working tree
+        modified = '';
+      }
+
+      // Get the HEAD version
+      try {
+        const { stdout } = await execAsync(`git show HEAD:"${filePath}"`, { cwd: dirPath });
+        original = stdout;
+      } catch (err) {
+        // File might be new (not in HEAD)
+        original = '';
+      }
     }
 
     // Check if there are actual changes
