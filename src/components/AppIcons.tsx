@@ -68,17 +68,6 @@ const CodebuddyIconSVG = ({ size = 16, className = '' }: { size?: number; classN
   </svg>
 );
 
-// Map of app types to their brand colors
-export const APP_COLORS: Record<AppType, string> = {
-  claude: 'text-amber-600',
-  'claude-internal': 'text-amber-600',
-  codex: 'text-emerald-600',
-  gemini: 'text-blue-500',
-  opencode: 'text-indigo-500',
-  codebuddy: 'text-slate-700 dark:text-slate-300', // Monochrome style for consistency
-  'vscode-extension': 'text-blue-600', // VS Code blue
-};
-
 // Icon component that renders SVG from CDN
 const IconFromCDN = ({
   appType,
@@ -149,4 +138,4 @@ export function getAppIcon(
 
 // Re-export from central config for backward compatibility
 // 请优先从 @/config/apps 导入
-export { APP_LABELS, APP_WEBSITES, APP_ORDER as APP_TYPES } from '@/config/apps';
+export { APP_LABELS, APP_WEBSITES, APP_ORDER as APP_TYPES, APP_COLORS } from '@/config/apps';
