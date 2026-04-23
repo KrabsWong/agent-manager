@@ -17,6 +17,7 @@ import {
   ArrowUp,
   ArrowDown,
 } from 'lucide-react';
+import { useSidebarResize } from '@/hooks/useSidebarResize';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -51,6 +52,12 @@ function truncateText(text: string, maxLength: number): string {
 export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
   const { t } = useTranslation();
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
+
+  // 侧边栏拖拽调整宽度
+  const { isResizing, startResizing, style: sidebarStyle } = useSidebarResize({
+    initialWidth: 320,
+    minWidth: 160, // 当前宽度的一半
+  });
 
   // View mode and collapse state for session list
   const [viewMode, setViewMode] = useState<ViewMode>('date');
@@ -219,7 +226,10 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
       {/* Main Content */}
       <div className={cn('flex gap-0 flex-1 min-h-0 p-4 transition-all duration-300')}>
         {/* Session List - always visible */}
-        <div className="flex flex-col min-h-0 border-r bg-card/50 overflow-hidden w-[320px] shrink-0">
+        <div
+          className="flex flex-col min-h-0 border-r bg-card/50 overflow-hidden shrink-0"
+          style={sidebarStyle}
+        >
             {/* App Selector */}
             <div className="px-3 py-2 border-b border-border/40 bg-card">
               <Select value={selectedApp} onValueChange={(value) => onAppChange(value as AppType)}>
@@ -375,6 +385,16 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
               </div>
             )}
           </div>
+
+        {/* Resizable Divider */}
+        <div
+          onMouseDown={startResizing}
+          className={cn(
+            "w-1 shrink-0 cursor-col-resize transition-all duration-150 hover:bg-primary/50",
+            isResizing && "bg-primary/50"
+          )}
+          title={t('common.resizeSidebar', '拖拽调整宽度')}
+        />
 
         {/* Session Detail */}
         <div

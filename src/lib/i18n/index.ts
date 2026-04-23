@@ -29,6 +29,7 @@ const enTranslations = {
     copy: 'Copy',
     scrollToTop: 'Scroll to top',
     scrollToBottom: 'Scroll to bottom',
+    resizeSidebar: 'Drag to resize',
     apps: {
       claude: 'Claude Code',
       'claude-internal': 'Claude Code Internal',
@@ -246,6 +247,7 @@ const zhTranslations = {
     copy: '复制',
     scrollToTop: '滚动到顶部',
     scrollToBottom: '滚动到底部',
+    resizeSidebar: '拖拽调整宽度',
     apps: {
       claude: 'Claude Code',
       'claude-internal': 'Claude Code Internal',
