@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { useExperienceStore } from '@/stores/experience';
+import { useSettingsStore } from '@/stores/settings';
 
 interface MarqueeTextProps {
   text: string;
@@ -10,7 +10,7 @@ interface MarqueeTextProps {
 const SCROLL_SPEED_PX_PER_SECOND = 100;
 
 export function MarqueeText({ text, className = '' }: MarqueeTextProps) {
-  const { enableTitleMarquee } = useExperienceStore();
+  const { enableTitleMarquee } = useSettingsStore();
   const containerRef = useRef<HTMLSpanElement>(null);
   const textRef = useRef<HTMLSpanElement>(null);
   const [shouldMarquee, setShouldMarquee] = useState(false);

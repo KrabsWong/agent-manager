@@ -8,7 +8,7 @@ import path from 'path';
 import os from 'os';
 import fs from 'fs';
 import log from 'electron-log';
-import type { Session, SessionDetail, SessionMessage } from '../../../src/types/session';
+import type { Session, SessionDetail, SessionMessage } from '@/types/session';
 
 const OPENCODE_DB_PATH = path.join(os.homedir(), '.local/share/opencode/opencode.db');
 

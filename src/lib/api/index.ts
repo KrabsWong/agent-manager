@@ -171,6 +171,15 @@ export const shellApi = {
   },
 };
 
+/**
+ * File Preview API
+ */
+export const filePreviewApi = {
+  open: async (dirPath: string, sessionTitle?: string, appType?: string): Promise<void> => {
+    await window.electronAPI.invoke('file-preview:open', dirPath, sessionTitle, appType);
+  },
+};
+
 // Tree API types
 export interface TreeNode {
   name: string;
@@ -193,6 +202,34 @@ export const treeApi = {
       throw new Error(response.error || 'Failed to get directory tree');
     }
     return response.data || [];
+  },
+};
+
+/**
+ * File API
+ */
+export const fileApi = {
+  read: async (filePath: string): Promise<string> => {
+    const response = (await window.electronAPI.invoke('file:read', filePath)) as {
+      success: boolean;
+      data?: string;
+      error?: { message: string };
+    };
+    if (!response.success) {
+      throw new Error(response.error?.message || 'Failed to read file');
+    }
+    return response.data || '';
+  },
+  readImage: async (filePath: string): Promise<string> => {
+    const response = (await window.electronAPI.invoke('file:readImage', filePath)) as {
+      success: boolean;
+      data?: string;
+      error?: { message: string };
+    };
+    if (!response.success) {
+      throw new Error(response.error?.message || 'Failed to read image');
+    }
+    return response.data || '';
   },
 };
 
@@ -282,6 +319,8 @@ export const api = {
   app: appApi,
   config: configApi,
   shell: shellApi,
+  filePreview: filePreviewApi,
+  file: fileApi,
   tree: treeApi,
   git: gitApi,
 };

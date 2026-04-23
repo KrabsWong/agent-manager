@@ -5,6 +5,7 @@
  */
 
 import { ipcRegistry } from '../ipc/registry';
+import { sessionServiceRegistry } from '../services/session/registry';
 import { claudeSessionService } from '../services/session/claude';
 import { claudeInternalSessionService } from '../services/session/claude-internal';
 import { opencodeSessionService } from '../services/session/opencode';
@@ -14,29 +15,71 @@ import { resumeSessionInTerminal, getTerminalInfo } from '../services/terminal/l
 import type { AppType } from '../../src/types';
 import log from 'electron-log';
 
+// 注册所有 session 服务到 registry
+function registerSessionServices(): void {
+  // Claude
+  sessionServiceRegistry.register({
+    appType: 'claude',
+    getAllSessions: () => claudeSessionService.getAllSessions(),
+    getSessionDetail: (sessionId: string) => claudeSessionService.getSessionDetail(sessionId),
+    getStats: () => claudeSessionService.getStats(),
+    isAvailable: () => claudeSessionService.isAvailable(),
+  });
+
+  // Claude Internal
+  sessionServiceRegistry.register({
+    appType: 'claude-internal',
+    getAllSessions: () => claudeInternalSessionService.getAllSessions(),
+    getSessionDetail: (sessionId: string) => claudeInternalSessionService.getSessionDetail(sessionId),
+    getStats: () => claudeInternalSessionService.getStats(),
+    isAvailable: () => claudeInternalSessionService.isAvailable(),
+  });
+
+  // OpenCode
+  sessionServiceRegistry.register({
+    appType: 'opencode',
+    getAllSessions: () => opencodeSessionService.getAllSessions(),
+    getSessionDetail: (sessionId: string) => opencodeSessionService.getSessionDetail(sessionId),
+    getStats: () => opencodeSessionService.getStats(),
+    isAvailable: () => opencodeSessionService.isAvailable(),
+  });
+
+  // CodeBuddy
+  sessionServiceRegistry.register({
+    appType: 'codebuddy',
+    getAllSessions: () => codebuddySessionService.getAllSessions(),
+    getSessionDetail: (sessionId: string) => codebuddySessionService.getSessionDetail(sessionId),
+    getStats: () => codebuddySessionService.getStats(),
+    isAvailable: () => codebuddySessionService.isAvailable(),
+  });
+
+  // VSCode Extension
+  sessionServiceRegistry.register({
+    appType: 'vscode-extension',
+    getAllSessions: () => vscodeExtensionSessionService.getAllSessions(),
+    getSessionDetail: (sessionId: string) => vscodeExtensionSessionService.getSessionDetail(sessionId),
+    getStats: () => vscodeExtensionSessionService.getStats(),
+    isAvailable: () => vscodeExtensionSessionService.isAvailable(),
+  });
+
+  log.info('Session services registered:', sessionServiceRegistry.getSupportedAppTypes());
+}
+
 /**
  * Initialize Sessions IPC handlers
  */
 export function registerSessionsHandlers(): void {
-  // Get sessions for an app
+  // 先注册所有服务
+  registerSessionServices();
+
+  // Get sessions for an app - 使用 Registry
   ipcRegistry.register('sessions:getAll', async (_event, ...args: unknown[]) => {
     const [appType] = args as [AppType];
 
     try {
-      if (appType === 'claude') {
-        return claudeSessionService.getAllSessions();
-      }
-      if (appType === 'claude-internal') {
-        return claudeInternalSessionService.getAllSessions();
-      }
-      if (appType === 'opencode') {
-        return await opencodeSessionService.getAllSessions();
-      }
-      if (appType === 'codebuddy') {
-        return await codebuddySessionService.getAllSessions();
-      }
-      if (appType === 'vscode-extension') {
-        return vscodeExtensionSessionService.getAllSessions();
+      const service = sessionServiceRegistry.get(appType);
+      if (service) {
+        return await service.getAllSessions();
       }
       // Return empty array for unsupported apps
       return [];
@@ -46,27 +89,19 @@ export function registerSessionsHandlers(): void {
     }
   });
 
-  // Get session detail
+  // Get session detail - 保持原有逻辑（有特殊 fallthrough 语义）
   ipcRegistry.register('sessions:getDetail', async (_event, ...args: unknown[]) => {
     const [sessionId, appType] = args as [string, AppType];
 
     try {
-      if (appType === 'claude') {
-        return claudeSessionService.getSessionDetail(sessionId);
+      // 如果指定了 appType，优先使用对应服务
+      const service = sessionServiceRegistry.get(appType);
+      if (service && appType !== 'claude') {
+        const detail = await service.getSessionDetail(sessionId);
+        if (detail) return detail;
       }
-      if (appType === 'claude-internal') {
-        return claudeInternalSessionService.getSessionDetail(sessionId);
-      }
-      if (appType === 'opencode') {
-        return await opencodeSessionService.getSessionDetail(sessionId);
-      }
-      if (appType === 'codebuddy') {
-        return await codebuddySessionService.getSessionDetail(sessionId);
-      }
-      if (appType === 'vscode-extension') {
-        return vscodeExtensionSessionService.getSessionDetail(sessionId);
-      }
-      // Try to infer from sessionId format or try both services
+
+      // 对于 claude 或未找到的情况，按顺序尝试各服务（fallthrough 语义）
       const claudeSession = claudeSessionService.getSessionDetail(sessionId);
       if (claudeSession) {
         return claudeSession;
@@ -86,25 +121,14 @@ export function registerSessionsHandlers(): void {
     }
   });
 
-  // Get session stats
+  // Get session stats - 使用 Registry
   ipcRegistry.register('sessions:getStats', async (_event, ...args: unknown[]) => {
     const [appType] = args as [AppType];
 
     try {
-      if (appType === 'claude') {
-        return claudeSessionService.getStats();
-      }
-      if (appType === 'claude-internal') {
-        return claudeInternalSessionService.getStats();
-      }
-      if (appType === 'opencode') {
-        return await opencodeSessionService.getStats();
-      }
-      if (appType === 'codebuddy') {
-        return await codebuddySessionService.getStats();
-      }
-      if (appType === 'vscode-extension') {
-        return vscodeExtensionSessionService.getStats();
+      const service = sessionServiceRegistry.get(appType);
+      if (service) {
+        return await service.getStats();
       }
       return { totalSessions: 0, totalMessages: 0 };
     } catch (error) {
@@ -113,60 +137,42 @@ export function registerSessionsHandlers(): void {
     }
   });
 
-  // Check if app is supported
+  // Check if app is supported - 使用 Registry + 静态配置
   ipcRegistry.register('sessions:getSupportStatus', async (_event, ...args: unknown[]) => {
     const [appType] = args as [AppType];
 
-    const supportMap: Record<
-      AppType,
-      { supported: boolean; status: string; isAvailable: boolean; notAvailableReason?: string }
-    > = {
-      claude: { supported: true, status: 'full', isAvailable: true },
-      'claude-internal': {
-        supported: true,
-        status: 'full',
-        isAvailable: claudeInternalSessionService.isAvailable(),
-      },
-      codex: {
-        supported: false,
-        status: 'coming_soon',
-        isAvailable: false,
-        notAvailableReason: 'coming_soon',
-      },
-      gemini: {
-        supported: false,
-        status: 'coming_soon',
-        isAvailable: false,
-        notAvailableReason: 'coming_soon',
-      },
-      opencode: {
-        supported: true,
-        status: 'full',
-        isAvailable: opencodeSessionService.isAvailable(),
-      },
-      codebuddy: {
-        supported: true,
-        status: 'full',
-        isAvailable: codebuddySessionService.isAvailable(),
-      },
-      'vscode-extension': {
-        supported: true,
-        status: 'full',
-        isAvailable: vscodeExtensionSessionService.isAvailable(),
-      },
+    // 使用 Registry 检查是否支持
+    const service = sessionServiceRegistry.get(appType);
+
+    // 支持状态配置
+    const supportConfig: Record<AppType, { supported: boolean; status: string }> = {
+      claude: { supported: true, status: 'full' },
+      'claude-internal': { supported: true, status: 'full' },
+      codex: { supported: false, status: 'coming_soon' },
+      gemini: { supported: false, status: 'coming_soon' },
+      opencode: { supported: true, status: 'full' },
+      codebuddy: { supported: true, status: 'full' },
+      'vscode-extension': { supported: true, status: 'full' },
     };
 
-    return (
-      supportMap[appType] || {
+    const config = supportConfig[appType];
+    if (!config) {
+      return {
         supported: false,
         status: 'not_supported',
         isAvailable: false,
         notAvailableReason: 'not_supported',
-      }
-    );
+      };
+    }
+
+    return {
+      supported: config.supported,
+      status: config.status,
+      isAvailable: service?.isAvailable() ?? false,
+    };
   });
 
-  // Resume session in terminal
+  // Resume session in terminal - 直接调用，不涉及服务选择
   ipcRegistry.register('sessions:resume', async (_event, ...args: unknown[]) => {
     const [sessionId, appType, workingDir] = args as [string, AppType, string | undefined];
 

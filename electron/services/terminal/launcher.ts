@@ -13,7 +13,7 @@ import { promisify } from 'util';
 import fs from 'fs';
 import log from 'electron-log';
 import { configStore } from '../../utils/config-store';
-import type { AppType } from '../../../src/types';
+import type { AppType } from '@/types';
 
 const execAsync = promisify(exec);
 

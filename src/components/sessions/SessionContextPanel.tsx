@@ -19,7 +19,7 @@ import {
   GitBranch,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { treeApi, shellApi, gitApi, type TreeNode } from '@/lib/api';
+import { api, treeApi, shellApi, gitApi, type TreeNode } from '@/lib/api';
 import { FilePreview } from './FilePreview';
 import { GitDiffView } from './GitDiffView';
 import { GitDiffPreview } from './GitDiffPreview';
@@ -375,15 +375,9 @@ export function SessionContextPanel({
 
       setIsLoadingPreview(true);
       try {
-        let content: string;
-
-        if (isImageFile(fileName)) {
-          // Read image as base64 data URL
-          content = (await window.electronAPI.invoke('file:readImage', filePath)) as string;
-        } else {
-          // Read as text
-          content = (await window.electronAPI.invoke('file:read', filePath)) as string;
-        }
+        const content = isImageFile(fileName)
+          ? await api.file.readImage(filePath)
+          : await api.file.read(filePath);
 
         setPreviewFile({ path: filePath, name: fileName, content });
         onPreviewStart?.();

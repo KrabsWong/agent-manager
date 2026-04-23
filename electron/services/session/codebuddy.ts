@@ -9,7 +9,7 @@ import path from 'path';
 import os from 'os';
 import fs from 'fs';
 import log from 'electron-log';
-import type { Session, SessionDetail, SessionMessage } from '../../../src/types/session';
+import type { Session, SessionDetail, SessionMessage } from '@/types/session';
 
 const CODEBUDDY_DIR = path.join(os.homedir(), '.codebuddy');
 const PROJECTS_DIR = path.join(CODEBUDDY_DIR, 'projects');

@@ -12,7 +12,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import log from 'electron-log';
-import type { Session, SessionDetail, SessionMessage } from '../../../src/types/session';
+import type { Session, SessionDetail, SessionMessage } from '@/types/session';
 
 const VSCODE_STORAGE_PATH = path.join(
   os.homedir(),

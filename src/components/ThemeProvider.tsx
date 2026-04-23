@@ -1,13 +1,17 @@
+/**
+ * Theme Provider
+ *
+ * 从 useSettingsStore 读取主题状态，保持 DOM 操作和 context 提供
+ */
+
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import type { AppSettings } from '@/types';
+import { useSettingsStore, type Theme } from '@/stores/settings';
 import {
   type AccentColor,
-  defaultAccentColor,
   applyAccentColor,
   resetAccentColor,
 } from '@/lib/theme/colors';
 
-type Theme = AppSettings['theme'];
 type ResolvedTheme = 'light' | 'dark';
 
 interface ThemeContextType {
@@ -27,93 +31,48 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  // Use synchronously injected initial settings if available
-  const initialSettings = window.__INITIAL_SETTINGS__ || {};
+  // 从 Store 读取状态
+  const {
+    theme: storeTheme,
+    accentColor: storeAccentColor,
+    setTheme: storeSetTheme,
+    toggleTheme: storeToggleTheme,
+    setAccentColor: storeSetAccentColor,
+    resetAccentColor: storeResetAccentColor,
+  } = useSettingsStore();
 
-  const [theme, setThemeState] = useState<Theme>(initialSettings.theme || 'system');
+  // 计算 resolvedTheme
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => {
-    if (initialSettings.theme === 'dark') return 'dark';
-    if (initialSettings.theme === 'light') return 'light';
+    if (storeTheme === 'dark') return 'dark';
+    if (storeTheme === 'light') return 'light';
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
-  const [accentColor, setAccentColorState] = useState<AccentColor>(
-    (initialSettings.accentColor as AccentColor) || defaultAccentColor
-  );
-  const isLoaded = true;
 
-  // Apply dark class immediately on init (before React renders)
-  if (typeof window !== 'undefined') {
-    const initialResolvedTheme = theme === 'system'
-      ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-      : theme;
-    if (initialResolvedTheme === 'dark') {
+  // 初始化时应用主题
+  useEffect(() => {
+    const newResolvedTheme: ResolvedTheme =
+      storeTheme === 'system'
+        ? window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark'
+          : 'light'
+        : storeTheme;
+
+    setResolvedTheme(newResolvedTheme);
+
+    // Apply to document
+    if (newResolvedTheme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-    // Apply accent color immediately
-    applyAccentColor(accentColor, initialResolvedTheme === 'dark');
-  }
 
-  // Verify settings are correct on mount (in case preload failed)
+    // Apply accent color
+    applyAccentColor(storeAccentColor, newResolvedTheme === 'dark');
+  }, [storeTheme, storeAccentColor]);
+
+  // 监听系统主题变化
   useEffect(() => {
-    const verifySettings = async () => {
-      try {
-        const settings = (await window.electronAPI.invoke('settings:get')) as
-          | { theme?: Theme; accentColor?: AccentColor }
-          | undefined;
-
-        if (settings?.theme && settings.theme !== theme) {
-          setThemeState(settings.theme);
-        }
-        if (settings?.accentColor && settings.accentColor !== accentColor) {
-          setAccentColorState(settings.accentColor as AccentColor);
-        }
-      } catch (error) {
-        console.error('Failed to verify theme settings:', error);
-      }
-    };
-
-    // Only verify if we didn't get initial settings from preload
-    if (!window.__INITIAL_SETTINGS__) {
-      verifySettings();
-    }
-  }, []);
-
-  // Apply theme and accent color to document
-  useEffect(() => {
-    if (!isLoaded) return;
-
-    const applyTheme = () => {
-      let newResolvedTheme: ResolvedTheme;
-
-      if (theme === 'system') {
-        // Check system preference
-        const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        newResolvedTheme = systemDark ? 'dark' : 'light';
-      } else {
-        newResolvedTheme = theme;
-      }
-
-      setResolvedTheme(newResolvedTheme);
-
-      // Apply class to document
-      if (newResolvedTheme === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-
-      // Apply accent color
-      applyAccentColor(accentColor, newResolvedTheme === 'dark');
-    };
-
-    applyTheme();
-  }, [theme, accentColor, isLoaded]);
-
-  // Listen for system theme changes
-  useEffect(() => {
-    if (theme !== 'system') return;
+    if (storeTheme !== 'system') return;
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = (e: MediaQueryListEvent) => {
@@ -124,59 +83,39 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       } else {
         document.documentElement.classList.remove('dark');
       }
-      // Re-apply accent color with new theme
-      applyAccentColor(accentColor, newTheme === 'dark');
+      applyAccentColor(storeAccentColor, newTheme === 'dark');
     };
 
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, [theme, accentColor]);
+  }, [storeTheme, storeAccentColor]);
 
-  const setTheme = async (newTheme: Theme) => {
-    try {
-      setThemeState(newTheme);
-      await window.electronAPI.invoke('settings:update', { theme: newTheme });
-    } catch (error) {
-      console.error('Failed to save theme:', error);
-    }
+  // 包装 actions 以保持 API 兼容性
+  const setTheme = async (theme: Theme) => {
+    await storeSetTheme(theme);
   };
 
-  const setAccentColor = async (newColor: AccentColor) => {
-    try {
-      setAccentColorState(newColor);
-      await window.electronAPI.invoke('settings:update', { accentColor: newColor });
-      // Apply immediately
-      applyAccentColor(newColor, resolvedTheme === 'dark');
-    } catch (error) {
-      console.error('Failed to save accent color:', error);
-    }
+  const setAccentColor = async (color: AccentColor) => {
+    await storeSetAccentColor(color);
   };
 
-  const handleResetAccentColor = () => {
-    try {
-      setAccentColorState(defaultAccentColor);
-      window.electronAPI.invoke('settings:update', { accentColor: defaultAccentColor });
-      resetAccentColor();
-    } catch (error) {
-      console.error('Failed to reset accent color:', error);
-    }
+  const handleResetAccentColor = async () => {
+    await storeResetAccentColor();
+    resetAccentColor();
   };
 
   const toggleTheme = () => {
-    const themes: Theme[] = ['light', 'dark', 'system'];
-    const currentIndex = themes.indexOf(theme);
-    const nextTheme = themes[(currentIndex + 1) % themes.length];
-    setTheme(nextTheme);
+    storeToggleTheme();
   };
 
   return (
     <ThemeContext.Provider
       value={{
-        theme,
+        theme: storeTheme,
         resolvedTheme,
         setTheme,
         toggleTheme,
-        accentColor,
+        accentColor: storeAccentColor,
         setAccentColor,
         resetAccentColor: handleResetAccentColor,
       }}

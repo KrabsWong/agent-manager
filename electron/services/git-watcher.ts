@@ -5,9 +5,10 @@
  * Only watches the currently active session directory
  */
 
-import { ipcMain, BrowserWindow } from 'electron';
+import { BrowserWindow } from 'electron';
 import fs from 'fs';
 import path from 'path';
+import { ipcRegistry } from '../ipc/registry';
 
 interface WatchTarget {
   dirPath: string;
@@ -26,16 +27,17 @@ class GitWatcherService {
 
   private registerIpcHandlers(): void {
     // Start watching a session directory
-    ipcMain.handle('git:watch:start', async (event, dirPath: string) => {
+    ipcRegistry.register('git:watch:start', async (event, ...args: unknown[]) => {
+      const [dirPath] = args as [string];
       const window = BrowserWindow.fromWebContents(event.sender);
-      if (!window) return { success: false, error: 'No window found' };
+      if (!window) throw new Error('No window found');
 
       this.startWatching(dirPath, window);
       return { success: true };
     });
 
     // Stop watching
-    ipcMain.handle('git:watch:stop', async () => {
+    ipcRegistry.register('git:watch:stop', async () => {
       this.stopWatching();
       return { success: true };
     });
