@@ -166,6 +166,7 @@
     "react-syntax-highlighter": "^16.1.1",
     "recharts": "^3.8.1",
     "remark-gfm": "^4.0.1",
+    "shiki": "^4.0.2",
     "tailwind-merge": "^2.2.0",
     "zod": "^3.23.0",
     "zustand": "^4.5.0"
