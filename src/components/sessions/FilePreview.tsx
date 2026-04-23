@@ -1,40 +1,60 @@
 /**
  * File Preview Component
  *
- * CodeMirror 6 based read-only file viewer with theme support
- * Uses @codemirror/language-data for automatic language detection
+ * Shiki-based read-only file viewer with VS Code-level syntax highlighting
+ * Uses the same TextMate grammar as VS Code
  */
 
-import { useEffect, useRef, useMemo, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Image, FileCode, FileX } from 'lucide-react';
+import { X, Image, FileCode, FileX, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-// CodeMirror 6 imports
-import { EditorView, keymap, lineNumbers, highlightActiveLineGutter, highlightSpecialChars, drawSelection, dropCursor, rectangularSelection, crosshairCursor, highlightActiveLine } from '@codemirror/view';
-import { EditorState, type Extension } from '@codemirror/state';
-import { defaultKeymap } from '@codemirror/commands';
-import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
-import { syntaxHighlighting, defaultHighlightStyle } from '@codemirror/language';
-import { languages } from '@codemirror/language-data';
+// Shiki imports
+import { createHighlighterCore, type HighlighterCore } from 'shiki/core';
+import { createOnigurumaEngine } from 'shiki/engine/oniguruma';
 
-// Additional language imports for better support
-import { javascript } from '@codemirror/lang-javascript';
-import { html } from '@codemirror/lang-html';
-import { css } from '@codemirror/lang-css';
-import { markdown } from '@codemirror/lang-markdown';
-import { json } from '@codemirror/lang-json';
-import { yaml } from '@codemirror/lang-yaml';
-import { xml } from '@codemirror/lang-xml';
-import { cpp } from '@codemirror/lang-cpp';
-import { java } from '@codemirror/lang-java';
-import { rust } from '@codemirror/lang-rust';
-import { go } from '@codemirror/lang-go';
-import { php } from '@codemirror/lang-php';
-import { python } from '@codemirror/lang-python';
-import { sql } from '@codemirror/lang-sql';
-import { StreamLanguage } from '@codemirror/language';
-import { shell } from '@codemirror/legacy-modes/mode/shell';
+// Import languages
+import javascript from 'shiki/dist/langs/javascript.mjs';
+import typescript from 'shiki/dist/langs/typescript.mjs';
+import tsx from 'shiki/dist/langs/tsx.mjs';
+import jsx from 'shiki/dist/langs/jsx.mjs';
+import python from 'shiki/dist/langs/python.mjs';
+import html from 'shiki/dist/langs/html.mjs';
+import css from 'shiki/dist/langs/css.mjs';
+import json from 'shiki/dist/langs/json.mjs';
+import yaml from 'shiki/dist/langs/yaml.mjs';
+import xml from 'shiki/dist/langs/xml.mjs';
+import cpp from 'shiki/dist/langs/cpp.mjs';
+import c from 'shiki/dist/langs/c.mjs';
+import java from 'shiki/dist/langs/java.mjs';
+import rust from 'shiki/dist/langs/rust.mjs';
+import go from 'shiki/dist/langs/go.mjs';
+import php from 'shiki/dist/langs/php.mjs';
+import sql from 'shiki/dist/langs/sql.mjs';
+import bash from 'shiki/dist/langs/bash.mjs';
+import shell from 'shiki/dist/langs/shell.mjs';
+import markdown from 'shiki/dist/langs/markdown.mjs';
+import mdx from 'shiki/dist/langs/mdx.mjs';
+import vue from 'shiki/dist/langs/vue.mjs';
+import svelte from 'shiki/dist/langs/svelte.mjs';
+import dockerfile from 'shiki/dist/langs/dockerfile.mjs';
+import viml from 'shiki/dist/langs/viml.mjs';
+import lua from 'shiki/dist/langs/lua.mjs';
+import ruby from 'shiki/dist/langs/ruby.mjs';
+import perl from 'shiki/dist/langs/perl.mjs';
+import swift from 'shiki/dist/langs/swift.mjs';
+import kotlin from 'shiki/dist/langs/kotlin.mjs';
+import dart from 'shiki/dist/langs/dart.mjs';
+import scala from 'shiki/dist/langs/scala.mjs';
+import r from 'shiki/dist/langs/r.mjs';
+import matlab from 'shiki/dist/langs/matlab.mjs';
+import groovy from 'shiki/dist/langs/groovy.mjs';
+import powershell from 'shiki/dist/langs/powershell.mjs';
+
+// Import themes
+import tokyoNight from 'shiki/dist/themes/tokyo-night.mjs';
+import githubLight from 'shiki/dist/themes/github-light.mjs';
 
 interface FilePreviewProps {
   fileName: string;
@@ -46,15 +66,15 @@ interface FilePreviewProps {
 // File type detection
 function getFileType(fileName: string): 'image' | 'text' | 'binary' {
   const ext = fileName.split('.').pop()?.toLowerCase() || '';
-  
+
   // Images
   const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'svg', 'ico', 'tiff', 'tif'];
   if (imageExts.includes(ext)) return 'image';
-  
+
   // Binary files that we don't support
   const binaryExts = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', '7z', 'tar', 'gz', 'exe', 'dll', 'so', 'dylib', 'mp3', 'mp4', 'avi', 'mov', 'mkv'];
   if (binaryExts.includes(ext)) return 'binary';
-  
+
   return 'text';
 }
 
@@ -76,39 +96,41 @@ function getImageMimeType(fileName: string): string {
   return mimeTypes[ext] || 'image/png';
 }
 
-// Language alias mapping for better detection
-const languageAliases: Record<string, string> = {
-  'vue': 'html',
-  'svelte': 'html',
-  'astro': 'html',
-  'md': 'markdown',
-  'mdx': 'markdown',
-  'markdown': 'markdown',
-  'yml': 'yaml',
-  'yaml': 'yaml',
-  'sh': 'shell',
-  'bash': 'shell',
-  'zsh': 'shell',
-  'fish': 'shell',
-  'ps1': 'powershell',
-  'psm1': 'powershell',
-  'dockerfile': 'dockerfile',
-  'makefile': 'makefile',
-  'jenkinsfile': 'groovy',
-  'gemfile': 'ruby',
-  'rakefile': 'ruby',
-  'vagrantfile': 'ruby',
-  'podfile': 'ruby',
-  'brewfile': 'ruby',
-  'py': 'python',
-  'pyw': 'python',
-  'pyi': 'python',
+// Language mapping from file extension to Shiki language
+const languageMap: Record<string, string> = {
+  // JavaScript/TypeScript
   'js': 'javascript',
   'mjs': 'javascript',
   'cjs': 'javascript',
-  'jsx': 'jsx',
   'ts': 'typescript',
   'tsx': 'tsx',
+  'jsx': 'jsx',
+  // Web
+  'html': 'html',
+  'htm': 'html',
+  'css': 'css',
+  'scss': 'css',
+  'sass': 'css',
+  'less': 'css',
+  'vue': 'vue',
+  'svelte': 'svelte',
+  // Data
+  'json': 'json',
+  'yaml': 'yaml',
+  'yml': 'yaml',
+  'xml': 'xml',
+  'svg': 'xml',
+  // Programming
+  'py': 'python',
+  'pyw': 'python',
+  'pyi': 'python',
+  'cpp': 'cpp',
+  'c': 'c',
+  'cc': 'cpp',
+  'cxx': 'cpp',
+  'h': 'c',
+  'hpp': 'cpp',
+  'java': 'java',
   'rs': 'rust',
   'go': 'go',
   'php': 'php',
@@ -118,242 +140,183 @@ const languageAliases: Record<string, string> = {
   'swift': 'swift',
   'kt': 'kotlin',
   'kts': 'kotlin',
+  'dart': 'dart',
+  'scala': 'scala',
+  'r': 'r',
+  'm': 'matlab',
+  'groovy': 'groovy',
+  // Shell
+  'sh': 'bash',
+  'bash': 'bash',
+  'zsh': 'bash',
+  'fish': 'shell',
+  'ps1': 'powershell',
+  'psm1': 'powershell',
+  // Database
   'sql': 'sql',
   'mysql': 'sql',
   'pgsql': 'sql',
-  'plsql': 'sql',
-  'c': 'cpp',
-  'cpp': 'cpp',
-  'cc': 'cpp',
-  'cxx': 'cpp',
-  'h': 'cpp',
-  'hpp': 'cpp',
-  'java': 'java',
-  'json': 'json',
-  'xml': 'xml',
-  'html': 'html',
-  'htm': 'html',
-  'css': 'css',
-  'scss': 'css',
-  'sass': 'css',
-  'less': 'css',
-  'stylus': 'css',
+  // Markdown
+  'md': 'markdown',
+  'mdx': 'mdx',
+  'markdown': 'markdown',
+  // Config
+  'dockerfile': 'dockerfile',
+  'vim': 'viml',
+  'vimrc': 'viml',
 };
 
-// Get language extension for CodeMirror
-async function getLanguageExtension(fileName: string): Promise<Extension> {
-  const ext = fileName.split('.').pop()?.toLowerCase() || '';
+// Special file names to language mapping
+const specialFileMap: Record<string, string> = {
+  'dockerfile': 'dockerfile',
+  'makefile': 'bash',
+  'jenkinsfile': 'groovy',
+  'gemfile': 'ruby',
+  'rakefile': 'ruby',
+  'vagrantfile': 'ruby',
+  'podfile': 'ruby',
+  'brewfile': 'ruby',
+};
+
+// Get Shiki language from file name
+function getLanguage(fileName: string): string {
   const baseName = fileName.toLowerCase().split('/').pop() || '';
-  
-  // Special handling for files without extension or with special names
-  const specialFiles: Record<string, () => Extension> = {
-    'dockerfile': () => StreamLanguage.define(shell),
-    'makefile': () => StreamLanguage.define(shell),
-    'jenkinsfile': () => StreamLanguage.define(shell),
-    'gemfile': () => StreamLanguage.define(shell),
-    'rakefile': () => StreamLanguage.define(shell),
-    'vagrantfile': () => StreamLanguage.define(shell),
-    'podfile': () => StreamLanguage.define(shell),
-    'brewfile': () => StreamLanguage.define(shell),
-  };
-  
-  if (specialFiles[baseName]) {
-    return specialFiles[baseName]();
+
+  // Check special files first
+  if (specialFileMap[baseName]) {
+    return specialFileMap[baseName];
   }
-  
+
   // Check for .env files
   if (baseName.startsWith('.env')) {
-    return StreamLanguage.define(shell);
+    return 'bash';
   }
-  
-  // Try to find language from @codemirror/language-data
-  const langName = languageAliases[ext] || ext;
-  const lang = languages.find(l => l.name.toLowerCase() === langName.toLowerCase() || 
-    l.extensions?.some(e => e.replace('.', '') === ext));
-  
-  if (lang) {
-    try {
-      const support = await lang.load();
-      return support;
-    } catch {
-      // Fall through to manual mapping
-    }
-  }
-  
-  // Manual mapping for common languages (fallback)
-  switch (ext) {
-    case 'js':
-    case 'mjs':
-    case 'cjs':
-      return javascript();
-    case 'ts':
-      return javascript({ typescript: true });
-    case 'tsx':
-      return javascript({ typescript: true, jsx: true });
-    case 'jsx':
-      return javascript({ jsx: true });
-    case 'vue':
-    case 'svelte':
-    case 'astro':
-      // Vue/Svelte use HTML syntax with special handling
-      return html();
-    case 'html':
-    case 'htm':
-      return html();
-    case 'css':
-    case 'scss':
-    case 'sass':
-    case 'less':
-      return css();
-    case 'py':
-    case 'pyw':
-    case 'pyi':
-      return python();
-    case 'json':
-      return json();
-    case 'yaml':
-    case 'yml':
-      return yaml();
-    case 'xml':
-    case 'svg':
-    case 'plist':
-      return xml();
-    case 'md':
-    case 'mdx':
-    case 'markdown':
-      return markdown();
-    case 'cpp':
-    case 'c':
-    case 'cc':
-    case 'cxx':
-    case 'h':
-    case 'hpp':
-    case 'hh':
-      return cpp();
-    case 'java':
-      return java();
-    case 'rs':
-      return rust();
-    case 'go':
-      return go();
-    case 'php':
-      return php();
-    case 'sql':
-    case 'mysql':
-    case 'pgsql':
-      return sql();
-    case 'sh':
-    case 'bash':
-    case 'zsh':
-    case 'fish':
-      return StreamLanguage.define(shell);
-    default:
-      return [];
-  }
+
+  const ext = fileName.split('.').pop()?.toLowerCase() || '';
+  return languageMap[ext] || 'text';
 }
 
-// Tokyo Night Theme for CodeMirror 6
-// https://github.com/folke/tokyonight.nvim
+// Global highlighter instance
+let globalHighlighter: HighlighterCore | null = null;
 
-// Tokyo Night Storm (Dark) - 使用更亮的颜色以在暗色背景下可见
-const tokyoNightDark = EditorView.theme({
-  '&': {
-    backgroundColor: 'transparent',
-    color: '#c0caf5',
-  },
-  '.cm-content': {
-    caretColor: '#c0caf5',
-    backgroundColor: 'transparent',
-  },
-  '&.cm-focused .cm-cursor': {
-    borderLeftColor: '#c0caf5',
-  },
-  '&.cm-focused .cm-selectionBackground, ::selection': {
-    backgroundColor: '#283457',
-  },
-  '.cm-gutters': {
-    backgroundColor: 'transparent',
-    color: '#565f89',
-    borderRight: '1px solid #1f2335',
-  },
-  '.cm-activeLineGutter': {
-    backgroundColor: '#292e42',
-    color: '#a9b1d6',
-  },
-  '.cm-activeLine': {
-    backgroundColor: '#292e42',
-  },
-  // Tokyo Night syntax highlighting
-  '.cm-keyword': { color: '#bb9af7', fontWeight: 'bold' },
-  '.cm-operator': { color: '#89ddff' },
-  '.cm-variableName': { color: '#c0caf5' },
-  '.cm-definition': { color: '#7aa2f7' },
-  '.cm-string': { color: '#9ece6a' },
-  '.cm-number': { color: '#ff9e64' },
-  '.cm-comment': { color: '#565f89', fontStyle: 'italic' },
-  '.cm-function': { color: '#7aa2f7' },
-  '.cm-propertyName': { color: '#73daca' },
-  '.cm-typeName': { color: '#e0af68' },
-  '.cm-tag': { color: '#f7768e' },
-  '.cm-attributeName': { color: '#e0af68' },
-  '.cm-className': { color: '#e0af68' },
-  '.cm-property': { color: '#73daca' },
-  '.cm-punctuation': { color: '#89ddff' },
-  '.cm-bracket': { color: '#a9b1d6' },
-  '.cm-bool': { color: '#ff9e64' },
-  '.cm-regexp': { color: '#b9f27c' },
-  '.cm-special-variable': { color: '#bb9af7' },
-}, { dark: true });
+// Initialize Shiki highlighter
+async function getHighlighter(): Promise<HighlighterCore> {
+  if (globalHighlighter) {
+    return globalHighlighter;
+  }
 
-// Tokyo Night Day (Light)
-const tokyoNightLight = EditorView.theme({
-  '&': {
-    backgroundColor: 'transparent',
-    color: '#3760bf',
-  },
-  '.cm-content': {
-    caretColor: '#3760bf',
-    backgroundColor: 'transparent',
-  },
-  '&.cm-focused .cm-cursor': {
-    borderLeftColor: '#3760bf',
-  },
-  '&.cm-focused .cm-selectionBackground, ::selection': {
-    backgroundColor: '#b7c1e3',
-  },
-  '.cm-gutters': {
-    backgroundColor: 'transparent',
-    color: '#8c9add',
-    borderRight: '1px solid #d5d6db',
-  },
-  '.cm-activeLineGutter': {
-    backgroundColor: '#c6c8d1',
-    color: '#506686',
-  },
-  '.cm-activeLine': {
-    backgroundColor: '#c6c8d1',
-  },
-  // Tokyo Night Day syntax highlighting
-  '.cm-keyword': { color: '#9854f1', fontWeight: 'bold' },
-  '.cm-operator': { color: '#007197' },
-  '.cm-variableName': { color: '#3760bf' },
-  '.cm-definition': { color: '#2e7de9' },
-  '.cm-string': { color: '#587539' },
-  '.cm-number': { color: '#b15c00' },
-  '.cm-comment': { color: '#848cb5', fontStyle: 'italic' },
-  '.cm-function': { color: '#2e7de9' },
-  '.cm-propertyName': { color: '#007197' },
-  '.cm-typeName': { color: '#8c6c3e' },
-  '.cm-tag': { color: '#f52a65' },
-  '.cm-attributeName': { color: '#8c6c3e' },
-  '.cm-className': { color: '#8c6c3e' },
-  '.cm-property': { color: '#007197' },
-  '.cm-punctuation': { color: '#007197' },
-  '.cm-bracket': { color: '#5a6f89' },
-  '.cm-bool': { color: '#b15c00' },
-  '.cm-regexp': { color: '#387852' },
-  '.cm-special-variable': { color: '#9854f1' },
-}, { dark: false });
+      const highlighter = await createHighlighterCore({
+    themes: [tokyoNight, githubLight],
+    langs: [
+      javascript,
+      typescript,
+      tsx,
+      jsx,
+      python,
+      html,
+      css,
+      json,
+      yaml,
+      xml,
+      cpp,
+      c,
+      java,
+      rust,
+      go,
+      php,
+      sql,
+      bash,
+      shell,
+      markdown,
+      mdx,
+      vue,
+      svelte,
+      dockerfile,
+      viml,
+      lua,
+      ruby,
+      perl,
+      swift,
+      kotlin,
+      dart,
+      scala,
+      r,
+      matlab,
+      groovy,
+      powershell,
+    ],
+    engine: createOnigurumaEngine(import('shiki/wasm')),
+  });
+
+  globalHighlighter = highlighter;
+  return highlighter;
+}
+
+// Generate line numbers HTML
+function generateLineNumbers(lineCount: number): string {
+  return Array.from({ length: lineCount }, (_, i) =>
+    `<div class="shiki-line-number">${i + 1}</div>`
+  ).join('');
+}
+
+// Custom CSS for Shiki
+const shikiStyles = `
+  .shiki-wrapper {
+    display: flex;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    overflow: auto;
+  }
+  .shiki-line-numbers {
+    flex-shrink: 0;
+    text-align: right;
+    padding: 16px 12px 16px 16px;
+    user-select: none;
+    border-right: 1px solid;
+  }
+  .shiki-line-number {
+    min-width: 2ch;
+  }
+  .shiki-code {
+    flex: 1;
+    padding: 16px;
+    overflow-x: auto;
+  }
+  .shiki-code pre {
+    margin: 0;
+    white-space: pre;
+    word-wrap: normal;
+  }
+  .shiki-code code {
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+  }
+
+  /* Make Shiki background transparent to match parent container */
+  .shiki-wrapper.dark,
+  .shiki-wrapper.dark .shiki-line-numbers {
+    background: transparent;
+    color: #565f89;
+    border-color: #24283b;
+  }
+  .shiki-wrapper.dark .shiki,
+  .shiki-wrapper.dark .shiki code {
+    background: transparent !important;
+  }
+
+  .shiki-wrapper.light,
+  .shiki-wrapper.light .shiki-line-numbers {
+    background: transparent;
+    color: #6e7781;
+    border-color: #d0d7de;
+  }
+  .shiki-wrapper.light .shiki,
+  .shiki-wrapper.light .shiki code {
+    background: transparent !important;
+  }
+`;
 
 export function FilePreview({
   fileName,
@@ -362,14 +325,15 @@ export function FilePreview({
   className,
 }: FilePreviewProps) {
   const { t } = useTranslation();
-  const editorRef = useRef<HTMLDivElement>(null);
-  const viewRef = useRef<EditorView | null>(null);
-  
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [highlightedCode, setHighlightedCode] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(true);
+
   // Detect file type
-  const fileType = useMemo(() => getFileType(fileName), [fileName]);
-  
+  const fileType = getFileType(fileName);
+
   // Track theme changes
-  const [isDark, setIsDark] = useState(() => 
+  const [isDark, setIsDark] = useState(() =>
     typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
   );
 
@@ -379,10 +343,10 @@ export function FilePreview({
       const dark = document.documentElement.classList.contains('dark');
       setIsDark(dark);
     };
-    
+
     // Initial check
     updateTheme();
-    
+
     // Listen for class changes on html element
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
@@ -391,93 +355,77 @@ export function FilePreview({
         }
       });
     });
-    
+
     observer.observe(document.documentElement, { attributes: true });
-    
+
     return () => observer.disconnect();
   }, []);
 
-  // Initialize CodeMirror editor
-  useEffect(() => {
-    if (fileType !== 'text' || !editorRef.current) return;
-    
-    let isMounted = true;
-    
-    // Clean up previous instance
-    if (viewRef.current) {
-      viewRef.current.destroy();
-      viewRef.current = null;
-    }
+  // Highlight code with Shiki
+  const highlightCode = useCallback(async () => {
+    if (fileType !== 'text') return;
 
-    // Async function to load language and create editor
-    const initEditor = async () => {
-      const langExtension = await getLanguageExtension(fileName);
-      
-      if (!isMounted || !editorRef.current) return;
+    setIsLoading(true);
+    try {
+      const highlighter = await getHighlighter();
+      const language = getLanguage(fileName);
+      const theme = isDark ? 'tokyo-night' : 'github-light';
 
-      // Create theme based on current mode
-      const customTheme = isDark ? tokyoNightDark : tokyoNightLight;
-
-      // Build extensions
-      const extensions: Extension[] = [
-        lineNumbers(),
-        highlightActiveLineGutter(),
-        highlightSpecialChars(),
-        drawSelection(),
-        dropCursor(),
-        EditorState.allowMultipleSelections.of(true),
-        rectangularSelection(),
-        crosshairCursor(),
-        highlightActiveLine(),
-        highlightSelectionMatches(),
-        keymap.of([
-          ...defaultKeymap,
-          ...searchKeymap,
-        ]),
-        EditorView.editable.of(false),
-        // Syntax highlighting - this is the key!
-        syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-        langExtension,
-        customTheme,
-      ];
-
-      // Create state
-      const state = EditorState.create({
-        doc: content,
-        extensions,
+      const html = highlighter.codeToHtml(content, {
+        lang: language,
+        theme,
       });
 
-      // Create view
-      if (editorRef.current) {
-        viewRef.current = new EditorView({
-          state,
-          parent: editorRef.current,
-        });
-      }
-    };
+      // Extract the inner code content and wrap with line numbers
+      const lines = content.split('\n');
+      const lineNumbersHtml = generateLineNumbers(lines.length);
 
-    initEditor();
+      // Create the final HTML with line numbers
+      const finalHtml = `
+        <div class="shiki-wrapper ${isDark ? 'dark' : 'light'}">
+          <div class="shiki-line-numbers">${lineNumbersHtml}</div>
+          <div class="shiki-code">${html}</div>
+        </div>
+      `;
 
-    return () => {
-      isMounted = false;
-      viewRef.current?.destroy();
-      viewRef.current = null;
-    };
+      setHighlightedCode(finalHtml);
+    } catch (error) {
+      console.error('Failed to highlight code:', error);
+      // Fallback to plain text
+      const lines = content.split('\n');
+      const lineNumbersHtml = generateLineNumbers(lines.length);
+      const escapedContent = content
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+
+      setHighlightedCode(`
+        <div class="shiki-wrapper ${isDark ? 'dark' : 'light'}">
+          <div class="shiki-line-numbers">${lineNumbersHtml}</div>
+          <div class="shiki-code"><pre><code>${escapedContent}</code></pre></div>
+        </div>
+      `);
+    } finally {
+      setIsLoading(false);
+    }
   }, [content, fileName, fileType, isDark]);
+
+  // Highlight code when dependencies change
+  useEffect(() => {
+    highlightCode();
+  }, [highlightCode]);
 
   // Render content based on file type
   const renderContent = () => {
     if (fileType === 'image') {
-      // Backend already returns data URL (data:image/xxx;base64,xxx)
-      // but frontend might also try to wrap it, so we need to handle both cases
-      const src = content.startsWith('data:') 
-        ? content 
+      const src = content.startsWith('data:')
+        ? content
         : `data:${getImageMimeType(fileName)};base64,${content}`;
-      
+
       return (
         <div className="flex-1 flex items-center justify-center p-4 bg-muted/30 overflow-auto">
-          <img 
-            src={src} 
+          <img
+            src={src}
             alt={fileName}
             className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
             onError={(e) => {
@@ -506,12 +454,24 @@ export function FilePreview({
       );
     }
 
-    // Text file - container has background, editor is transparent
+    // Text file with Shiki highlighting
     return (
-      <div 
-        ref={editorRef} 
-        className="flex-1 overflow-auto bg-background [&_.cm-editor]:h-full [&_.cm-editor]:outline-none [&_.cm-editor]:bg-transparent"
-      />
+      <div className="flex-1 overflow-auto bg-background relative">
+        {isLoading ? (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 text-primary animate-spin" />
+          </div>
+        ) : (
+          <>
+            <style>{shikiStyles}</style>
+            <div
+              ref={containerRef}
+              className="h-full"
+              dangerouslySetInnerHTML={{ __html: highlightedCode }}
+            />
+          </>
+        )}
+      </div>
     );
   };
 
