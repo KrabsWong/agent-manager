@@ -6,7 +6,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Search, X, Loader2 } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -15,10 +15,6 @@ interface SearchBarProps {
   query: string;
   onQueryChange: (query: string) => void;
   matchCount: number;
-  totalMessages: number;
-  loadedMessages: number;
-  onLoadAll?: () => void;
-  isLoadingAll?: boolean;
   className?: string;
 }
 
@@ -26,10 +22,6 @@ export function SearchBar({
   query,
   onQueryChange,
   matchCount,
-  totalMessages,
-  loadedMessages,
-  onLoadAll,
-  isLoadingAll,
   className,
 }: SearchBarProps) {
   const { t } = useTranslation();
@@ -66,9 +58,6 @@ export function SearchBar({
     setIsExpanded(false);
     onQueryChange('');
   }, [onQueryChange]);
-
-  const hasPartialLoad = loadedMessages < totalMessages;
-  const showLoadAll = hasPartialLoad && query.length > 0;
 
   // Collapsed state - just show search button
   if (!isExpanded) {
@@ -127,29 +116,6 @@ export function SearchBar({
         <div className="text-xs text-muted-foreground whitespace-nowrap">
           <span className="text-foreground font-medium">{matchCount} 条</span>
         </div>
-      )}
-
-      {/* Load all button */}
-      {showLoadAll && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onLoadAll}
-          disabled={isLoadingAll}
-          className="h-7 px-2 text-xs whitespace-nowrap"
-        >
-          {isLoadingAll ? (
-            <>
-              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-              <span className="hidden sm:inline">{t('search.loadingAll')}</span>
-            </>
-          ) : (
-            <>
-              <span className="hidden sm:inline">{t('search.loadAll')}</span>
-              <span className="sm:hidden">...</span>
-            </>
-          )}
-        </Button>
       )}
 
       {/* Close button */}

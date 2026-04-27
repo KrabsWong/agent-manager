@@ -23,6 +23,9 @@ interface SettingsState {
   collapseBashBlocks: boolean;
   showThinkingContent: boolean;
 
+  // ============ 对话布局 ============
+  chatLayout: 'left' | 'bubble';
+
   // ============ 原 ThemeProvider ============
   theme: Theme;
   accentColor: AccentColor;
@@ -48,6 +51,10 @@ interface SettingsState {
   toggleShowThinkingContent: () => Promise<void>;
   setShowThinkingContent: (enabled: boolean) => Promise<void>;
 
+  // 对话布局 actions
+  setChatLayout: (layout: 'left' | 'bubble') => Promise<void>;
+  toggleChatLayout: () => Promise<void>;
+
   // 原 ThemeProvider actions
   setTheme: (theme: Theme) => Promise<void>;
   toggleTheme: () => Promise<void>;
@@ -70,6 +77,8 @@ const getInitialSettings = (): Partial<SettingsState> => {
       enableTitleMarquee: s.enableTitleMarquee ?? false,
       collapseBashBlocks: s.collapseBashBlocks ?? true,
       showThinkingContent: s.showThinkingContent ?? true,
+      // 对话布局
+      chatLayout: s.chatLayout ?? 'left',
       // 原 ThemeProvider
       theme: (s.theme as Theme) || 'system',
       accentColor: (s.accentColor as AccentColor) || defaultAccentColor,
@@ -82,6 +91,7 @@ const getInitialSettings = (): Partial<SettingsState> => {
     enableTitleMarquee: false,
     collapseBashBlocks: true,
     showThinkingContent: true,
+    chatLayout: 'left',
     theme: 'system',
     accentColor: defaultAccentColor,
     sidebarCollapsed: false,
@@ -106,6 +116,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   enableTitleMarquee: initialSettings.enableTitleMarquee ?? false,
   collapseBashBlocks: initialSettings.collapseBashBlocks ?? true,
   showThinkingContent: initialSettings.showThinkingContent ?? true,
+  chatLayout: initialSettings.chatLayout ?? 'left',
   theme: initialSettings.theme ?? 'system',
   accentColor: initialSettings.accentColor ?? defaultAccentColor,
   sidebarCollapsed: initialSettings.sidebarCollapsed ?? false,
@@ -157,6 +168,18 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   setShowThinkingContent: async (enabled) => {
     set({ showThinkingContent: enabled });
     await syncToMain('showThinkingContent', enabled);
+  },
+
+  // ============ 对话布局 Actions ============
+  setChatLayout: async (layout) => {
+    set({ chatLayout: layout });
+    await syncToMain('chatLayout', layout);
+  },
+
+  toggleChatLayout: async () => {
+    const newValue = get().chatLayout === 'left' ? 'bubble' : 'left';
+    set({ chatLayout: newValue });
+    await syncToMain('chatLayout', newValue);
   },
 
   // ============ 原 ThemeProvider actions ============

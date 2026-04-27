@@ -18,6 +18,7 @@ export interface InitialSettings {
   showThinkingContent?: boolean;
   preferredTerminal?: 'auto' | 'ghostty' | 'kitty' | 'terminal' | 'builtin';
   sidebarCollapsed?: boolean;
+  chatLayout?: 'left' | 'bubble';
 }
 
 declare global {

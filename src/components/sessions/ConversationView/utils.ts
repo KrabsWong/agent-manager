@@ -133,6 +133,7 @@ export function groupMessagesIntoTurns(messages: SessionMessage[], appType?: str
         }
         currentTurn = {
           userMessage: message,
+          userMessageOriginalIndex: i,
           toolCalls: [],
           assistantMessage: null,
           systemMessages: [],

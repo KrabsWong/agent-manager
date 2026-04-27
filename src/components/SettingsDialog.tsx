@@ -234,6 +234,8 @@ function ExperienceSettings() {
     toggleCollapseBashBlocks,
     showThinkingContent,
     toggleShowThinkingContent,
+    chatLayout,
+    toggleChatLayout,
   } = useSettingsStore();
   const { toast } = useToast();
 
@@ -267,6 +269,17 @@ function ExperienceSettings() {
         ? t('settings.featureEnabled', 'Feature enabled')
         : t('settings.featureDisabled', 'Feature disabled'),
       description: t('settings.showThinkingContent', 'Show Thinking Content'),
+    });
+  };
+
+  const handleToggleChatLayout = () => {
+    const newValue = chatLayout === 'left' ? 'bubble' : 'left';
+    toggleChatLayout();
+    toast({
+      title: t('settings.layoutChanged', 'Layout changed'),
+      description: newValue === 'bubble'
+        ? t('settings.bubbleLayout', 'Bubble layout - messages on the right')
+        : t('settings.leftLayout', 'Left layout - messages on the left'),
     });
   };
 
@@ -404,6 +417,50 @@ function ExperienceSettings() {
             className={cn(
               'absolute top-1 w-3 h-3 rounded-full bg-white transition-transform',
               showThinkingContent ? 'translate-x-6' : 'translate-x-1'
+            )}
+          />
+        </div>
+      </button>
+
+      {/* Chat Layout Toggle */}
+      <button
+        onClick={handleToggleChatLayout}
+        className={cn(
+          'w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left',
+          chatLayout === 'bubble'
+            ? 'border-primary border-opacity-50 bg-primary-muted'
+            : 'border-border hover:border-primary-border hover:bg-accent/50'
+        )}
+      >
+        <div
+          className={cn(
+            'flex items-center justify-center w-9 h-9 rounded-md transition-colors shrink-0',
+            chatLayout === 'bubble'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted text-muted-foreground'
+          )}
+        >
+          <span className="text-sm">💬</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-medium text-sm">
+            {t('settings.chatLayout') || 'Bubble Chat Layout'}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {t('settings.chatLayoutDesc') ||
+              'Show your messages on the right side in bubble style'}
+          </div>
+        </div>
+        <div
+          className={cn(
+            'w-10 h-5 rounded-full transition-colors relative shrink-0',
+            chatLayout === 'bubble' ? 'bg-primary' : 'bg-muted'
+          )}
+        >
+          <div
+            className={cn(
+              'absolute top-1 w-3 h-3 rounded-full bg-white transition-transform',
+              chatLayout === 'bubble' ? 'translate-x-6' : 'translate-x-1'
             )}
           />
         </div>

@@ -436,7 +436,7 @@ function ToolOutputDisplay({ output, searchQuery = '', toolName = '' }: ToolOutp
 
   const lines = text.split('\n');
   const totalLines = lines.length;
-  const shouldCollapse = totalLines > MAX_TOOL_OUTPUT_LINES;
+  const shouldCollapse = false; // totalLines > MAX_TOOL_OUTPUT_LINES;
   const displayText =
     shouldCollapse && !isExpanded
       ? lines.slice(0, MAX_TOOL_OUTPUT_LINES).join('\n') + '\n\n...'
