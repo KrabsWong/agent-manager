@@ -15,6 +15,7 @@ export interface InitialSettings {
   collapseBashBlocks?: boolean;
   showThinkingContent?: boolean;
   preferredTerminal?: 'auto' | 'ghostty' | 'kitty' | 'terminal' | 'builtin';
+  sidebarCollapsed?: boolean;
 }
 
 declare global {

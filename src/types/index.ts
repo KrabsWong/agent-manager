@@ -46,6 +46,7 @@ export interface AppSettings {
   collapseBashBlocks: boolean;
   enableTitleMarquee: boolean;
   showThinkingContent: boolean;
+  sidebarCollapsed: boolean;
 
   // Terminal
   preferredTerminal: 'auto' | 'ghostty' | 'kitty' | 'terminal' | 'builtin';
@@ -61,6 +62,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   collapseBashBlocks: true,
   enableTitleMarquee: false,
   showThinkingContent: true,
+  sidebarCollapsed: false,
   preferredTerminal: 'auto',
 };
 

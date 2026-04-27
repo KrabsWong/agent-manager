@@ -44,6 +44,13 @@ const enTranslations = {
       'vscode-extension': 'VSC Codebuddy Extension',
     },
   },
+  app: {
+    name: 'Yes Sessions',
+  },
+  sidebar: {
+    expand: 'Expand sidebar',
+    collapse: 'Collapse sidebar',
+  },
   settings: {
     title: 'Settings',
     description: 'Configure application settings',
@@ -287,6 +294,13 @@ const zhTranslations = {
       codebuddy: 'Codebuddy',
       'vscode-extension': 'VSC Codebuddy 扩展',
     },
+  },
+  app: {
+    name: 'Yes Sessions',
+  },
+  sidebar: {
+    expand: '展开侧边栏',
+    collapse: '收起侧边栏',
   },
   settings: {
     title: '设置',
