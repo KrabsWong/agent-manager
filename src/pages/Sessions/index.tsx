@@ -14,8 +14,6 @@ import {
   ExternalLink,
   Folder,
   RefreshCw,
-  ArrowUp,
-  ArrowDown,
 } from 'lucide-react';
 import { useSidebarResize } from '@/hooks/useSidebarResize';
 import { useSettingsStore } from '@/stores/settings';
@@ -31,6 +29,7 @@ import {
   useTerminalInfo,
 } from '@/hooks/useSessions';
 import { ConversationView } from '@/components/sessions/ConversationView';
+import { UserMessageNavigator } from '@/components/sessions/UserMessageNavigator';
 import { api } from '@/lib/api';
 import { VirtualSessionList, type ViewMode } from '@/components/sessions/VirtualSessionList';
 import { APP_LABELS, APP_WEBSITES, APP_COLORS } from '@/config/apps';
@@ -73,17 +72,13 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('date');
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
-  // Scroll to top/bottom button visibility
-  const [showScrollToTop, setShowScrollToTop] = useState(false);
-  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // New messages notification
   const [newMessagesCount, setNewMessagesCount] = useState(0);
   const [showNewMessagesTip, setShowNewMessagesTip] = useState(false);
-  const [shouldLoadAll, setShouldLoadAll] = useState(false);
 
-  // Listen to scroll events for scroll-to-top button and hide new messages tip when at bottom
+  // Listen to scroll events for hiding new messages tip when at bottom
   useEffect(() => {
     const setupScrollListener = () => {
       const container = scrollContainerRef.current;
@@ -94,16 +89,11 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
       }
 
       const handleScroll = () => {
-        setShowScrollToTop(container.scrollTop > 300);
-
-        // Show scroll to bottom button when not at bottom and there's content to scroll
-        // Use Math.ceil to avoid floating point precision issues
+        // Hide new messages tip if user scrolls to bottom
         const { scrollHeight, scrollTop, clientHeight } = container;
         const scrollBottom = Math.ceil(scrollTop + clientHeight);
         const isAtBottom = scrollHeight - scrollBottom <= 50;
-        setShowScrollToBottom(!isAtBottom && scrollHeight > clientHeight);
 
-        // Hide new messages tip if user scrolls to bottom
         if (showNewMessagesTip && isAtBottom) {
           setShowNewMessagesTip(false);
           setNewMessagesCount(0);
@@ -570,35 +560,25 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                     </div>
                   </div>
                 ) : sessionDetail?.messages && sessionDetail.messages.length > 0 ? (
-                  <ConversationView
-                    messages={sessionDetail.messages}
-                    searchQuery=""
-                    appType={selectedApp}
-                    shouldLoadAll={shouldLoadAll}
-                    onLoadAllComplete={() => {
-                      setShouldLoadAll(false);
-                      // Keep the tip visible until user scrolls to bottom
-                    }}
-                    onNewMessages={(count, isAtBottom) => {
-                      if (isAtBottom) {
-                        // User is at bottom, auto-load and scroll
-                        setShouldLoadAll(true);
-                        // Scroll after a short delay to allow loading
-                        setTimeout(() => {
-                          if (scrollContainerRef.current) {
-                            scrollContainerRef.current.scrollTo({
-                              top: scrollContainerRef.current.scrollHeight,
-                              behavior: 'smooth',
-                            });
-                          }
-                        }, 100);
-                      } else {
-                        // User is not at bottom, show tip
-                        setNewMessagesCount((prev) => prev + count);
-                        setShowNewMessagesTip(true);
-                      }
-                    }}
-                  />
+                  <>
+                    <ConversationView
+                      messages={sessionDetail.messages}
+                      searchQuery=""
+                      appType={selectedApp}
+                      onNewMessages={(count, isAtBottom) => {
+                        if (!isAtBottom) {
+                          // User is not at bottom, show tip
+                          setNewMessagesCount((prev) => prev + count);
+                          setShowNewMessagesTip(true);
+                        }
+                        // If at bottom, auto-scroll is handled by ConversationView
+                      }}
+                    />
+                    {/* User Message Navigator - Quick jump to user messages */}
+                <UserMessageNavigator
+                  messages={sessionDetail.messages}
+                />
+                  </>
                 ) : (
                   <div className="flex items-center justify-center h-full text-muted-foreground">
                     <div className="flex flex-col items-center gap-2">
@@ -613,17 +593,16 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
               {showNewMessagesTip && (
                 <button
                   onClick={() => {
-                    // Trigger load all and scroll to bottom
-                    setShouldLoadAll(true);
-                    // Scroll after a short delay to allow loading
-                    setTimeout(() => {
-                      if (scrollContainerRef.current) {
-                        scrollContainerRef.current.scrollTo({
-                          top: scrollContainerRef.current.scrollHeight,
-                          behavior: 'smooth',
-                        });
-                      }
-                    }, 100);
+                    // Scroll to bottom to see new messages
+                    if (scrollContainerRef.current) {
+                      scrollContainerRef.current.scrollTo({
+                        top: scrollContainerRef.current.scrollHeight,
+                        behavior: 'smooth',
+                      });
+                    }
+                    // Hide the tip
+                    setShowNewMessagesTip(false);
+                    setNewMessagesCount(0);
                   }}
                   className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-full shadow-lg hover:bg-primary-hover transition-all"
                 >
@@ -633,44 +612,6 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                   </span>
                   <span className="text-xs font-medium">{newMessagesCount} 条新内容</span>
                 </button>
-              )}
-
-              {/* Scroll to top/bottom buttons - fused together in a single container */}
-              {(showScrollToTop || showScrollToBottom) && (
-                <div className="absolute bottom-4 right-4 z-50 flex flex-col bg-background/95 dark:bg-background/90 backdrop-blur-md rounded-2xl shadow-xl border border-primary-border overflow-hidden">
-                  {showScrollToTop && (
-                    <button
-                      onClick={() => {
-                        if (scrollContainerRef.current) {
-                          scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-                        }
-                      }}
-                      className="p-3 text-muted-foreground hover:text-primary hover:bg-primary-muted transition-all duration-200 group"
-                      title={t('common.scrollToTop', 'Scroll to top')}
-                    >
-                      <ArrowUp className="h-4 w-4 transition-transform duration-200 group-hover:-translate-y-0.5" />
-                    </button>
-                  )}
-                  {showScrollToTop && showScrollToBottom && (
-                    <div className="h-px bg-primary-border mx-2" />
-                  )}
-                  {showScrollToBottom && (
-                    <button
-                      onClick={() => {
-                        if (scrollContainerRef.current) {
-                          scrollContainerRef.current.scrollTo({
-                            top: scrollContainerRef.current.scrollHeight,
-                            behavior: 'smooth',
-                          });
-                        }
-                      }}
-                      className="p-3 text-muted-foreground hover:text-primary hover:bg-primary-muted transition-all duration-200 group"
-                      title={t('common.scrollToBottom', 'Scroll to bottom')}
-                    >
-                      <ArrowDown className="h-4 w-4 transition-transform duration-200 group-hover:translate-y-0.5" />
-                    </button>
-                  )}
-                </div>
               )}
             </>
           ) : (

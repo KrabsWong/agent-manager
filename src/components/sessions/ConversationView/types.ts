@@ -17,6 +17,7 @@ export const MAX_TOOL_OUTPUT_LINES = 20;
 // Message grouping
 export interface MessageTurn {
   userMessage: SessionMessage | null;
+  userMessageOriginalIndex?: number; // Original index in messages array
   toolCalls: { toolUse: SessionMessage | null; toolResult: SessionMessage | null }[];
   assistantMessage: SessionMessage | null;
   systemMessages: SessionMessage[];
@@ -31,12 +32,9 @@ export interface ConversationViewProps {
   messages: SessionMessage[];
   className?: string;
   appType?: string;
-  onLoadAll?: () => void;
   onViewSubAgentSession?: (sessionId: string, appType: string) => void;
   searchQuery?: string;
   onNewMessages?: (count: number, isAtBottom: boolean) => void;
-  shouldLoadAll?: boolean;
-  onLoadAllComplete?: () => void;
 }
 
 export interface ConversationTurnProps {
@@ -44,6 +42,7 @@ export interface ConversationTurnProps {
   appType: string;
   onViewSubAgentSession?: (sessionId: string, appType: string) => void;
   searchQuery?: string;
+  userMessageIndex?: number;
 }
 
 export interface SystemMessageProps {

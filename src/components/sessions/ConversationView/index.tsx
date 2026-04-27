@@ -9,8 +9,7 @@
  * - MCP calls and sub-agent calls
  */
 
-import { useMemo, useState, useRef, useEffect, useCallback, memo } from 'react';
-import { ChevronDown, Maximize2 } from 'lucide-react';
+import { useMemo, useRef, useEffect, memo } from 'react';
 import { cn } from '@/lib/utils';
 import { getAppIcon } from '@/components/AppIcons';
 import { APP_LABELS } from '@/config/apps';
@@ -21,13 +20,14 @@ import type {
   ConversationTurnProps,
   MessageTurnWithCount,
 } from './types';
-import { MAX_MESSAGES_PER_BATCH } from './types';
+
 import {
   groupMessagesIntoTurnsWithCount,
   verifyMessageCount,
 } from './utils';
 import { SystemMessage, UserMessage, AssistantMessage } from './MessageTypes';
 import { ToolCallBlock } from './ToolCallBlock';
+import { useSettingsStore } from '@/stores/settings';
 
 // Conversation Turn Component
 const ConversationTurn = memo(function ConversationTurn({
@@ -35,7 +35,10 @@ const ConversationTurn = memo(function ConversationTurn({
   appType,
   onViewSubAgentSession,
   searchQuery = '',
-}: ConversationTurnProps) {
+  userMessageIndex,
+}: ConversationTurnProps & { userMessageIndex?: number }) {
+  const { chatLayout } = useSettingsStore();
+  const isBubble = chatLayout === 'bubble';
   return (
     <div className="space-y-3">
       {/* System Messages */}
@@ -56,13 +59,15 @@ const ConversationTurn = memo(function ConversationTurn({
 
       {/* User Message */}
       {turn.userMessage?.content && (
-        <UserMessage
-          content={turn.userMessage.content}
-          timestamp={turn.userMessage.timestamp}
-          appType={appType}
-          model={turn.userMessage.model}
-          searchQuery={searchQuery}
-        />
+        <div id={userMessageIndex !== undefined ? `user-message-${userMessageIndex}` : undefined}>
+          <UserMessage
+            content={turn.userMessage.content}
+            timestamp={turn.userMessage.timestamp}
+            appType={appType}
+            model={turn.userMessage.model}
+            searchQuery={searchQuery}
+          />
+        </div>
       )}
 
       {/* Agent Response */}
@@ -71,7 +76,7 @@ const ConversationTurn = memo(function ConversationTurn({
           <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary-muted flex items-center justify-center">
             {getAppIcon(appType as AppType, 18)}
           </div>
-          <div className="flex-1 min-w-0">
+          <div className={cn("min-w-0", isBubble ? "flex-1 max-w-[calc(100%-120px)]" : "flex-1")}>
             <div className="flex items-center gap-2 mb-1">
               <span className="font-medium text-sm">
                 {APP_LABELS[appType as AppType] || APP_LABELS.claude}
@@ -130,28 +135,19 @@ export function ConversationView({
   messages,
   className,
   appType = 'claude',
-  onLoadAll,
   onViewSubAgentSession,
   searchQuery = '',
   onNewMessages,
-  shouldLoadAll,
-  onLoadAllComplete,
-}: ConversationViewProps) {
+}: Omit<ConversationViewProps, 'onLoadAll' | 'shouldLoadAll' | 'onLoadAllComplete'>) {
   const turnsWithCount = useMemo(() => {
     const turns = groupMessagesIntoTurnsWithCount(messages, appType);
     verifyMessageCount(turns, messages, appType);
     return turns;
   }, [messages, appType]);
 
-  const [displayedTurns, setDisplayedTurns] = useState<MessageTurnWithCount[]>([]);
-  const [hasMore, setHasMore] = useState(false);
-  const [remainingCount, setRemainingCount] = useState(0);
-
   const prevMessagesLengthRef = useRef(messages.length);
   const prevLastMessageHashRef = useRef<string>('');
-  const hasLoadedAllRef = useRef(false);
   const isAtBottomRef = useRef(true);
-  const shouldAutoScrollRef = useRef(false);
   const prevLastTurnHashRef = useRef<string>('');
 
   const getTurnHash = (turn: MessageTurnWithCount | undefined): string => {
@@ -184,78 +180,6 @@ export function ConversationView({
     return document.getElementById('conversation-scroll-container');
   };
 
-  // Initialize displayed turns
-  useEffect(() => {
-    if (hasLoadedAllRef.current) {
-      setDisplayedTurns(turnsWithCount);
-      setHasMore(false);
-      setRemainingCount(0);
-      return;
-    }
-
-    let count = 0;
-    let index = 0;
-    const totalMessages = turnsWithCount.reduce((sum, t) => sum + t.messageCount, 0);
-
-    if (totalMessages !== messages.length) {
-      console.warn(
-        `[ConversationView] Message count mismatch: turns count=${totalMessages}, messages.length=${messages.length}`
-      );
-    }
-
-    for (const turn of turnsWithCount) {
-      if (count + turn.messageCount > MAX_MESSAGES_PER_BATCH && index > 0) {
-        break;
-      }
-      count += turn.messageCount;
-      index++;
-    }
-
-    setDisplayedTurns(turnsWithCount.slice(0, index));
-    setHasMore(index < turnsWithCount.length);
-    setRemainingCount(totalMessages - count);
-  }, [turnsWithCount, messages.length]);
-
-  const handleLoadMore = () => {
-    const currentCount = displayedTurns.reduce((sum, t) => sum + t.messageCount, 0);
-    let newCount = currentCount;
-    let newIndex = displayedTurns.length;
-    const totalMessages = turnsWithCount.reduce((sum, t) => sum + t.messageCount, 0);
-
-    for (let i = displayedTurns.length; i < turnsWithCount.length; i++) {
-      const turn = turnsWithCount[i];
-      if (
-        newCount + turn.messageCount > currentCount + MAX_MESSAGES_PER_BATCH &&
-        newIndex > displayedTurns.length
-      ) {
-        break;
-      }
-      newCount += turn.messageCount;
-      newIndex++;
-    }
-
-    const newDisplayed = turnsWithCount.slice(0, newIndex);
-    setDisplayedTurns(newDisplayed);
-    setHasMore(newIndex < turnsWithCount.length);
-    setRemainingCount(totalMessages - newCount);
-  };
-
-  const handleLoadAll = useCallback(() => {
-    hasLoadedAllRef.current = true;
-    setDisplayedTurns(turnsWithCount);
-    setHasMore(false);
-    setRemainingCount(0);
-    onLoadAll?.();
-  }, [turnsWithCount, onLoadAll]);
-
-  // Handle external load all request
-  useEffect(() => {
-    if (shouldLoadAll) {
-      handleLoadAll();
-      onLoadAllComplete?.();
-    }
-  }, [shouldLoadAll, handleLoadAll, onLoadAllComplete]);
-
   // Track scroll position
   useEffect(() => {
     const container = getScrollContainer();
@@ -284,7 +208,10 @@ export function ConversationView({
     if (currentMessagesLength > prevMessagesLength) {
       const newCount = currentMessagesLength - prevMessagesLength;
       if (isAtBottomRef.current) {
-        shouldAutoScrollRef.current = true;
+        // Auto-scroll when new messages arrive and user is at bottom
+        setTimeout(() => {
+          autoScrollToBottom('smooth');
+        }, 50);
       }
       if (onNewMessages) {
         onNewMessages(newCount, isAtBottomRef.current);
@@ -294,8 +221,11 @@ export function ConversationView({
       currentMessagesLength > 0 &&
       currentLastMessageHash !== prevLastMessageHash
     ) {
+      // Content update (streaming)
       if (isAtBottomRef.current) {
-        shouldAutoScrollRef.current = true;
+        setTimeout(() => {
+          autoScrollToBottom('smooth');
+        }, 50);
       }
     }
 
@@ -303,17 +233,17 @@ export function ConversationView({
     prevLastMessageHashRef.current = currentLastMessageHash;
   }, [messages, onNewMessages]);
 
-  // Auto-scroll when displayedTurns changes
+  // Auto-scroll when turns change
   useEffect(() => {
-    const currentTurnCount = displayedTurns.length;
-    const lastTurn = displayedTurns[displayedTurns.length - 1];
+    const currentTurnCount = turnsWithCount.length;
+    const lastTurn = turnsWithCount[turnsWithCount.length - 1];
     const currentLastTurnHash = getTurnHash(lastTurn);
     const prevLastTurnHash = prevLastTurnHashRef.current;
 
     const hasNewTurn =
       currentTurnCount > 0 &&
       prevLastTurnHash !== '' &&
-      currentTurnCount >= (displayedTurns.length > 0 ? displayedTurns.length - 1 : 0);
+      currentTurnCount > prevLastTurnHash.split(':').length;
     const hasContentUpdate = currentLastTurnHash !== prevLastTurnHash && prevLastTurnHash !== '';
 
     if (isAtBottomRef.current && (hasNewTurn || hasContentUpdate)) {
@@ -323,15 +253,15 @@ export function ConversationView({
     }
 
     prevLastTurnHashRef.current = currentLastTurnHash;
-  }, [displayedTurns]);
+  }, [turnsWithCount]);
 
   // Filter turns based on search
   const filteredTurns = useMemo(() => {
     if (!searchQuery.trim()) {
-      return displayedTurns;
+      return turnsWithCount;
     }
 
-    return displayedTurns.filter((turn) => {
+    return turnsWithCount.filter((turn) => {
       if (
         turn.userMessage?.content &&
         turn.userMessage.content.toLowerCase().includes(searchQuery.toLowerCase())
@@ -373,50 +303,21 @@ export function ConversationView({
 
       return false;
     });
-  }, [displayedTurns, searchQuery]);
-
-  const shouldPaginate = turnsWithCount.length > displayedTurns.length;
+  }, [turnsWithCount, searchQuery]);
 
   return (
-    <>
-      <div className={cn('space-y-6 relative', className)}>
-        {filteredTurns.map((turn, index) => (
-          <ConversationTurn
-            key={index}
-            turn={turn}
-            appType={appType}
-            onViewSubAgentSession={onViewSubAgentSession}
-            searchQuery={searchQuery}
-          />
-        ))}
-        {/* Load more buttons at BOTTOM */}
-        {shouldPaginate && hasMore && !searchQuery && (
-          <div className="flex justify-center items-center gap-4 py-3">
-            <button
-              onClick={handleLoadMore}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ChevronDown className="h-3.5 w-3.5" />
-              加载更多 ({remainingCount} 条)
-            </button>
-            <span className="text-border">|</span>
-            <button
-              onClick={handleLoadAll}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Maximize2 className="h-3.5 w-3.5" />
-              加载全部
-            </button>
-          </div>
-        )}
-        {/* End of session indicator */}
-        {!hasMore && displayedTurns.length > 0 && (
-          <div className="flex justify-center py-4">
-            <span className="text-xs text-muted-foreground/50">— 已加载全部内容 —</span>
-          </div>
-        )}
-      </div>
-    </>
+    <div className={cn('space-y-6 relative', className)}>
+      {filteredTurns.map((turn, index) => (
+        <ConversationTurn
+          key={index}
+          turn={turn}
+          appType={appType}
+          onViewSubAgentSession={onViewSubAgentSession}
+          searchQuery={searchQuery}
+          userMessageIndex={turn.userMessageOriginalIndex}
+        />
+      ))}
+    </div>
   );
 }
 

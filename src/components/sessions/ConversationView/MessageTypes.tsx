@@ -8,6 +8,7 @@ import { useState, useEffect, useMemo, memo } from 'react';
 import { User, Info, FileText, ChevronDown, ChevronRight, Maximize2, Sparkles, Terminal, Folder } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { cn } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/settings';
 import { getAppIcon } from '@/components/AppIcons';
 import { APP_LABELS } from '@/config/apps';
@@ -176,7 +177,40 @@ export const UserMessage = memo(function UserMessage({
   const parsedContents = needsSpecialParsing
     ? parseMessageContent(content, appType)
     : [{ type: 'text' as const, content }];
+  const { chatLayout } = useSettingsStore();
+  const isBubble = chatLayout === 'bubble';
 
+  if (isBubble) {
+    // Bubble layout: right-aligned with highlighted primary background
+    return (
+      <div className="flex gap-3 flex-row-reverse">
+        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+          <User className="h-4 w-4 text-primary-foreground" />
+        </div>
+        <div className="flex-1 min-w-0 flex flex-col items-end">
+          <div className="flex items-center gap-2 mb-1 flex-row-reverse">
+            <span className="font-medium text-sm">You</span>
+            {model && (
+              <span
+                className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary"
+                title="AI Model"
+              >
+                {model}
+              </span>
+            )}
+            <span className="text-xs text-muted-foreground">{formatTimestamp(timestamp)}</span>
+          </div>
+          <div className="bg-primary-muted rounded-2xl rounded-tr-sm p-3 text-sm space-y-2 max-w-[85%] border border-primary/20">
+            {parsedContents.map((item, index) => (
+              <ParsedContentBlock key={index} item={item} searchQuery={searchQuery} />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Left layout (default)
   return (
     <div className="flex gap-3">
       <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary-muted flex items-center justify-center">
@@ -422,7 +456,8 @@ export const AssistantMessage = memo(function AssistantMessage({
   const assistantName = APP_LABELS[appType as AppType] || APP_LABELS.claude;
   const [isExpanded, setIsExpanded] = useState(false);
   const [isReasoningExpanded, setIsReasoningExpanded] = useState(false);
-  const { showThinkingContent } = useSettingsStore();
+  const { showThinkingContent, chatLayout } = useSettingsStore();
+  const isBubble = chatLayout === 'bubble';
 
   useEffect(() => {
     if (!searchQuery || !reasoningContent) return;
@@ -443,7 +478,7 @@ export const AssistantMessage = memo(function AssistantMessage({
 
   const parsedXML = useMemo(() => (appType === 'claude' ? parseClaudeCodeXML(content) : null), [content, appType]);
 
-  const shouldTruncate = !parsedXML && content.length > MAX_TEXT_LENGTH;
+  const shouldTruncate = false; // !parsedXML && content.length > MAX_TEXT_LENGTH;
   const displayContent =
     isExpanded || !shouldTruncate ? content : content.slice(0, MAX_TEXT_LENGTH) + '\n\n...';
 
@@ -516,7 +551,7 @@ export const AssistantMessage = memo(function AssistantMessage({
       <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary-muted flex items-center justify-center">
         {getAppIcon(appType as AppType, 18)}
       </div>
-      <div className="flex-1 min-w-0">
+      <div className={cn("min-w-0", isBubble ? "flex-1 max-w-[calc(100%-120px)]" : "flex-1")}>
         <div className="flex items-center gap-2 mb-1">
           <span className="font-medium text-sm">{assistantName}</span>
           {model && (

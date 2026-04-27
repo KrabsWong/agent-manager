@@ -95,7 +95,7 @@ export const CollapsibleCodeBlock = memo(function CollapsibleCodeBlock({
   const prevDisplayedLinesRef = useRef(displayedLines);
   const lines = content.split('\n');
   const totalLines = lines.length;
-  const shouldCollapse = totalLines > MAX_CODE_LINES;
+  const shouldCollapse = false; // totalLines > MAX_CODE_LINES;
   const isFullyExpanded = displayedLines >= totalLines;
   const shouldHighlight = totalLines <= MAX_SYNTAX_HIGHLIGHT_LINES;
 
