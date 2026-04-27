@@ -14,7 +14,7 @@ export interface InitialSettings {
   enableTitleMarquee?: boolean;
   collapseBashBlocks?: boolean;
   showThinkingContent?: boolean;
-  preferredTerminal?: 'auto' | 'ghostty' | 'kitty' | 'terminal';
+  preferredTerminal?: 'auto' | 'ghostty' | 'kitty' | 'terminal' | 'builtin';
 }
 
 declare global {

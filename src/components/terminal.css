@@ -1,0 +1,37 @@
+/* Terminal custom styles */
+
+/* Ensure xterm fills the container */
+.xterm {
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+.xterm-screen {
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+.xterm-rows {
+  width: 100% !important;
+}
+
+/* Make sure the terminal canvas fills the container */
+.xterm .xterm-screen canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+/* Ensure the terminal viewport takes full size */
+.xterm-viewport {
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Hide any overflow content */
+.xterm-decoration-container {
+  overflow: hidden !important;
+}

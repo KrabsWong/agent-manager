@@ -9,6 +9,7 @@ import { configStore } from './utils/config-store';
 import { ipcRegistry } from './ipc/registry';
 import { performanceMonitor } from './services/performance/monitor';
 import { registerSessionsHandlers } from './handlers/sessions';
+import { registerPTYHandlers } from './services/terminal/pty-manager';
 import { buildDirectoryTree } from './handlers/tree';
 import { initializeGitWatcher } from './services/git-watcher';
 import { getGitStatus, getGitDiff, getFileDiffContent } from './handlers/git.js';
@@ -223,6 +224,7 @@ const initializeApp = () => {
     // Register remaining handlers asynchronously to speed up startup
     setImmediate(() => {
       registerSessionsHandlers();
+      registerPTYHandlers();
       log.info('All IPC handlers registered');
     });
 

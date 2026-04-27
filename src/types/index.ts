@@ -48,7 +48,7 @@ export interface AppSettings {
   showThinkingContent: boolean;
 
   // Terminal
-  preferredTerminal: 'auto' | 'ghostty' | 'kitty' | 'terminal';
+  preferredTerminal: 'auto' | 'ghostty' | 'kitty' | 'terminal' | 'builtin';
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {

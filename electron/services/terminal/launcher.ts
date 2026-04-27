@@ -220,7 +220,7 @@ function launchTerminal(command: string): void {
  * Get the terminal to use based on user preference and availability
  */
 async function getTerminalToUse(): Promise<{
-  terminal: 'ghostty' | 'kitty' | 'terminal';
+  terminal: 'ghostty' | 'kitty' | 'terminal' | 'builtin';
   ghosttyInstalled: boolean;
   kittyInstalled: boolean;
 }> {
@@ -244,6 +244,9 @@ async function getTerminalToUse(): Promise<{
     if (userPreference === 'terminal') {
       return { terminal: 'terminal', ghosttyInstalled, kittyInstalled };
     }
+    if (userPreference === 'builtin') {
+      return { terminal: 'builtin', ghosttyInstalled, kittyInstalled };
+    }
     // If preferred terminal is not installed, fall back to auto-detection
     log.warn(
       `Preferred terminal '${userPreference}' is not installed, falling back to auto-detection`
@@ -266,10 +269,17 @@ export async function resumeSessionInTerminal(
   workingDir?: string
 ): Promise<void> {
   try {
-    const { command, args } = buildResumeCommand(appType, sessionId);
-
     // Get terminal based on user preference and availability
     const { terminal: terminalToUse } = await getTerminalToUse();
+
+    // If using built-in terminal, don't launch external terminal
+    // The frontend will handle the built-in terminal display
+    if (terminalToUse === 'builtin') {
+      log.info(`Using built-in terminal for ${appType} session ${sessionId}`);
+      return;
+    }
+
+    const { command, args } = buildResumeCommand(appType, sessionId);
 
     let terminalUsed: string;
 
@@ -304,22 +314,33 @@ export async function resumeSessionInTerminal(
  * Get available terminal options for UI display
  */
 export async function getTerminalInfo(): Promise<{
-  preferred: 'ghostty' | 'kitty' | 'terminal';
+  preferred: 'auto' | 'ghostty' | 'kitty' | 'terminal' | 'builtin';
   ghosttyInstalled: boolean;
   kittyInstalled: boolean;
 }> {
+  const settings = configStore.getSettings();
+  const userPreference = settings.preferredTerminal;
+
   const [ghosttyInstalled, kittyInstalled] = await Promise.all([
     isGhosttyInstalled(),
     isKittyInstalled(),
   ]);
 
-  let preferred: 'ghostty' | 'kitty' | 'terminal';
-  if (ghosttyInstalled) {
-    preferred = 'ghostty';
-  } else if (kittyInstalled) {
-    preferred = 'kitty';
+  // Return user's preferred terminal or auto-detected
+  let preferred: 'auto' | 'ghostty' | 'kitty' | 'terminal' | 'builtin';
+
+  if (userPreference === 'auto') {
+    // Auto-detect
+    if (ghosttyInstalled) {
+      preferred = 'ghostty';
+    } else if (kittyInstalled) {
+      preferred = 'kitty';
+    } else {
+      preferred = 'terminal';
+    }
   } else {
-    preferred = 'terminal';
+    // User has a specific preference
+    preferred = userPreference;
   }
 
   return {

@@ -5,6 +5,8 @@
  */
 
 import type { ApiResponse, AppSettings, Session, SessionDetail } from '@/types';
+import { Terminal } from '@xterm/xterm';
+import { FitAddon } from '@xterm/addon-fit';
 
 /**
  * Extract data from API response or throw error
@@ -96,12 +98,12 @@ export const sessionsApi = {
   },
 
   getTerminalInfo: async (): Promise<{
-    preferred: 'ghostty' | 'kitty' | 'terminal';
+    preferred: 'auto' | 'ghostty' | 'kitty' | 'terminal' | 'builtin';
     ghosttyInstalled: boolean;
     kittyInstalled: boolean;
   }> => {
     const response = (await window.electronAPI.invoke('sessions:getTerminalInfo')) as ApiResponse<{
-      preferred: 'ghostty' | 'kitty' | 'terminal';
+      preferred: 'auto' | 'ghostty' | 'kitty' | 'terminal' | 'builtin';
       ghosttyInstalled: boolean;
       kittyInstalled: boolean;
     }>;
@@ -312,6 +314,149 @@ export const gitApi = {
   },
 };
 
+/**
+ * PTY Terminal API
+ */
+export interface PTYSession {
+  id: string;
+  terminal: Terminal;
+  fitAddon: FitAddon;
+}
+
+class PTYAPI {
+  private sessions: Map<string, PTYSession> = new Map();
+
+  /**
+   * Create a new PTY session
+   */
+  async create(sessionId: string, cwd?: string): Promise<PTYSession | null> {
+    try {
+      const response = (await window.electronAPI.invoke('pty:create', sessionId, { cwd })) as {
+        success: boolean;
+        sessionId?: string;
+        shell?: string;
+        error?: string;
+      };
+
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to create PTY session');
+      }
+
+      // Create xterm terminal with scrollback buffer
+      const terminal = new Terminal({
+        cursorBlink: true,
+        fontSize: 14,
+        fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+        scrollback: 10000,
+        allowProposedApi: true,
+        convertEol: true,  // Convert \n to \r\n
+        theme: {
+          background: '#1a1a1a',
+          foreground: '#f0f0f0',
+          cursor: '#f0f0f0',
+          selectionBackground: '#404040',
+          black: '#000000',
+          red: '#e06c75',
+          green: '#98c379',
+          yellow: '#d19a66',
+          blue: '#61afef',
+          magenta: '#c678dd',
+          cyan: '#56b6c2',
+          white: '#abb2bf',
+          brightBlack: '#5c6370',
+          brightRed: '#e06c75',
+          brightGreen: '#98c379',
+          brightYellow: '#d19a66',
+          brightBlue: '#61afef',
+          brightMagenta: '#c678dd',
+          brightCyan: '#56b6c2',
+          brightWhite: '#ffffff',
+        },
+      });
+
+      const fitAddon = new FitAddon();
+      terminal.loadAddon(fitAddon);
+
+      const session: PTYSession = {
+        id: sessionId,
+        terminal,
+        fitAddon,
+      };
+
+      this.sessions.set(sessionId, session);
+
+      // Listen for data from PTY
+      const dataHandler = (...args: unknown[]) => {
+        const data = args[0] as { sessionId: string; data: string };
+        if (data.sessionId === sessionId) {
+          terminal.write(data.data);
+        }
+      };
+
+      window.electronAPI.on('pty:data', dataHandler);
+
+      // Listen for PTY exit
+      const exitHandler = (...args: unknown[]) => {
+        const data = args[0] as { sessionId: string; exitCode: number; signal?: number };
+        if (data.sessionId === sessionId) {
+          terminal.writeln(`\r\n\x1b[31mProcess exited with code ${data.exitCode}\x1b[0m`);
+          this.sessions.delete(sessionId);
+        }
+      };
+
+      window.electronAPI.on('pty:exit', exitHandler);
+
+      // Handle input from terminal
+      terminal.onData((data) => {
+        this.write(sessionId, data);
+      });
+
+      return session;
+    } catch (error) {
+      console.error('Failed to create PTY session:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Write data to PTY
+   */
+  async write(sessionId: string, data: string): Promise<void> {
+    await window.electronAPI.invoke('pty:write', sessionId, data);
+  }
+
+  /**
+   * Resize PTY
+   */
+  async resize(sessionId: string, cols: number, rows: number): Promise<void> {
+    await window.electronAPI.invoke('pty:resize', sessionId, cols, rows);
+  }
+
+  /**
+   * Kill PTY session
+   */
+  async kill(sessionId: string): Promise<void> {
+    await window.electronAPI.invoke('pty:kill', sessionId);
+    this.sessions.delete(sessionId);
+  }
+
+  /**
+   * Get session
+   */
+  getSession(sessionId: string): PTYSession | undefined {
+    return this.sessions.get(sessionId);
+  }
+
+  /**
+   * Check if session exists
+   */
+  hasSession(sessionId: string): boolean {
+    return this.sessions.has(sessionId);
+  }
+}
+
+export const ptyApi = new PTYAPI();
+
 // Export all APIs
 export const api = {
   sessions: sessionsApi,
@@ -323,4 +468,5 @@ export const api = {
   file: fileApi,
   tree: treeApi,
   git: gitApi,
+  pty: ptyApi,
 };
