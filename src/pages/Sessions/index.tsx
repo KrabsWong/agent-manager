@@ -67,7 +67,6 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
     initialWidth: 320,
     minWidth: 160, // 当前宽度的一半
     collapsed: sidebarCollapsed,
-    collapsedWidth: 48, // 收起时的宽度，只显示图标
   });
 
   // View mode and collapse state for session list
