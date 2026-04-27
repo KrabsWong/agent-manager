@@ -9,8 +9,6 @@ interface UseSidebarResizeOptions {
   maxWidthRatio?: number;
   /** 是否收起 */
   collapsed?: boolean;
-  /** 收起时的宽度 */
-  collapsedWidth?: number;
 }
 
 interface UseSidebarResizeReturn {
@@ -35,7 +33,6 @@ interface UseSidebarResizeReturn {
  *   initialWidth: 320,
  *   minWidth: 160,
  *   collapsed: isCollapsed,
- *   collapsedWidth: 48,
  * });
  *
  * return (
@@ -52,7 +49,6 @@ export function useSidebarResize({
   minWidth,
   maxWidthRatio = 0.8,
   collapsed = false,
-  collapsedWidth = 48,
 }: UseSidebarResizeOptions): UseSidebarResizeReturn {
   // 保存展开时的宽度
   const [expandedWidth, setExpandedWidth] = useState(initialWidth);
