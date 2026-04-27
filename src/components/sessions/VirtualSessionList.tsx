@@ -5,7 +5,7 @@
  * Only renders visible items + small buffer for smooth scrolling
  */
 
-import { useRef, useMemo, useContext, createContext, useCallback } from 'react';
+import { useRef, useMemo, useContext, createContext, useCallback, useEffect } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ChevronDown, ChevronRight, ChevronsDown, ChevronsUp, Folder } from 'lucide-react';
 import { MarqueeText } from '@/components/MarqueeText';
@@ -477,6 +477,20 @@ export function VirtualSessionList({
     ),
     overscan: 5, // Render 5 extra items above/below visible area for smooth scrolling
   });
+
+  // Measure when items change or on mount
+  useEffect(() => {
+    virtualizer.measure();
+  }, [items, virtualizer]);
+
+  // Measure on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      virtualizer.measure();
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [virtualizer]);
 
   const virtualItems = virtualizer.getVirtualItems();
 

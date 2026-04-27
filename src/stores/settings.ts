@@ -27,6 +27,9 @@ interface SettingsState {
   theme: Theme;
   accentColor: AccentColor;
 
+  // ============ Sidebar ============
+  sidebarCollapsed: boolean;
+
   // ============ Actions ============
   // 通用更新方法
   updateSetting: <K extends keyof SettingsState>(
@@ -50,6 +53,10 @@ interface SettingsState {
   toggleTheme: () => Promise<void>;
   setAccentColor: (color: AccentColor) => Promise<void>;
   resetAccentColor: () => Promise<void>;
+
+  // Sidebar actions
+  toggleSidebar: () => Promise<void>;
+  setSidebarCollapsed: (collapsed: boolean) => Promise<void>;
 }
 
 // 从 __INITIAL_SETTINGS__ 获取初始值
@@ -66,6 +73,8 @@ const getInitialSettings = (): Partial<SettingsState> => {
       // 原 ThemeProvider
       theme: (s.theme as Theme) || 'system',
       accentColor: (s.accentColor as AccentColor) || defaultAccentColor,
+      // Sidebar
+      sidebarCollapsed: s.sidebarCollapsed ?? false,
     };
   }
   return {
@@ -75,6 +84,7 @@ const getInitialSettings = (): Partial<SettingsState> => {
     showThinkingContent: true,
     theme: 'system',
     accentColor: defaultAccentColor,
+    sidebarCollapsed: false,
   };
 };
 
@@ -98,6 +108,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   showThinkingContent: initialSettings.showThinkingContent ?? true,
   theme: initialSettings.theme ?? 'system',
   accentColor: initialSettings.accentColor ?? defaultAccentColor,
+  sidebarCollapsed: initialSettings.sidebarCollapsed ?? false,
 
   // ============ 通用更新方法 ============
   updateSetting: async <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => {
@@ -171,6 +182,18 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   resetAccentColor: async () => {
     set({ accentColor: defaultAccentColor });
     await syncToMain('accentColor', defaultAccentColor);
+  },
+
+  // ============ Sidebar Actions ============
+  toggleSidebar: async () => {
+    const newValue = !get().sidebarCollapsed;
+    set({ sidebarCollapsed: newValue });
+    await syncToMain('sidebarCollapsed', newValue);
+  },
+
+  setSidebarCollapsed: async (collapsed) => {
+    set({ sidebarCollapsed: collapsed });
+    await syncToMain('sidebarCollapsed', collapsed);
   },
 }));
 

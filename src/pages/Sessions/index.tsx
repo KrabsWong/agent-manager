@@ -18,6 +18,7 @@ import {
   ArrowDown,
 } from 'lucide-react';
 import { useSidebarResize } from '@/hooks/useSidebarResize';
+import { useSettingsStore } from '@/stores/settings';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -58,10 +59,15 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
   const [isTerminalOpen, setIsTerminalOpen] = useState(false);
   const terminalRef = useRef<BuiltInTerminalRef>(null);
 
+  // Sidebar collapse state
+  const { sidebarCollapsed } = useSettingsStore();
+
   // 侧边栏拖拽调整宽度
   const { isResizing, startResizing, style: sidebarStyle } = useSidebarResize({
     initialWidth: 320,
     minWidth: 160, // 当前宽度的一半
+    collapsed: sidebarCollapsed,
+    collapsedWidth: 48, // 收起时的宽度，只显示图标
   });
 
   // View mode and collapse state for session list
@@ -249,174 +255,189 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Main Content */}
-      <div className={cn('flex gap-0 flex-1 min-h-0 p-4 transition-all duration-300')}>
-        {/* Session List - always visible */}
+      <div className={cn('flex gap-0 flex-1 min-h-0 p-4')}>
+        {/* Session List - Sidebar - with animation */}
         <div
-          className="flex flex-col min-h-0 border-r bg-card/50 overflow-hidden shrink-0"
+          className={cn(
+            "flex flex-col h-full min-h-0 border-r bg-card/50 overflow-hidden shrink-0 transition-[width,opacity] duration-300 ease-in-out",
+            sidebarCollapsed && "border-r-0"
+          )}
           style={sidebarStyle}
         >
-            {/* App Selector */}
-            <div className="px-3 py-2 border-b border-border/40 bg-card">
-              <Select value={selectedApp} onValueChange={(value) => onAppChange(value as AppType)}>
-                <SelectTrigger className="w-full h-9">
-                  <div className="flex items-center gap-2">
-                    <span className={APP_COLORS[selectedApp]}>{getAppIcon(selectedApp, 16)}</span>
-                    <span className="truncate font-medium">{APP_LABELS[selectedApp]}</span>
-                  </div>
-                </SelectTrigger>
-                <SelectContent className="min-w-[18rem]">
-                  {APP_ORDER.map((app) => {
-                    const supported = isAppSupported(app);
-                    return (
-                      <SelectItem
-                        key={app}
-                        value={app}
-                        disabled={!supported}
-                        className={!supported ? 'opacity-50 cursor-not-allowed' : ''}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className={APP_COLORS[app]}>{getAppIcon(app, 16)}</span>
-                          <span>{APP_LABELS[app]}</span>
-                          {!supported && (
-                            <span className="text-xs text-muted-foreground ml-2">
-                              ({t('sessions.comingSoon')})
-                            </span>
-                          )}
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Sidebar Content - with fade animation */}
+          <div
+            className={cn(
+              "flex flex-col min-h-0 flex-1 transition-opacity duration-200 ease-in-out",
+              sidebarCollapsed ? "opacity-0" : "opacity-100"
+            )}
+            style={{
+              transitionDelay: sidebarCollapsed ? '0ms' : '150ms',
+            }}
+          >
+            {/* App Selector - First item in sidebar */}
+              <div className="px-3 py-2 border-b border-border/40 bg-card">
+                <Select value={selectedApp} onValueChange={(value) => onAppChange(value as AppType)}>
+                  <SelectTrigger className="w-full h-9">
+                    <div className="flex items-center gap-2">
+                      <span className={APP_COLORS[selectedApp]}>{getAppIcon(selectedApp, 16)}</span>
+                      <span className="truncate font-medium">{APP_LABELS[selectedApp]}</span>
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent className="min-w-[18rem]">
+                    {APP_ORDER.map((app) => {
+                      const supported = isAppSupported(app);
+                      return (
+                        <SelectItem
+                          key={app}
+                          value={app}
+                          disabled={!supported}
+                          className={!supported ? 'opacity-50 cursor-not-allowed' : ''}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className={APP_COLORS[app]}>{getAppIcon(app, 16)}</span>
+                            <span>{APP_LABELS[app]}</span>
+                            {!supported && (
+                              <span className="text-xs text-muted-foreground ml-2">
+                                ({t('sessions.comingSoon')})
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            {/* List Header */}
-            <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/40 bg-card">
-              {/* Stats */}
-              {isSupported && stats && (
-                <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                  <span>
-                    {stats.totalSessions} {t('sessions.sessionsLabel', 'Sessions')}
-                  </span>
-                  <span className="text-border">·</span>
-                  <span>
-                    {stats.totalMessages} {t('sessions.messagesLabel', 'Messages')}
-                  </span>
+              {/* List Header */}
+              <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/40 bg-card">
+                {/* Stats */}
+                {isSupported && stats && (
+                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                    <span>
+                      {stats.totalSessions} {t('sessions.sessionsLabel', 'Sessions')}
+                    </span>
+                    <span className="text-border">·</span>
+                    <span>
+                      {stats.totalMessages} {t('sessions.messagesLabel', 'Messages')}
+                    </span>
+                  </div>
+                )}
+
+                {/* View Mode Toggle - Icon buttons */}
+                <div className="flex items-center bg-primary-muted rounded-md p-0.5">
+                  <button
+                    onClick={() => setViewMode('date')}
+                    className={`px-2 py-1 text-[10px] font-medium rounded-sm transition-all ${
+                      viewMode === 'date'
+                        ? 'bg-card text-primary shadow-sm'
+                        : 'text-muted-foreground hover:text-primary'
+                    }`}
+                    title={t('sessions.viewByDate', 'Group by date')}
+                  >
+                    {t('sessions.date', 'Date')}
+                  </button>
+                  <button
+                    onClick={() => setViewMode('directory')}
+                    className={`px-2 py-1 text-[10px] font-medium rounded-sm transition-all ${
+                      viewMode === 'directory'
+                        ? 'bg-card text-primary shadow-sm'
+                        : 'text-muted-foreground hover:text-primary'
+                    }`}
+                    title={t('sessions.viewByDirectory', 'Group by directory')}
+                  >
+                    {t('sessions.directory', 'Directory')}
+                  </button>
+                </div>
+              </div>
+
+              {isLoading ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="text-muted-foreground">
+                    {t('sessions.loading') || 'Loading sessions...'}
+                  </div>
+                </div>
+              ) : error ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="text-destructive flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5" />
+                    {t('sessions.error') || 'Failed to load sessions'}
+                  </div>
+                </div>
+              ) : !isSupported ? (
+                <div className="flex flex-col items-center justify-center h-64 space-y-4 p-4">
+                  <div className="text-muted-foreground text-center">
+                    <p className="text-lg font-medium mb-2">
+                      {t('sessions.comingSoon') || 'Coming Soon'}
+                    </p>
+                    <p className="text-sm">
+                      {t('sessions.unsupportedApp') ||
+                        `Session viewing is not yet supported for ${APP_LABELS[selectedApp]}.`}
+                    </p>
+                  </div>
+                  <Button variant="outline" onClick={() => onAppChange('claude')}>
+                    {t('sessions.switchToClaude') || 'Switch to Claude Code'}
+                  </Button>
+                </div>
+              ) : !supportStatus?.isAvailable ? (
+                <div className="flex flex-col items-center justify-center h-64 space-y-4 p-4">
+                  <div className="text-muted-foreground text-center">
+                    <p className="text-lg font-medium mb-2">
+                      {t('sessions.notInstalled') || 'Not Installed'}
+                    </p>
+                    <p className="text-sm">
+                      {t('sessions.notInstalledDesc', { app: APP_LABELS[selectedApp] }) ||
+                        `Install ${APP_LABELS[selectedApp]} to view your conversation history.`}
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => window.open(APP_WEBSITES[selectedApp], '_blank')}
+                    className="flex items-center gap-2"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    {t('sessions.visitWebsite') || 'Visit Website'}
+                  </Button>
+                </div>
+              ) : sessions?.length === 0 ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="text-muted-foreground text-center">
+                    <p className="text-lg font-medium mb-2">
+                      {t('sessions.noSessions') || 'No Sessions Found'}
+                    </p>
+                    <p className="text-sm">
+                      {t('sessions.noSessionsDesc') ||
+                        'No conversation history found for this application.'}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1 min-h-0 p-2">
+                  <VirtualSessionList
+                    sessions={sessions || []}
+                    selectedSession={selectedSession}
+                    onSelect={handleSessionSelect}
+                    t={t as (key: string, defaultValue?: string) => string}
+                    collapsedGroups={collapsedGroups}
+                    toggleGroup={toggleGroup}
+                    expandAll={expandAll}
+                    collapseAll={collapseAll}
+                    allExpanded={allExpanded}
+                    allCollapsed={allCollapsed}
+                    viewMode={viewMode}
+                  />
                 </div>
               )}
+            </div> {/* Sidebar Content */}
+          </div> {/* Sidebar Container */}
 
-              {/* View Mode Toggle - Icon buttons */}
-              <div className="flex items-center bg-primary-muted rounded-md p-0.5">
-                <button
-                  onClick={() => setViewMode('date')}
-                  className={`px-2 py-1 text-[10px] font-medium rounded-sm transition-all ${
-                    viewMode === 'date'
-                      ? 'bg-card text-primary shadow-sm'
-                      : 'text-muted-foreground hover:text-primary'
-                  }`}
-                  title={t('sessions.viewByDate', 'Group by date')}
-                >
-                  {t('sessions.date', 'Date')}
-                </button>
-                <button
-                  onClick={() => setViewMode('directory')}
-                  className={`px-2 py-1 text-[10px] font-medium rounded-sm transition-all ${
-                    viewMode === 'directory'
-                      ? 'bg-card text-primary shadow-sm'
-                      : 'text-muted-foreground hover:text-primary'
-                  }`}
-                  title={t('sessions.viewByDirectory', 'Group by directory')}
-                >
-                  {t('sessions.directory', 'Directory')}
-                </button>
-              </div>
-            </div>
-
-            {isLoading ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="text-muted-foreground">
-                  {t('sessions.loading') || 'Loading sessions...'}
-                </div>
-              </div>
-            ) : error ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="text-destructive flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5" />
-                  {t('sessions.error') || 'Failed to load sessions'}
-                </div>
-              </div>
-            ) : !isSupported ? (
-              <div className="flex flex-col items-center justify-center h-64 space-y-4 p-4">
-                <div className="text-muted-foreground text-center">
-                  <p className="text-lg font-medium mb-2">
-                    {t('sessions.comingSoon') || 'Coming Soon'}
-                  </p>
-                  <p className="text-sm">
-                    {t('sessions.unsupportedApp') ||
-                      `Session viewing is not yet supported for ${APP_LABELS[selectedApp]}.`}
-                  </p>
-                </div>
-                <Button variant="outline" onClick={() => onAppChange('claude')}>
-                  {t('sessions.switchToClaude') || 'Switch to Claude Code'}
-                </Button>
-              </div>
-            ) : !supportStatus?.isAvailable ? (
-              <div className="flex flex-col items-center justify-center h-64 space-y-4 p-4">
-                <div className="text-muted-foreground text-center">
-                  <p className="text-lg font-medium mb-2">
-                    {t('sessions.notInstalled') || 'Not Installed'}
-                  </p>
-                  <p className="text-sm">
-                    {t('sessions.notInstalledDesc', { app: APP_LABELS[selectedApp] }) ||
-                      `Install ${APP_LABELS[selectedApp]} to view your conversation history.`}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  onClick={() => window.open(APP_WEBSITES[selectedApp], '_blank')}
-                  className="flex items-center gap-2"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  {t('sessions.visitWebsite') || 'Visit Website'}
-                </Button>
-              </div>
-            ) : sessions?.length === 0 ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="text-muted-foreground text-center">
-                  <p className="text-lg font-medium mb-2">
-                    {t('sessions.noSessions') || 'No Sessions Found'}
-                  </p>
-                  <p className="text-sm">
-                    {t('sessions.noSessionsDesc') ||
-                      'No conversation history found for this application.'}
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="flex-1 min-h-0 p-2">
-                <VirtualSessionList
-                  sessions={sessions || []}
-                  selectedSession={selectedSession}
-                  onSelect={handleSessionSelect}
-                  t={t as (key: string, defaultValue?: string) => string}
-                  collapsedGroups={collapsedGroups}
-                  toggleGroup={toggleGroup}
-                  expandAll={expandAll}
-                  collapseAll={collapseAll}
-                  allExpanded={allExpanded}
-                  allCollapsed={allCollapsed}
-                  viewMode={viewMode}
-                />
-              </div>
-            )}
-          </div>
-
-        {/* Resizable Divider */}
+        {/* Resizable Divider - with animation */}
         <div
           onMouseDown={startResizing}
           className={cn(
-            "w-1 shrink-0 cursor-col-resize transition-all duration-150 hover:bg-primary/50",
-            isResizing && "bg-primary/50"
+            "shrink-0 cursor-col-resize transition-[width,opacity] duration-300 ease-in-out hover:bg-primary/50",
+            isResizing && "bg-primary/50",
+            sidebarCollapsed ? "w-0 opacity-0" : "w-1 opacity-100"
           )}
           title={t('common.resizeSidebar', '拖拽调整宽度')}
         />
