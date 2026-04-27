@@ -12,7 +12,8 @@
     "asar": true,
     "asarUnpack": [
       "node_modules/better-sqlite3/**/*.node",
-      "node_modules/keytar/**/*.node"
+      "node_modules/keytar/**/*.node",
+      "node_modules/node-pty/**/*.node"
     ],
     "files": [
       "dist/**/*",
@@ -74,7 +75,10 @@
       "node_modules/ieee754/**/*",
       "node_modules/xtend/**/*",
       "node_modules/fs-constants/**/*",
-      "node_modules/chownr/**/*"
+      "node_modules/chownr/**/*",
+      "node_modules/node-pty/**/*",
+      "node_modules/@xterm/xterm/**/*",
+      "node_modules/@xterm/addon-fit/**/*"
     ]
   },
   "scripts": {
@@ -137,6 +141,8 @@
     "@types/diff-match-patch": "^1.0.36",
     "@types/react-syntax-highlighter": "^15.5.13",
     "@uiw/react-md-editor": "^4.1.0",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/xterm": "^5.5.0",
     "better-sqlite3": "^9.6.0",
     "bytenode": "^1.5.7",
     "class-variance-authority": "^0.7.0",
@@ -156,6 +162,7 @@
     "mermaid": "^11.14.0",
     "monaco-editor": "^0.55.1",
     "node-fetch": "^3.3.0",
+    "node-pty": "^1.0.0",
     "react": "^18.3.0",
     "react-diff-viewer-continued": "^4.2.2",
     "react-dom": "^18.3.0",
@@ -167,6 +174,8 @@
     "recharts": "^3.8.1",
     "remark-gfm": "^4.0.1",
     "tailwind-merge": "^2.2.0",
+    "xterm": "^5.3.0",
+    "xterm-addon-fit": "^0.8.0",
     "zod": "^3.23.0",
     "zustand": "^4.5.0"
   },

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Terminal, Ghost, Cat } from 'lucide-react';
+import { Terminal, Ghost, Cat, Monitor } from 'lucide-react';
 import { useTerminalInfo } from '@/hooks/useSessions';
 import { useSettings } from '@/hooks/useSettings';
 import { useToast } from '@/hooks/useToast';
@@ -11,6 +11,7 @@ type TerminalOption = {
   label: string;
   icon: React.ReactNode;
   description: string;
+  alwaysAvailable?: boolean;
 };
 
 export function TerminalSelector() {
@@ -19,7 +20,21 @@ export function TerminalSelector() {
   const { settings, updateSettings } = useSettings();
   const { toast } = useToast();
 
-  const installedTerminals: TerminalOption[] = [
+  const allOptions: TerminalOption[] = [
+    {
+      id: 'auto',
+      label: t('settings.terminalAuto', 'Auto-detect'),
+      icon: <Terminal className="h-4 w-4" />,
+      description: t('settings.terminalAutoDesc', 'Automatically select best available terminal'),
+      alwaysAvailable: true,
+    },
+    {
+      id: 'builtin',
+      label: t('settings.terminalBuiltin', 'Built-in Terminal'),
+      icon: <Monitor className="h-4 w-4" />,
+      description: t('settings.terminalBuiltinDesc', 'Integrated terminal in the app window'),
+      alwaysAvailable: true,
+    },
     {
       id: 'ghostty',
       label: 'Ghostty',
@@ -37,22 +52,17 @@ export function TerminalSelector() {
       label: 'Terminal.app',
       icon: <Terminal className="h-4 w-4" />,
       description: t('settings.terminalDefaultDesc', 'macOS default terminal'),
+      alwaysAvailable: true,
     },
   ];
 
-  // Filter to only show installed terminals + auto option
-  const availableOptions: TerminalOption[] = [
-    {
-      id: 'auto',
-      label: t('settings.terminalAuto', 'Auto-detect'),
-      icon: <Terminal className="h-4 w-4" />,
-      description: t('settings.terminalAutoDesc', 'Automatically select best available terminal'),
-    },
-    ...(terminalInfo?.ghosttyInstalled ? installedTerminals.filter((t) => t.id === 'ghostty') : []),
-    ...(terminalInfo?.kittyInstalled ? installedTerminals.filter((t) => t.id === 'kitty') : []),
-    // Always show Terminal.app as fallback
-    installedTerminals.find((t) => t.id === 'terminal')!,
-  ];
+  // Filter to only show available options
+  const availableOptions: TerminalOption[] = allOptions.filter((option) => {
+    if (option.alwaysAvailable) return true;
+    if (option.id === 'ghostty') return terminalInfo?.ghosttyInstalled;
+    if (option.id === 'kitty') return terminalInfo?.kittyInstalled;
+    return true;
+  });
 
   const handleSelect = (terminalId: AppSettings['preferredTerminal']) => {
     updateSettings({ preferredTerminal: terminalId });
@@ -68,23 +78,16 @@ export function TerminalSelector() {
       <div className="space-y-2">
         {availableOptions.map((option) => {
           const isSelected = settings?.preferredTerminal === option.id;
-          const isDisabled =
-            option.id !== 'auto' &&
-            option.id !== 'terminal' &&
-            !terminalInfo?.ghosttyInstalled &&
-            !terminalInfo?.kittyInstalled;
 
           return (
             <button
               key={option.id}
               onClick={() => handleSelect(option.id)}
-              disabled={isDisabled}
               className={cn(
                 'w-full flex items-center gap-3 p-2.5 rounded-md border transition-all text-left',
                 isSelected
                   ? 'border-primary-border bg-primary-muted'
-                  : 'border-border/60 hover:border-primary-border hover:bg-primary-muted',
-                isDisabled && 'opacity-50 cursor-not-allowed'
+                  : 'border-border/60 hover:border-primary-border hover:bg-primary-muted'
               )}
             >
               <div

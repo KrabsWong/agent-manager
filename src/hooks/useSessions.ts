@@ -92,5 +92,7 @@ export function useTerminalInfo() {
   return useQuery({
     queryKey: sessionsKeys.terminalInfo(),
     queryFn: () => sessionsApi.getTerminalInfo(),
+    refetchOnWindowFocus: true, // Refetch when window regains focus
+    staleTime: 0, // Always treat data as stale to ensure freshness
   });
 }
