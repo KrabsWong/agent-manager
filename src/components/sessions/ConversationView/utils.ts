@@ -174,7 +174,26 @@ export function groupMessagesIntoTurns(messages: SessionMessage[], appType?: str
       case 'tool_result': {
         let matched = false;
 
-        if (currentTurn && pendingToolCalls.length > 0) {
+        // First try to match by callId if available (most accurate)
+        if (currentTurn && message.callId) {
+          const pendingIndex = currentTurn.toolCalls.findIndex(
+            (tc) => tc.toolUse?.callId === message.callId && !tc.toolResult
+          );
+          if (pendingIndex >= 0) {
+            currentTurn.toolCalls[pendingIndex].toolResult = message;
+            // Also remove from pendingToolCalls if present
+            const pendingToolIndex = pendingToolCalls.findIndex(
+              (tc) => tc.callId === message.callId
+            );
+            if (pendingToolIndex >= 0) {
+              pendingToolCalls.splice(pendingToolIndex, 1);
+            }
+            matched = true;
+          }
+        }
+
+        // Fall back to tool_name matching if callId matching failed
+        if (!matched && currentTurn && pendingToolCalls.length > 0) {
           const pendingIndex = pendingToolCalls.findIndex(
             (tc) => tc.tool_name === message.tool_name
           );
@@ -191,8 +210,21 @@ export function groupMessagesIntoTurns(messages: SessionMessage[], appType?: str
           }
         }
 
+        // Try to match in previous turns if not matched in current turn
         if (!matched) {
           for (const turn of turns) {
+            // First try to match by callId
+            if (message.callId) {
+              const orphanedByCallId = turn.toolCalls.find(
+                (tc) => tc.toolUse?.callId === message.callId && !tc.toolResult
+              );
+              if (orphanedByCallId) {
+                orphanedByCallId.toolResult = message;
+                matched = true;
+                break;
+              }
+            }
+            // Fall back to tool_name matching
             const orphanedToolCall = turn.toolCalls.find(
               (tc) => tc.toolUse && !tc.toolResult && tc.toolUse.tool_name === message.tool_name
             );

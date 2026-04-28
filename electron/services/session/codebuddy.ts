@@ -661,6 +661,7 @@ export class CodebuddySessionService {
               tool_input: toolInput,
               content: toolContent,
               model: currentModel,
+              callId: callId,
             });
           } else if (entry.type === 'function_call_result') {
             // Tool execution result
@@ -708,6 +709,7 @@ export class CodebuddySessionService {
               tool_output: {
                 output: outputText,
               },
+              callId: entry.callId,
               metadata: childSessionId
                 ? {
                     childSessionId,

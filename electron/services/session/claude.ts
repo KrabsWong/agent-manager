@@ -605,6 +605,7 @@ export class ClaudeSessionService {
             timestamp,
             tool_name: toolCalls[0].name,
             tool_input: toolCalls[0].input,
+            callId: msg.uuid, // Use message uuid to match with tool_result's sourceToolAssistantUUID
             content,
             model: messageModel,
           };
@@ -643,24 +644,38 @@ export class ClaudeSessionService {
     if (msg.type === 'tool_result' || msg.toolUseResult) {
       const output = msg.message?.content || msg.toolUseResult || '';
       let outputText = '';
+      let toolName = 'tool';
 
       if (typeof output === 'string') {
         outputText = output;
       } else if (Array.isArray(output)) {
-        outputText = output
-          .filter((item: { type?: string; text?: string }) => item.type === 'text' || item.text)
-          .map((item: { text?: string }) => item.text || '')
-          .join('\n');
+        // Extract text content and tool_use_id
+        const textItems: string[] = [];
+        for (const item of output) {
+          if (item.type === 'text' && item.text) {
+            textItems.push(item.text);
+          }
+          // Extract tool name from tool_use_id (e.g., "Read:0" -> "Read")
+          const toolUseId = (item as unknown as { tool_use_id?: string }).tool_use_id;
+          if (toolUseId && typeof toolUseId === 'string') {
+            const toolNameMatch = toolUseId.match(/^([^:]+)/);
+            if (toolNameMatch) {
+              toolName = toolNameMatch[1];
+            }
+          }
+        }
+        outputText = textItems.join('\n');
       }
 
       return {
         type: 'tool_result',
         timestamp,
-        tool_name: msg.message?.role || 'tool',
+        tool_name: toolName,
         content: outputText.substring(0, 300),
         tool_output: {
           output: outputText,
         },
+        callId: msg.sourceToolAssistantUUID,
         model: messageModel,
       };
     }

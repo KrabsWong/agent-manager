@@ -20,6 +20,7 @@ export interface SessionMessage {
     truncated?: boolean;
     [key: string]: unknown;
   };
+  callId?: string; // Unique ID to match tool_use with tool_result
   metadata?: {
     subtype?: string;
     command?: string;
