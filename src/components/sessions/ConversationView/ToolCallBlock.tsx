@@ -102,14 +102,14 @@ export const ToolCallBlock = memo(function ToolCallBlock({
     if (!searchQuery) return;
     const query = searchQuery.toLowerCase();
     const inputStr = toolUse?.tool_input ? JSON.stringify(toolUse.tool_input).toLowerCase() : '';
-    const outputStr = toolResult?.tool_output
-      ? JSON.stringify(toolResult.tool_output).toLowerCase()
+    const outputStr = (toolResult?.tool_output || toolUse?.tool_output)
+      ? JSON.stringify(toolResult?.tool_output || toolUse?.tool_output).toLowerCase()
       : '';
     const hasMatch = inputStr.includes(query) || outputStr.includes(query);
     if (hasMatch) {
       setIsExpanded(true);
     }
-  }, [searchQuery, toolUse?.tool_input, toolResult?.tool_output]);
+  }, [searchQuery, toolUse?.tool_input, toolResult?.tool_output, toolUse?.tool_output]);
 
   if (toolType === 'subagent') {
     return (
@@ -246,11 +246,11 @@ export const ToolCallBlock = memo(function ToolCallBlock({
         </div>
       )}
 
-      {isExpanded && toolResult?.tool_output && (
+      {isExpanded && (toolResult?.tool_output || toolUse?.tool_output) && (
         <div className="px-3 py-2">
           <div className="text-xs text-muted-foreground mb-1">Output</div>
           <ToolOutputDisplay
-            output={toolResult.tool_output}
+            output={toolResult?.tool_output || toolUse?.tool_output}
             searchQuery={searchQuery}
             toolName={toolName}
           />

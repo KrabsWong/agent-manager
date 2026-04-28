@@ -300,12 +300,18 @@ export class OpenCodeSessionService {
 
     // Check for tool calls in assistant messages
     if (role === 'assistant' && toolCalls.length > 0) {
+      const toolCall = toolCalls[0];
+      const state = (toolCall.state as Record<string, unknown>) || {};
+      const toolOutput = state.output
+        ? { output: JSON.stringify(state.output) }
+        : undefined;
+
       return {
         type: 'tool_use',
         timestamp: timeStr,
-        tool_name: (toolCalls[0].tool as string) || 'tool',
-        tool_input:
-          ((toolCalls[0].state as Record<string, unknown>)?.input as Record<string, unknown>) || {},
+        tool_name: (toolCall.tool as string) || 'tool',
+        tool_input: (state.input as Record<string, unknown>) || {},
+        tool_output: toolOutput,
         content,
         reasoning_content: reasoningContent || undefined,
         model: messageModel,
