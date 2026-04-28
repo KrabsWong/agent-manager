@@ -6,9 +6,49 @@
 
 import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import mermaid from 'mermaid';
+import { CollapsibleCodeBlock } from './CodeBlock';
 
 interface MermaidDiagramProps {
   content: string;
+}
+
+// 检测内容是否是有效的 Mermaid 语法
+// 支持: graph, flowchart, sequenceDiagram, classDiagram, stateDiagram, erDiagram, gantt, pie, requirementDiagram, gitgraph, C4Context, mindmap, timeline, etc.
+function isValidMermaidSyntax(content: string): boolean {
+  const trimmed = content.trim();
+  if (!trimmed) return false;
+
+  // 有效的 Mermaid 图表类型前缀
+  const validPrefixes = [
+    'graph ',
+    'flowchart ',
+    'sequenceDiagram',
+    'classDiagram',
+    'stateDiagram',
+    'erDiagram',
+    'gantt',
+    'pie',
+    'requirementDiagram',
+    'gitgraph',
+    'C4Context',
+    'C4Container',
+    'C4Component',
+    'C4Dynamic',
+    'C4Deployment',
+    'mindmap',
+    'timeline',
+    'quadrantChart',
+    'xychart-beta',
+    'sankey-beta',
+    'block-beta',
+    'packet-beta',
+    'architecture-beta',
+  ];
+
+  const firstLine = trimmed.split('\n')[0].trim().toLowerCase();
+
+  // 检查是否以有效的图表类型开头
+  return validPrefixes.some((prefix) => firstLine.startsWith(prefix.toLowerCase()));
 }
 
 export const MermaidDiagram = memo(function MermaidDiagram({ content }: MermaidDiagramProps) {
@@ -17,6 +57,11 @@ export const MermaidDiagram = memo(function MermaidDiagram({ content }: MermaidD
   const [isLoading, setIsLoading] = useState(true);
   const [showRaw, setShowRaw] = useState(false);
   const renderedRef = useRef(false);
+
+  // 如果不是有效的 Mermaid 语法，直接渲染为普通代码块
+  if (!isValidMermaidSyntax(content)) {
+    return <CollapsibleCodeBlock content={content} language="text" />;
+  }
 
   useEffect(() => {
     if (renderedRef.current) return;
@@ -252,13 +297,22 @@ function MermaidDiagramWithZoom({ svg }: MermaidDiagramWithZoomProps) {
     setIsDragging(false);
   };
 
-  const handleWheel = (e: React.WheelEvent) => {
-    if (e.ctrlKey || e.metaKey) {
-      e.preventDefault();
-      const delta = e.deltaY > 0 ? 0.9 : 1.1;
-      setScale((s) => Math.min(Math.max(s * delta, 0.1), 5));
-    }
-  };
+  // 使用原生事件监听处理 wheel，避免 passive 事件监听器警告
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        setScale((s) => Math.min(Math.max(s * delta, 0.1), 5));
+      }
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, []);
 
   return (
     <div className="rounded-md border border-primary-border bg-background">
@@ -304,7 +358,6 @@ function MermaidDiagramWithZoom({ svg }: MermaidDiagramWithZoomProps) {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        onWheel={handleWheel}
       >
         <div
           ref={contentRef}
