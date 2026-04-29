@@ -420,6 +420,10 @@ export class ClaudeSessionService {
       for (const line of lines) {
         try {
           const message = JSON.parse(line) as SessionMessage;
+          // Filter out internal messages without content (old format compatibility)
+          if (message.type === 'user' && !message.content) {
+            continue;
+          }
           messages.push(message);
         } catch (error) {
           log.warn('Failed to parse message:', error);
@@ -497,6 +501,25 @@ export class ClaudeSessionService {
     const messageModel = this.extractModelFromMessage(msg, sessionModel);
 
     if (msg.type === 'user') {
+      // Skip messages without promptId - these are internal/tool result messages, not user input
+      if (!msg.promptId) {
+        // Check if this is a tool result that should be converted to tool_result type
+        if (msg.toolUseResult) {
+          return {
+            type: 'tool_result',
+            timestamp,
+            tool_name: 'unknown',
+            content: msg.toolUseResult.substring(0, 300),
+            tool_output: {
+              output: msg.toolUseResult,
+            },
+            callId: msg.sourceToolAssistantUUID,
+            model: messageModel,
+          };
+        }
+        return null;
+      }
+
       let content = '';
       if (msg.message?.content && typeof msg.message.content === 'string') {
         content = msg.message.content;
@@ -505,8 +528,6 @@ export class ClaudeSessionService {
           .filter((item: { type: string; text?: string }) => item.type === 'text')
           .map((item: { text?: string }) => item.text || '')
           .join('\n');
-      } else if (msg.toolUseResult) {
-        content = `[${msg.toolUseResult}]`;
       }
 
       // Check for local command messages and convert to system messages
