@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Bot, ExternalLink, ChevronUp, Maximize2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { formatTimestamp } from './ConversationView/utils';
 import type { SessionMessage } from '@/types/session';
 
 interface SubAgentCardProps {
@@ -70,9 +71,12 @@ export function SubAgentCard({ toolUse, toolResult, onViewSession, className }: 
             {subAgentModel}
           </span>
         )}
+        <span className="text-xs text-muted-foreground ml-auto">
+          {formatTimestamp(toolUse?.timestamp || toolResult?.timestamp || '')}
+        </span>
         <span
           className={cn(
-            'text-xs px-1.5 py-0.5 rounded-full ml-auto',
+            'text-xs px-1.5 py-0.5 rounded-full',
             status === 'completed'
               ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
               : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
