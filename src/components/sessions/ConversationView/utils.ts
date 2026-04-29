@@ -530,11 +530,11 @@ export function formatTimestamp(timestamp: string): string {
 /**
  * Format value for display
  */
-export function formatValue(value: unknown): string {
+export function formatValue(value: unknown, truncate: boolean = false): string {
   if (value === null) return 'null';
   if (value === undefined) return 'undefined';
   if (typeof value === 'string') {
-    if (value.length > 100) {
+    if (truncate && value.length > 100) {
       return value.substring(0, 100) + '...';
     }
     return value;

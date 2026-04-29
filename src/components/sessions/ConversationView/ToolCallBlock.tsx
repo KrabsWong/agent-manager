@@ -286,7 +286,7 @@ function ToolInputDisplay({ input, searchQuery = '', toolName = '' }: ToolInputD
         return (
           <div key={key} className="flex gap-2">
             <span className="text-muted-foreground font-mono flex-shrink-0">{key}:</span>
-            <span className="font-mono break-all">
+            <span className="font-mono break-all whitespace-pre-wrap">
               {searchQuery ? (
                 <HighlightedText text={formattedValue} query={searchQuery} />
               ) : (
