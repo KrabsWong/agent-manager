@@ -20,6 +20,7 @@ import {
   getToolDisplayName,
   getToolSummary,
   formatValue,
+  formatTimestamp,
   computeDiff,
   MAX_TOOL_OUTPUT_LINES,
 } from './utils';
@@ -140,9 +141,12 @@ export const ToolCallBlock = memo(function ToolCallBlock({
               {toolResult.model}
             </span>
           )}
+          <span className="text-xs text-muted-foreground ml-auto">
+            {formatTimestamp(toolResult.timestamp)}
+          </span>
           {summary && (
             <span
-              className="text-xs text-muted-foreground ml-auto truncate flex-1 text-right mr-2"
+              className="text-xs text-muted-foreground truncate flex-1 text-right mr-2"
               title={summary}
             >
               {summary}
@@ -222,9 +226,12 @@ export const ToolCallBlock = memo(function ToolCallBlock({
             {toolUse?.model || toolResult?.model}
           </span>
         )}
+        <span className="text-xs text-muted-foreground ml-auto">
+          {formatTimestamp(toolUse?.timestamp || toolResult?.timestamp || '')}
+        </span>
         {summary && (
           <span
-            className="text-xs text-muted-foreground ml-auto truncate flex-1 text-right mr-2"
+            className="text-xs text-muted-foreground truncate flex-1 text-right mr-2"
             title={summary}
           >
             {summary}

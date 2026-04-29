@@ -511,6 +511,22 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                       </div>
                     )}
 
+                    {/* Last Updated */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider shrink-0">
+                        Updated:
+                      </span>
+                      <span className="text-xs text-muted-foreground font-mono">
+                        {new Date(selectedSession.updatedAt).toLocaleString('zh-CN', {
+                          year: 'numeric',
+                          month: '2-digit',
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                    </div>
+
                     {/* Working Directory */}
                     {selectedSession.directory && (
                       <div className="flex items-center gap-2">
