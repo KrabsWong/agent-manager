@@ -35,7 +35,7 @@ async function initApp() {
   let isNeutralino = false;
   
   if (!isElectron) {
-    isNeutralino = await waitForNeutralino();
+    isNeutralino = await waitForNeutralino(2000);
     if (isNeutralino) {
       backend = 'neutralino';
       try {

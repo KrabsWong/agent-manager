@@ -14,6 +14,37 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
+# Build frontend first (if dev mode)
+if [ "$1" == "dev" ]; then
+    echo -e "${YELLOW}Building frontend...${NC}"
+    npm run build:frontend
+    echo -e "${GREEN}Frontend built${NC}"
+    
+    echo -e "${YELLOW}Copying to resources...${NC}"
+    cp -r dist/* resources/
+    
+    # Copy Neutralino client library
+    echo -e "${YELLOW}Copying Neutralino client library...${NC}"
+    cp node_modules/@neutralinojs/lib/dist/neutralino.js resources/neutralino.js
+    echo -e "${GREEN}Neutralino client library copied${NC}"
+    
+    # Inject Neutralino client library into index.html
+    echo -e "${YELLOW}Injecting Neutralino client library...${NC}"
+    if [ -f "resources/index.html" ]; then
+        # Add neutralino.js script before closing </head>
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            # macOS
+            sed -i '' 's|</head>|<script src="neutralino.js"><\/script></head>|' resources/index.html
+        else
+            # Linux
+            sed -i 's|</head>|<script src="neutralino.js"><\/script></head>|' resources/index.html
+        fi
+        echo -e "${GREEN}Neutralino client library injected${NC}"
+    fi
+    
+    echo -e "${GREEN}Resources copied${NC}"
+fi
+
 # Function to check if Rust service is running
 check_rust_service() {
     curl -s http://localhost:3000/health > /dev/null 2>&1

@@ -42,6 +42,25 @@ cp dist/index.html resources/ 2>/dev/null || true
 cp dist/file-preview.html resources/ 2>/dev/null || true
 cp -r dist/assets resources/ 2>/dev/null || true
 
+# Copy Neutralino client library
+echo "Copying Neutralino client library..."
+cp node_modules/@neutralinojs/lib/dist/neutralino.js resources/neutralino.js
+echo "Neutralino client library copied"
+
+# Inject Neutralino client library into index.html
+echo "Injecting Neutralino client library..."
+if [ -f "resources/index.html" ]; then
+    # Add neutralino.js script before closing </head>
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        sed -i '' 's|</head>|<script src="neutralino.js"><\/script></head>|' resources/index.html
+    else
+        # Linux
+        sed -i 's|</head>|<script src="neutralino.js"><\/script></head>|' resources/index.html
+    fi
+    echo "Neutralino client library injected"
+fi
+
 # Copy platform-specific binaries
 case "$(uname -s)" in
     Darwin*)

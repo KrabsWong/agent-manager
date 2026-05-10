@@ -201,7 +201,7 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
     });
   };
 
-  const canResume =
+const canResume =
     selectedApp !== 'vscode-extension' &&
     (terminalInfo?.preferred === 'auto' ||
       terminalInfo?.ghosttyInstalled ||

@@ -26,6 +26,15 @@ declare global {
       os: {
         open: (url: string) => Promise<void>;
         exec: (command: string, args?: string[]) => Promise<{ exitCode: number; stdOut: string; stdErr: string }>;
+        execCommand: (command: string, options?: {
+          background?: boolean;
+          cwd?: string;
+          envs?: Record<string, string>;
+        }) => Promise<{ pid: number; stdOut: string; stdErr: string; exitCode: number }>;
+        spawnProcess: (command: string, options?: {
+          cwd?: string;
+          envs?: Record<string, string>;
+        }) => Promise<{ id: number; pid: number }>;
       };
       filesystem: {
         readFile: (filename: string) => Promise<string>;
@@ -168,6 +177,96 @@ export class NeutralinoStorageAdapter implements IStorageAdapter {
   }
 }
 
+function getResumeCommand(appType: string, sessionId: string): string {
+  switch (appType) {
+    case 'claude':
+    case 'claude-internal':
+      return `claude --resume ${sessionId}`;
+    case 'opencode':
+      return `opencode -s ${sessionId}`;
+    case 'codebuddy':
+      return `codebuddy --resume ${sessionId}`;
+    default:
+      return '';
+  }
+}
+
+async function checkCommandExists(command: string): Promise<boolean> {
+  if (typeof window !== 'undefined' && window.Neutralino) {
+    try {
+      const result = await window.Neutralino.os.execCommand(`which ${command} || ls /Applications/Ghostty.app 2>/dev/null`);
+      return result.exitCode === 0 && (result.stdOut.trim().length > 0 || result.stdErr.trim().length > 0);
+    } catch {
+      return false;
+    }
+  }
+  return false;
+}
+
+async function resolveTerminal(preferred: string): Promise<'ghostty' | 'kitty' | 'terminal'> {
+  if (preferred !== 'auto') {
+    if (preferred === 'ghostty') {
+      const exists = await checkCommandExists('ghostty');
+      if (!exists) {
+        console.warn('[Neutralino] Ghostty not found, falling back to Terminal.app');
+        return 'terminal';
+      }
+    } else if (preferred === 'kitty') {
+      const exists = await checkCommandExists('kitty');
+      if (!exists) {
+        console.warn('[Neutralino] Kitty not found, falling back to Terminal.app');
+        return 'terminal';
+      }
+    }
+    return preferred as 'ghostty' | 'kitty' | 'terminal';
+  }
+
+  const ghosttyInstalled = await checkCommandExists('ghostty');
+  if (ghosttyInstalled) {
+    return 'ghostty';
+  }
+
+  const kittyInstalled = await checkCommandExists('kitty');
+  if (kittyInstalled) {
+    return 'kitty';
+  }
+
+  return 'terminal';
+}
+
+function buildTerminalCommand(terminal: 'ghostty' | 'kitty' | 'terminal', command: string, workingDir?: string): string {
+  switch (terminal) {
+    case 'ghostty': {
+      // Ghostty's -e parameter needs a shell wrapper for complex commands with cd
+      let shellCommand = command;
+      if (workingDir) {
+        // Escape single quotes in working directory
+        const escapedDir = workingDir.replace(/'/g, "'\\''");
+        shellCommand = `cd '${escapedDir}' && ${command}`;
+      }
+      // Wrap command in shell - use sh -c with double quotes for proper parsing
+      const escapedShellCommand = shellCommand.replace(/"/g, '\\"');
+      return `ghostty -e sh -c "${escapedShellCommand}"`;
+    }
+      
+    case 'kitty':
+      if (workingDir) {
+        return `kitty --directory="${workingDir}" ${command}`;
+      }
+      return `kitty ${command}`;
+      
+    case 'terminal':
+    default: {
+      const escapedCommand = command.replace(/"/g, '\\"').replace(/'/g, "'\\''");
+      if (workingDir) {
+        const workingDirEscaped = workingDir.replace(/'/g, "'\\''");
+        return `osascript -e 'tell application "Terminal" to do script "cd '${workingDirEscaped}' && ${escapedCommand}"'`;
+      }
+      return `osascript -e 'tell application "Terminal" to do script "${escapedCommand}"'`;
+    }
+  }
+}
+
 /**
  * Neutralino Backend Adapter
  */
@@ -254,21 +353,59 @@ export class NeutralinoBackendAdapter implements IBackendAdapter {
       return { supported: true, status: 'full', isAvailable: true };
     },
 
-    resume: async (_sessionId: string, _appType: string, _workingDir?: string): Promise<void> => {
-      console.warn('[Neutralino] sessions.resume not implemented');
+    resume: async (sessionId: string, appType: string, workingDir?: string): Promise<void> => {
+      try {
+        const settings = await this.settings.get();
+        const preferredTerminal = settings.preferredTerminal || 'auto';
+        
+        const resumeCommand = getResumeCommand(appType, sessionId);
+        if (!resumeCommand) {
+          console.warn(`[Neutralino] Resume not supported for app type: ${appType}`);
+          return;
+        }
+
+        const terminal = await resolveTerminal(preferredTerminal);
+        const fullCommand = buildTerminalCommand(terminal, resumeCommand, workingDir);
+        
+        console.log(`[Neutralino] Resuming session: ${fullCommand}`);
+        
+        if (typeof window !== 'undefined' && window.Neutralino) {
+          await window.Neutralino.os.execCommand(fullCommand, { background: true });
+        }
+      } catch (error) {
+        console.error('[Neutralino] Failed to resume session:', error);
+        throw error;
+      }
     },
 
     getTerminalInfo: async (): Promise<TerminalInfo> => {
       try {
-        const response = await this.client.get<{
-          preferred: string;
-          ghostty_installed: boolean;
-          kitty_installed: boolean;
-        }>('/api/terminal/info');
+        const settings = await this.settings.get();
+        const userPreferred = settings.preferredTerminal || 'auto';
+        
+        let ghosttyInstalled = false;
+        let kittyInstalled = false;
+        
+        if (typeof window !== 'undefined' && window.Neutralino) {
+          try {
+            const ghosttyResult = await window.Neutralino.os.execCommand('which ghostty || ls /Applications/Ghostty.app 2>/dev/null');
+            ghosttyInstalled = ghosttyResult.exitCode === 0 && ghosttyResult.stdOut.trim().length > 0;
+          } catch {
+            ghosttyInstalled = false;
+          }
+          
+          try {
+            const kittyResult = await window.Neutralino.os.execCommand('which kitty');
+            kittyInstalled = kittyResult.exitCode === 0;
+          } catch {
+            kittyInstalled = false;
+          }
+        }
+        
         return {
-          preferred: response.preferred as TerminalInfo['preferred'],
-          ghosttyInstalled: response.ghostty_installed,
-          kittyInstalled: response.kitty_installed,
+          preferred: userPreferred as TerminalInfo['preferred'],
+          ghosttyInstalled,
+          kittyInstalled,
         };
       } catch (error) {
         console.error('[Neutralino] Failed to get terminal info:', error);

@@ -52,7 +52,7 @@
   ],
   "logging": {
     "enabled": true,
-    "writeToLogFile": false
+    "writeToLogFile": true
   },
   "cli": {
     "binaryName": "yes-sessions",

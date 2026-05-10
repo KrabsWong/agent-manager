@@ -84,7 +84,7 @@ function getResumeCommand(appType: AppType, sessionId: string): string {
     case 'claude-internal':
       return `claude --resume ${sessionId}`;
     case 'opencode':
-      return `opencode --resume ${sessionId}`;
+      return `opencode -s ${sessionId}`;
     case 'codebuddy':
       return `codebuddy --resume ${sessionId}`;
     default:
