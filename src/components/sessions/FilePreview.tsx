@@ -14,8 +14,9 @@ import { cn } from '@/lib/utils';
 import { createHighlighterCore, type HighlighterCore } from 'shiki/core';
 import { createOnigurumaEngine } from 'shiki/engine/oniguruma';
 
-// Import only common languages (JavaScript, Markdown, Kotlin, Go, Rust)
+// Import only common languages (JavaScript, TypeScript, Markdown, Kotlin, Go, Rust)
 import javascript from 'shiki/dist/langs/javascript.mjs';
+import typescript from 'shiki/dist/langs/typescript.mjs';
 import markdown from 'shiki/dist/langs/markdown.mjs';
 import kotlin from 'shiki/dist/langs/kotlin.mjs';
 import go from 'shiki/dist/langs/go.mjs';
@@ -68,10 +69,11 @@ function getImageMimeType(fileName: string): string {
 // Language mapping from file extension to Shiki language
 // Only common languages are supported (others will use 'text' fallback)
 const languageMap: Record<string, string> = {
-  // JavaScript
+  // JavaScript/TypeScript
   'js': 'javascript',
   'mjs': 'javascript',
   'cjs': 'javascript',
+  'ts': 'typescript',
   // Markdown
   'md': 'markdown',
   'markdown': 'markdown',
@@ -120,6 +122,7 @@ async function getHighlighter(): Promise<HighlighterCore> {
     themes: [tokyoNight, githubLight],
     langs: [
       javascript,
+      typescript,
       markdown,
       kotlin,
       go,
