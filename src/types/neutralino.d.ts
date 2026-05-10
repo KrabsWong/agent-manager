@@ -87,6 +87,30 @@ declare global {
         setSize: (width: number, height: number) => Promise<void>;
         getPosition: () => Promise<{ x: number; y: number }>;
         setPosition: (x: number, y: number) => Promise<void>;
+        create: (
+          url: string,
+          options?: {
+            title?: string;
+            icon?: string;
+            fullScreen?: boolean;
+            alwaysOnTop?: boolean;
+            enableInspector?: boolean;
+            borderless?: boolean;
+            maximize?: boolean;
+            hidden?: boolean;
+            width?: number;
+            height?: number;
+            minWidth?: number;
+            minHeight?: number;
+            maxWidth?: number;
+            maxHeight?: number;
+          }
+        ) => Promise<{
+          pid: number;
+          stdOut: string;
+          stdErr: string;
+          exitCode: number;
+        }>;
       };
       
       extensions: {

@@ -17,7 +17,7 @@
       "minHeight": 600,
       "fullScreen": false,
       "alwaysOnTop": false,
-      "icon": "/resources/assets/icon.png",
+      
       "enableInspector": true,
       "borderless": false,
       "maximize": false,
@@ -26,7 +26,7 @@
       "exitProcessOnClose": true
     }
   },
-  "nativeAllowList": [
+"nativeAllowList": [
     "app.*",
     "os.*",
     "debug.*",
@@ -36,6 +36,19 @@
     "events.*",
     "computer.*",
     "window.*"
+  ],
+  "globalVariables": {
+    "backend": "rust",
+    "rustServiceUrl": "http://localhost:3000"
+  },
+  "enableExtensions": true,
+  "extensions": [
+    {
+      "id": "rust.service",
+      "command": "${NL_PATH}/yes-sessions-service",
+      "autoStart": true,
+      "autoRestart": true
+    }
   ],
   "globalVariables": {
     "backend": "rust",

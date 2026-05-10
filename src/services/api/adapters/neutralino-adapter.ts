@@ -500,8 +500,36 @@ export class NeutralinoBackendAdapter implements IBackendAdapter {
   };
 
   readonly filePreview = {
-    open: async (_dirPath: string, _sessionTitle?: string, _appType?: string): Promise<void> => {
-      console.warn('[Neutralino] filePreview.open not implemented');
+    open: async (dirPath: string, sessionTitle?: string, appType?: string): Promise<void> => {
+      try {
+        if (typeof window !== 'undefined' && window.Neutralino) {
+          const neutralino = window.Neutralino as any; // Temporary: TypeScript cannot infer window property
+          const settings = await this.settings.get();
+          const theme = settings.theme || 'system';
+          const accentColor = settings.accentColor || 'default';
+
+          const params = new URLSearchParams();
+          params.set('dir', dirPath);
+          if (sessionTitle) params.set('session', sessionTitle);
+          if (appType) params.set('app', appType);
+          params.set('theme', theme);
+          params.set('accentColor', accentColor);
+
+          const url = `/resources/file-preview.html?${params.toString()}`;
+
+          await neutralino.window.create(url, {
+            title: sessionTitle || 'File Preview',
+            width: 1400,
+            height: 800,
+            minWidth: 900,
+            minHeight: 600,
+            enableInspector: process.env.NODE_ENV === 'development',
+          });
+        }
+      } catch (error) {
+        console.error('[Neutralino] Failed to open file preview:', error);
+        throw error;
+      }
     },
   };
 

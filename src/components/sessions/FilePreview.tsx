@@ -14,43 +14,12 @@ import { cn } from '@/lib/utils';
 import { createHighlighterCore, type HighlighterCore } from 'shiki/core';
 import { createOnigurumaEngine } from 'shiki/engine/oniguruma';
 
-// Import languages
+// Import only common languages (JavaScript, Markdown, Kotlin, Go, Rust)
 import javascript from 'shiki/dist/langs/javascript.mjs';
-import typescript from 'shiki/dist/langs/typescript.mjs';
-import tsx from 'shiki/dist/langs/tsx.mjs';
-import jsx from 'shiki/dist/langs/jsx.mjs';
-import python from 'shiki/dist/langs/python.mjs';
-import html from 'shiki/dist/langs/html.mjs';
-import css from 'shiki/dist/langs/css.mjs';
-import json from 'shiki/dist/langs/json.mjs';
-import yaml from 'shiki/dist/langs/yaml.mjs';
-import xml from 'shiki/dist/langs/xml.mjs';
-import cpp from 'shiki/dist/langs/cpp.mjs';
-import c from 'shiki/dist/langs/c.mjs';
-import java from 'shiki/dist/langs/java.mjs';
-import rust from 'shiki/dist/langs/rust.mjs';
-import go from 'shiki/dist/langs/go.mjs';
-import php from 'shiki/dist/langs/php.mjs';
-import sql from 'shiki/dist/langs/sql.mjs';
-import bash from 'shiki/dist/langs/bash.mjs';
-import shell from 'shiki/dist/langs/shell.mjs';
 import markdown from 'shiki/dist/langs/markdown.mjs';
-import mdx from 'shiki/dist/langs/mdx.mjs';
-import vue from 'shiki/dist/langs/vue.mjs';
-import svelte from 'shiki/dist/langs/svelte.mjs';
-import dockerfile from 'shiki/dist/langs/dockerfile.mjs';
-import viml from 'shiki/dist/langs/viml.mjs';
-import lua from 'shiki/dist/langs/lua.mjs';
-import ruby from 'shiki/dist/langs/ruby.mjs';
-import perl from 'shiki/dist/langs/perl.mjs';
-import swift from 'shiki/dist/langs/swift.mjs';
 import kotlin from 'shiki/dist/langs/kotlin.mjs';
-import dart from 'shiki/dist/langs/dart.mjs';
-import scala from 'shiki/dist/langs/scala.mjs';
-import r from 'shiki/dist/langs/r.mjs';
-import matlab from 'shiki/dist/langs/matlab.mjs';
-import groovy from 'shiki/dist/langs/groovy.mjs';
-import powershell from 'shiki/dist/langs/powershell.mjs';
+import go from 'shiki/dist/langs/go.mjs';
+import rust from 'shiki/dist/langs/rust.mjs';
 
 // Import themes
 import tokyoNight from 'shiki/dist/themes/tokyo-night.mjs';
@@ -97,85 +66,27 @@ function getImageMimeType(fileName: string): string {
 }
 
 // Language mapping from file extension to Shiki language
+// Only common languages are supported (others will use 'text' fallback)
 const languageMap: Record<string, string> = {
-  // JavaScript/TypeScript
+  // JavaScript
   'js': 'javascript',
   'mjs': 'javascript',
   'cjs': 'javascript',
-  'ts': 'typescript',
-  'tsx': 'tsx',
-  'jsx': 'jsx',
-  // Web
-  'html': 'html',
-  'htm': 'html',
-  'css': 'css',
-  'scss': 'css',
-  'sass': 'css',
-  'less': 'css',
-  'vue': 'vue',
-  'svelte': 'svelte',
-  // Data
-  'json': 'json',
-  'yaml': 'yaml',
-  'yml': 'yaml',
-  'xml': 'xml',
-  'svg': 'xml',
-  // Programming
-  'py': 'python',
-  'pyw': 'python',
-  'pyi': 'python',
-  'cpp': 'cpp',
-  'c': 'c',
-  'cc': 'cpp',
-  'cxx': 'cpp',
-  'h': 'c',
-  'hpp': 'cpp',
-  'java': 'java',
-  'rs': 'rust',
-  'go': 'go',
-  'php': 'php',
-  'rb': 'ruby',
-  'pl': 'perl',
-  'lua': 'lua',
-  'swift': 'swift',
-  'kt': 'kotlin',
-  'kts': 'kotlin',
-  'dart': 'dart',
-  'scala': 'scala',
-  'r': 'r',
-  'm': 'matlab',
-  'groovy': 'groovy',
-  // Shell
-  'sh': 'bash',
-  'bash': 'bash',
-  'zsh': 'bash',
-  'fish': 'shell',
-  'ps1': 'powershell',
-  'psm1': 'powershell',
-  // Database
-  'sql': 'sql',
-  'mysql': 'sql',
-  'pgsql': 'sql',
   // Markdown
   'md': 'markdown',
-  'mdx': 'mdx',
   'markdown': 'markdown',
-  // Config
-  'dockerfile': 'dockerfile',
-  'vim': 'viml',
-  'vimrc': 'viml',
+  // Kotlin
+  'kt': 'kotlin',
+  'kts': 'kotlin',
+  // Go
+  'go': 'go',
+  // Rust
+  'rs': 'rust',
 };
 
 // Special file names to language mapping
 const specialFileMap: Record<string, string> = {
-  'dockerfile': 'dockerfile',
-  'makefile': 'bash',
-  'jenkinsfile': 'groovy',
-  'gemfile': 'ruby',
-  'rakefile': 'ruby',
-  'vagrantfile': 'ruby',
-  'podfile': 'ruby',
-  'brewfile': 'ruby',
+  // All special files will use 'text' fallback
 };
 
 // Get Shiki language from file name
@@ -205,45 +116,14 @@ async function getHighlighter(): Promise<HighlighterCore> {
     return globalHighlighter;
   }
 
-      const highlighter = await createHighlighterCore({
+  const highlighter = await createHighlighterCore({
     themes: [tokyoNight, githubLight],
     langs: [
       javascript,
-      typescript,
-      tsx,
-      jsx,
-      python,
-      html,
-      css,
-      json,
-      yaml,
-      xml,
-      cpp,
-      c,
-      java,
-      rust,
-      go,
-      php,
-      sql,
-      bash,
-      shell,
       markdown,
-      mdx,
-      vue,
-      svelte,
-      dockerfile,
-      viml,
-      lua,
-      ruby,
-      perl,
-      swift,
       kotlin,
-      dart,
-      scala,
-      r,
-      matlab,
-      groovy,
-      powershell,
+      go,
+      rust,
     ],
     engine: createOnigurumaEngine(import('shiki/wasm')),
   });

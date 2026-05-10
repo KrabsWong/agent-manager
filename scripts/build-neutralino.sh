@@ -35,6 +35,10 @@ echo -e "${GREEN}Rust binary copied${NC}"
 echo -e "${BLUE}[4/5] Preparing Neutralino resources...${NC}"
 mkdir -p resources/bin
 
+# Clean old assets to avoid accumulation
+echo "Cleaning old assets..."
+rm -rf resources/assets
+
 # Copy dist files to resources
 echo "Copying dist to resources..."
 cp -r dist/* resources/ 2>/dev/null || true
@@ -47,7 +51,7 @@ echo "Copying Neutralino client library..."
 cp node_modules/@neutralinojs/lib/dist/neutralino.js resources/neutralino.js
 echo "Neutralino client library copied"
 
-# Inject Neutralino client library into index.html
+# Inject Neutralino client library into HTML files
 echo "Injecting Neutralino client library..."
 if [ -f "resources/index.html" ]; then
     # Add neutralino.js script before closing </head>
@@ -58,7 +62,19 @@ if [ -f "resources/index.html" ]; then
         # Linux
         sed -i 's|</head>|<script src="neutralino.js"><\/script></head>|' resources/index.html
     fi
-    echo "Neutralino client library injected"
+    echo "Neutralino client library injected into index.html"
+fi
+
+if [ -f "resources/file-preview.html" ]; then
+    # Add neutralino.js script before closing </head>
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS
+        sed -i '' 's|</head>|<script src="neutralino.js"><\/script></head>|' resources/file-preview.html
+    else
+        # Linux
+        sed -i 's|</head>|<script src="neutralino.js"><\/script></head>|' resources/file-preview.html
+    fi
+    echo "Neutralino client library injected into file-preview.html"
 fi
 
 # Copy platform-specific binaries

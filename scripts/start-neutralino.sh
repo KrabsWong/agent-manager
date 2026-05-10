@@ -31,13 +31,13 @@ if [ "$1" == "dev" ]; then
     # Inject Neutralino client library into index.html
     echo -e "${YELLOW}Injecting Neutralino client library...${NC}"
     if [ -f "resources/index.html" ]; then
-        # Add neutralino.js script before closing </head>
+        # Add neutralino.js script at the beginning of <head>, before other scripts
         if [[ "$OSTYPE" == "darwin"* ]]; then
             # macOS
-            sed -i '' 's|</head>|<script src="neutralino.js"><\/script></head>|' resources/index.html
+            sed -i '' 's|<head>|<head><script src="neutralino.js"><\/script>|' resources/index.html
         else
             # Linux
-            sed -i 's|</head>|<script src="neutralino.js"><\/script></head>|' resources/index.html
+            sed -i 's|<head>|<head><script src="neutralino.js"><\/script>|' resources/index.html
         fi
         echo -e "${GREEN}Neutralino client library injected${NC}"
     fi
@@ -102,11 +102,8 @@ main() {
     if [ "$1" == "dev" ]; then
         echo -e "${YELLOW}Development mode${NC}"
         
-        # Start Rust service
-        start_rust_service
-        
-        # Wait a moment for service to stabilize
-        sleep 1
+        # Neutralino will auto-start Rust service via extensions
+        # No need to manually start here
         
         # Start Neutralino in dev mode
         echo -e "${GREEN}Starting Neutralino...${NC}"

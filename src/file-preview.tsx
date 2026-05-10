@@ -18,10 +18,10 @@ import {
   ChevronDown,
   FolderOpen,
   FileText,
+  Loader2,
 } from 'lucide-react';
 import { cn } from './lib/utils';
 import { api, treeApi, gitApi, type TreeNode } from './lib/api';
-import { ThemeProvider } from './components/ThemeProvider';
 import { FilePreview } from './components/sessions/FilePreview';
 import { GitDiffView } from './components/sessions/GitDiffView';
 import { GitDiffPreview } from './components/sessions/GitDiffPreview';
@@ -30,11 +30,57 @@ import {
   applyAccentColor,
   type AccentColor,
 } from './lib/theme/colors';
+import { switchBackend } from './services/api';
 import './index.css';
 import './lib/i18n';
 
 type Theme = 'light' | 'dark' | 'system';
 type ResolvedTheme = 'light' | 'dark';
+
+function waitForNeutralino(timeout = 1000): Promise<boolean> {
+  return new Promise((resolve) => {
+    const start = Date.now();
+    const check = () => {
+      if ((window as any).Neutralino) {
+        resolve(true);
+      } else if (Date.now() - start > timeout) {
+        resolve(false);
+      } else {
+        requestAnimationFrame(check);
+      }
+    };
+    check();
+  });
+}
+
+async function initBackend() {
+  const isElectron = typeof (window as any).process !== 'undefined' && (window as any).process?.versions?.electron;
+  
+  let backend: 'electron' | 'rust' | 'neutralino' = 'rust';
+  let isNeutralino = false;
+  
+  if (!isElectron) {
+    isNeutralino = await waitForNeutralino(2000);
+    if (isNeutralino) {
+      backend = 'neutralino';
+      try {
+        await (window as any).Neutralino.init();
+        console.log('[FilePreview] Neutralino initialized');
+      } catch (error) {
+        console.error('[FilePreview] Neutralino init failed:', error);
+        backend = 'rust';
+        isNeutralino = false;
+      }
+    }
+  } else {
+    backend = 'electron';
+  }
+  
+  switchBackend(backend);
+  console.log(`[FilePreview] Backend: ${backend}`);
+  
+  return { isElectron, isNeutralino };
+}
 
 interface TreeItemProps {
   node: TreeNode;
@@ -122,20 +168,17 @@ function TreeItem({
 }
 
 function FilePreviewApp() {
+  const [isInitializing, setIsInitializing] = useState(false);
   const [sessionDirectory, setSessionDirectory] = useState<string | null>(null);
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('files');
   const [hasGitChanges, setHasGitChanges] = useState(false);
-  const [theme, setTheme] = useState<Theme>('system');
-  const [accentColor, setAccentColor] = useState<AccentColor>('default');
-
   const [previewFile, setPreviewFile] = useState<{
     path: string;
     name: string;
     content: string;
   } | null>(null);
-
   const [diffPreview, setDiffPreview] = useState<{
     path: string;
     name: string;
@@ -143,6 +186,8 @@ function FilePreviewApp() {
     modified: string;
   } | null>(null);
 
+  const [theme, setTheme] = useState<Theme>('system');
+  const [accentColor, setAccentColor] = useState<AccentColor>('default');
   const [sessionTitle, setSessionTitle] = useState<string>('');
 
   useEffect(() => {
@@ -163,6 +208,7 @@ function FilePreviewApp() {
     if (accentParam) {
       setAccentColor(accentParam);
     }
+    setIsInitializing(false);
   }, []);
 
   const applyTheme = useCallback((currentTheme: Theme, currentAccent: AccentColor) => {
@@ -205,10 +251,13 @@ function FilePreviewApp() {
       setAccentColor(_accentColor);
     };
 
-    window.electronAPI.on('theme:changed', handleThemeChanged);
-    return () => {
-      window.electronAPI.removeAllListeners('theme:changed');
-    };
+    // Only listen to electron events in Electron environment
+    if (typeof (window as any).electronAPI !== 'undefined') {
+      (window as any).electronAPI.on('theme:changed', handleThemeChanged);
+      return () => {
+        (window as any).electronAPI.removeAllListeners('theme:changed');
+      };
+    }
   }, []);
 
   const loadTree = useCallback(async () => {
@@ -219,6 +268,7 @@ function FilePreviewApp() {
       setTree(nodes);
     } catch (err) {
       console.error('Failed to load directory tree:', err);
+      setTree([]);
     } finally {
       setLoading(false);
     }
@@ -291,10 +341,15 @@ function FilePreviewApp() {
     setDiffPreview(null);
   }, []);
 
-  if (!sessionDirectory) {
+  if (isInitializing || !sessionDirectory) {
     return (
-      <div className="h-screen flex items-center justify-center bg-background">
-        <p className="text-muted-foreground">No directory specified</p>
+      <div className="h-screen flex flex-col items-center justify-center bg-background gap-4">
+        <div className="flex items-center gap-3">
+          <Loader2 className="h-8 w-8 text-primary animate-spin" />
+          <p className="text-lg text-muted-foreground">
+            {isInitializing ? 'Initializing...' : 'Loading files...'}
+          </p>
+        </div>
       </div>
     );
   }
@@ -344,8 +399,13 @@ function FilePreviewApp() {
 
             <TabsContent value="files" className="flex-1 overflow-auto m-0 p-0">
               {loading ? (
-                <div className="p-4 text-center text-xs text-muted-foreground">
-                  Loading...
+                <div className="h-full flex flex-col items-center justify-center gap-3 bg-card">
+                  <Loader2 className="h-6 w-6 text-primary animate-spin" />
+                  <p className="text-sm text-muted-foreground">Loading files...</p>
+                </div>
+              ) : tree.length === 0 ? (
+                <div className="h-full flex items-center justify-center">
+                  <p className="text-sm text-muted-foreground">No files found</p>
                 </div>
               ) : (
                 <div className="py-2">
@@ -401,10 +461,28 @@ function FilePreviewApp() {
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <ThemeProvider>
-      <FilePreviewApp />
-    </ThemeProvider>
-  </React.StrictMode>
-);
+async function initApp() {
+  try {
+    await initBackend();
+    
+    ReactDOM.createRoot(document.getElementById('root')!).render(
+      <React.StrictMode>
+        <FilePreviewApp />
+      </React.StrictMode>
+    );
+  } catch (error) {
+    console.error('[FilePreview] Failed to initialize:', error);
+    
+    // Show error state
+    ReactDOM.createRoot(document.getElementById('root')!).render(
+      <div className="h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <p className="text-lg text-red-500">Failed to initialize</p>
+          <p className="text-sm text-muted-foreground mt-2">{String(error)}</p>
+        </div>
+      </div>
+    );
+  }
+}
+
+initApp().catch(console.error);
