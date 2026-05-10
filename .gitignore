@@ -20,6 +20,7 @@ release
 # Logs
 *.log
 logs/
+neutralinojs.log
 
 # Database
 *.db
