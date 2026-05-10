@@ -256,7 +256,7 @@ Neutralinojs 主进程 (20MB)
 1. ✅ ~~完善 Rust 服务基础结构~~
 2. ✅ ~~实现 OpenCode 会话查询 API~~
 3. ✅ ~~实现 Rust 后端适配器~~
-4. ⏳ 实现 Claude/CodeBuddy 会话查询 API
+4. ✅ ~~实现 Claude/CodeBuddy 会话查询 API~~
 5. ⏳ 添加文件读取 API（/api/file/read）
 6. ⏳ 添加文件树查询 API（/api/tree）
 
@@ -286,18 +286,19 @@ Neutralinojs 主进程 (20MB)
   - [x] 向后兼容的 API 层
   - [x] 运行时切换后端机制
 
-- [x] Phase 2: Rust 微服务开发（75%）
+- [x] Phase 2: Rust 微服务开发（100%）
   - [x] HTTP API 基础架构（Actix-web）
   - [x] OpenCode 会话查询完整实现
+  - [x] Claude 会话查询完整实现
+  - [x] CodeBuddy 会话查询完整实现
   - [x] SQLite 查询引擎（rusqlite）
   - [x] Rust 后端适配器（HTTP 客户端）
   - [x] 健康检查和错误处理
+  - [x] UTF-8 字符边界安全处理
 
 ### 进行中 ⏳
 
-- [ ] Phase 2: 剩余功能（25%）
-  - [ ] Claude/CodeBuddy 会话查询
-  - [ ] 文件操作 API
+- [ ] Phase 2: 剩余功能（0%）
   - [ ] WebSocket 实时通信（低优先级）
 
 ### 待开始 ⏸️
@@ -311,12 +312,12 @@ Neutralinojs 主进程 (20MB)
 
 ```
 Phase 1: ████████████████████ 100% ✅
-Phase 2: ██████████████░░░░░░  75% ⏳
+Phase 2: ████████████████████ 100% ✅
 Phase 3: ░░░░░░░░░░░░░░░░░░░░   0% ⏸️
 Phase 4: ░░░░░░░░░░░░░░░░░░░░   0% ⏸️
 ```
 
-**预计完成时间**: 5周（已用 1.5周）
+**预计完成时间**: 5周（已用 1.5周，Phase 2 提前完成）
 
 ---
 
