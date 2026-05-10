@@ -1,5 +1,8 @@
 use actix_web::{web, HttpResponse};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+
+use crate::storage::opencode::{OpenCodeStorage, OpenCodeSession, OpenCodeSessionDetail};
 
 #[derive(Serialize, Deserialize)]
 pub struct Session {
@@ -7,56 +10,201 @@ pub struct Session {
     pub app_type: String,
     pub file_name: String,
     pub file_path: String,
+    pub directory: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
     pub message_count: i64,
-    pub first_message: Option<String>,
-    pub last_message: Option<String>,
-    pub directory: Option<String>,
-    pub uuid: Option<String>,
+    pub first_message: String,
+    pub last_message: String,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct SessionDetail {
-    #[serde(flatten)]
-    pub session: Session,
-    pub messages: Vec<SessionMessage>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct SessionMessage {
-    #[serde(rename = "type")]
-    pub message_type: String,
-    pub timestamp: String,
-    pub content: Option<String>,
+impl From<OpenCodeSession> for Session {
+    fn from(s: OpenCodeSession) -> Self {
+        Self {
+            id: s.id,
+            app_type: s.app_type,
+            file_name: s.file_name,
+            file_path: s.file_path,
+            directory: s.directory,
+            created_at: s.created_at,
+            updated_at: s.updated_at,
+            message_count: s.message_count,
+            first_message: s.first_message,
+            last_message: s.last_message,
+        }
+    }
 }
 
 /// Get all sessions for an app type
 pub async fn get_sessions(path: web::Path<String>) -> HttpResponse {
     let app_type = path.into_inner();
     
-    // TODO: Implement session fetching logic
-    // 1. Get database path based on app_type
-    // 2. Query sessions from SQLite
-    // 3. Return session list
-    
-    HttpResponse::Ok().json(serde_json::json!({
-        "success": true,
-        "data": []
-    }))
+    match app_type.as_str() {
+        "opencode" => {
+            match OpenCodeStorage::new() {
+                Ok(storage) => {
+                    if !storage.is_available() {
+                        return HttpResponse::Ok().json(serde_json::json!({
+                            "success": true,
+                            "data": []
+                        }));
+                    }
+                    
+                    match storage.get_sessions() {
+                        Ok(sessions) => {
+                            let sessions: Vec<Session> = sessions.into_iter().map(Session::from).collect();
+                            HttpResponse::Ok().json(serde_json::json!({
+                                "success": true,
+                                "data": sessions
+                            }))
+                        }
+                        Err(e) => {
+                            HttpResponse::InternalServerError().json(serde_json::json!({
+                                "success": false,
+                                "error": {
+                                    "code": "QUERY_ERROR",
+                                    "message": e.to_string()
+                                }
+                            }))
+                        }
+                    }
+                }
+                Err(e) => {
+                    HttpResponse::InternalServerError().json(serde_json::json!({
+                        "success": false,
+                        "error": {
+                            "code": "STORAGE_INIT_ERROR",
+                            "message": e.to_string()
+                        }
+                    }))
+                }
+            }
+        }
+        _ => {
+            // Other app types not implemented yet
+            HttpResponse::Ok().json(serde_json::json!({
+                "success": true,
+                "data": []
+            }))
+        }
+    }
 }
 
 /// Get session detail by ID
 pub async fn get_session_detail(path: web::Path<(String, String)>) -> HttpResponse {
     let (app_type, session_id) = path.into_inner();
     
-    // TODO: Implement session detail fetching
-    // 1. Get database path based on app_type
-    // 2. Query session and messages
-    // 3. Return session detail
+    match app_type.as_str() {
+        "opencode" => {
+            match OpenCodeStorage::new() {
+                Ok(storage) => {
+                    if !storage.is_available() {
+                        return HttpResponse::Ok().json(serde_json::json!({
+                            "success": true,
+                            "data": null
+                        }));
+                    }
+                    
+                    match storage.get_session_detail(&session_id) {
+                        Ok(Some(detail)) => {
+                            HttpResponse::Ok().json(serde_json::json!({
+                                "success": true,
+                                "data": detail
+                            }))
+                        }
+                        Ok(None) => {
+                            HttpResponse::Ok().json(serde_json::json!({
+                                "success": true,
+                                "data": null
+                            }))
+                        }
+                        Err(e) => {
+                            HttpResponse::InternalServerError().json(serde_json::json!({
+                                "success": false,
+                                "error": {
+                                    "code": "QUERY_ERROR",
+                                    "message": e.to_string()
+                                }
+                            }))
+                        }
+                    }
+                }
+                Err(e) => {
+                    HttpResponse::InternalServerError().json(serde_json::json!({
+                        "success": false,
+                        "error": {
+                            "code": "STORAGE_INIT_ERROR",
+                            "message": e.to_string()
+                        }
+                    }))
+                }
+            }
+        }
+        _ => {
+            // Other app types not implemented yet
+            HttpResponse::Ok().json(serde_json::json!({
+                "success": true,
+                "data": null
+            }))
+        }
+    }
+}
+
+/// Get session stats
+pub async fn get_stats(path: web::Path<String>) -> HttpResponse {
+    let app_type = path.into_inner();
     
-    HttpResponse::Ok().json(serde_json::json!({
-        "success": true,
-        "data": null
-    }))
+    match app_type.as_str() {
+        "opencode" => {
+            match OpenCodeStorage::new() {
+                Ok(storage) => {
+                    if !storage.is_available() {
+                        return HttpResponse::Ok().json(serde_json::json!({
+                            "success": true,
+                            "data": {
+                                "totalSessions": 0,
+                                "totalMessages": 0
+                            }
+                        }));
+                    }
+                    
+                    match storage.get_stats() {
+                        Ok(stats) => {
+                            HttpResponse::Ok().json(serde_json::json!({
+                                "success": true,
+                                "data": stats
+                            }))
+                        }
+                        Err(e) => {
+                            HttpResponse::InternalServerError().json(serde_json::json!({
+                                "success": false,
+                                "error": {
+                                    "code": "QUERY_ERROR",
+                                    "message": e.to_string()
+                                }
+                            }))
+                        }
+                    }
+                }
+                Err(e) => {
+                    HttpResponse::InternalServerError().json(serde_json::json!({
+                        "success": false,
+                        "error": {
+                            "code": "STORAGE_INIT_ERROR",
+                            "message": e.to_string()
+                        }
+                    }))
+                }
+            }
+        }
+        _ => {
+            HttpResponse::Ok().json(serde_json::json!({
+                "success": true,
+                "data": {
+                    "totalSessions": 0,
+                    "totalMessages": 0
+                }
+            }))
+        }
+    }
 }
