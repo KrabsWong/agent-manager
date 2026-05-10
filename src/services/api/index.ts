@@ -10,7 +10,7 @@ import { RustBackendAdapter, RustStorageAdapter } from './adapters/rust-adapter'
 
 export type BackendType = 'electron' | 'rust' | 'neutralino';
 
-let currentBackend: BackendType = 'electron';
+let currentBackend: BackendType = 'electron';  // Will be switched by main.tsx based on environment
 let apiInstance: IBackendAdapter | null = null;
 let storageInstance: IStorageAdapter | null = null;
 

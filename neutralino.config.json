@@ -5,7 +5,7 @@
   "defaultMode": "window",
   "port": 0,
   "token": "yes-sessions-token",
-  "url": "/",
+  "url": "/resources/",
   "enableServer": true,
   "enableNativeAPI": true,
   "modes": {
@@ -17,7 +17,7 @@
       "minHeight": 600,
       "fullScreen": false,
       "alwaysOnTop": false,
-      "icon": "/assets/icon.png",
+      "icon": "/resources/assets/icon.png",
       "enableInspector": false,
       "borderless": false,
       "maximize": false,
@@ -41,29 +41,22 @@
     "backend": "rust",
     "rustServiceUrl": "http://localhost:3000"
   },
-  "documentRoot": "/dist/",
-  "folder": ".",
-  "logging": {
-    "enabled": true,
-    "writeToLogFile": false
-  },
-  "developerSettings": {
-    "enableInspector": true,
-    "nativeAPIWarning": false
-  },
+  "enableExtensions": true,
   "extensions": [
     {
-      "id": "rust-service",
-      "path": "./rust-service/target/release/",
-      "command": "./yes-sessions-service",
+      "id": "rust.service",
+      "command": "${NL_PATH}/yes-sessions-service",
       "autoStart": true,
       "autoRestart": true
     }
   ],
+  "logging": {
+    "enabled": true,
+    "writeToLogFile": false
+  },
   "cli": {
     "binaryName": "yes-sessions",
-    "frontendLibrary": "react",
-    "frontendFramework": "vite",
+    "resourcesPath": "./resources/",
     "binaryVersion": "6.7.0"
   }
 }
