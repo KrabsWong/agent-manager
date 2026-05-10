@@ -257,15 +257,16 @@ Neutralinojs 主进程 (20MB)
 2. ✅ ~~实现 OpenCode 会话查询 API~~
 3. ✅ ~~实现 Rust 后端适配器~~
 4. ✅ ~~实现 Claude/CodeBuddy 会话查询 API~~
-5. ⏳ 添加文件读取 API（/api/file/read）
-6. ⏳ 添加文件树查询 API（/api/tree）
+5. ✅ ~~添加文件读取 API（/api/file/read）~~
+6. ✅ ~~添加文件树查询 API（/api/tree）~~
+7. ✅ ~~添加 shell.openExternal API~~
+8. ⏳ 前端集成测试（Rust 后端联调）
 
 ### 中优先级（下周）
 
-1. ⏳ 添加 shell.openExternal API
-2. ⏳ 前端集成测试（Rust 后端联调）
-3. ⏳ 性能优化和缓存策略
-4. ⏳ 实现 Neutralino 适配器
+1. ⏳ 性能优化和缓存策略
+2. ⏳ 实现 Neutralino 适配器
+3. ⏳ Git 集成 API（可选）
 
 ### 低优先级（延后）
 
@@ -295,6 +296,8 @@ Neutralinojs 主进程 (20MB)
   - [x] Rust 后端适配器（HTTP 客户端）
   - [x] 健康检查和错误处理
   - [x] UTF-8 字符边界安全处理
+  - [x] 文件操作 API（读取 + 图片 + 文件树）
+  - [x] Shell API（openExternal + openPath）
 
 ### 进行中 ⏳
 

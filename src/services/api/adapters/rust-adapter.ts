@@ -187,12 +187,12 @@ export class RustBackendAdapter implements IBackendAdapter {
   };
 
   readonly shell = {
-    openExternal: async (_url: string): Promise<void> => {
-      console.warn('[Rust] shell.openExternal not implemented');
+    openExternal: async (url: string): Promise<void> => {
+      await this.client.get(`/api/shell/openExternal?url=${encodeURIComponent(url)}`);
     },
 
-    openPath: async (_filePath: string): Promise<void> => {
-      console.warn('[Rust] shell.openPath not implemented');
+    openPath: async (filePath: string): Promise<void> => {
+      await this.client.get(`/api/shell/openPath?path=${encodeURIComponent(filePath)}`);
     },
   };
 
@@ -203,21 +203,18 @@ export class RustBackendAdapter implements IBackendAdapter {
   };
 
   readonly file = {
-    read: async (_filePath: string): Promise<string> => {
-      console.warn('[Rust] file.read not implemented');
-      return '';
+    read: async (filePath: string): Promise<string> => {
+      return this.client.get<string>(`/api/file/read?file_path=${encodeURIComponent(filePath)}`);
     },
 
-    readImage: async (_filePath: string): Promise<string> => {
-      console.warn('[Rust] file.readImage not implemented');
-      return '';
+    readImage: async (filePath: string): Promise<string> => {
+      return this.client.get<string>(`/api/file/readImage?file_path=${encodeURIComponent(filePath)}`);
     },
   };
 
   readonly tree = {
-    getDirectoryTree: async (_dirPath: string): Promise<TreeNode[]> => {
-      console.warn('[Rust] tree.getDirectoryTree not implemented');
-      return [];
+    getDirectoryTree: async (dirPath: string): Promise<TreeNode[]> => {
+      return this.client.get<TreeNode[]>(`/api/tree?dir_path=${encodeURIComponent(dirPath)}`);
     },
   };
 

@@ -39,6 +39,8 @@ thiserror = "1.0"
 # Utilities
 dirs = "5.0"
 chrono = { version = "0.4", features = ["serde"] }
+base64 = "0.22"
+opener = "0.6"
 
 [dev-dependencies]
 tokio-test = "0.4"

@@ -1,6 +1,9 @@
+pub mod file;
 pub mod sessions;
 pub mod settings;
+pub mod shell;
 pub mod terminal;
+pub mod tree;
 
 use actix_web::HttpResponse;
 

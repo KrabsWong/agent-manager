@@ -54,16 +54,16 @@
 - [x] 子 Agent 会话追踪
 - [x] model 字段追踪
 
-### 文件操作 - ⏳ 0%
+### 文件操作 - ✅ 100%
 
-- [ ] 文件读取 API
-- [ ] 文件树查询 API
-- [ ] 图片读取 API
+- [x] 文件读取 API
+- [x] 文件树查询 API
+- [x] 图片读取 API（base64）
 
-### Shell 集成 - ⏳ 0%
+### Shell 集成 - ✅ 100%
 
-- [ ] openExternal API
-- [ ] openPath API
+- [x] openExternal API
+- [x] openPath API
 
 ### 实时通信 - ⚠️ 20%
 
@@ -84,7 +84,7 @@ src/services/api/
 ├── index.ts              ✅ 工厂方法
 └── adapters/
     ├── electron-adapter.ts  ✅ Electron 实现
-    └── rust-adapter.ts       ✅ Rust HTTP 实现
+    └── rust-adapter.ts       ✅ Rust HTTP 实现（含文件操作）
 ```
 
 ### Rust 微服务 - ✅ 100%
@@ -96,7 +96,10 @@ rust-service/src/
 │   ├── mod.rs            ✅ 健康检查
 │   ├── sessions.rs       ✅ 会话查询（支持 opencode/claude/codebuddy）
 │   ├── settings.rs       ✅ 配置管理
-│   └── terminal.rs       ✅ 终端创建
+│   ├── terminal.rs       ✅ 终端创建
+│   ├── file.rs           ✅ 文件读取（文本 + 图片）
+│   ├── tree.rs           ✅ 文件树查询
+│   └── shell.rs          ✅ Shell 操作（openExternal/openPath）
 ├── storage/
 │   ├── mod.rs            ✅ 存储模块
 │   ├── opencode.rs       ✅ OpenCode 查询（完整）
@@ -143,10 +146,22 @@ rust-service/src/
 
 | 类别 | Electron | Rust | 状态 |
 |------|----------|------|------|
-| 主进程代码 | 6,244 行 | ~1,800 行 | ✅ 减少 71% |
+| 主进程代码 | 6,244 行 | ~2,200 行 | ✅ 减少 65% |
 | 原生依赖 | 3 个 | 0 个 | ✅ 完全消除 |
 | 二进制大小 | 50MB | 6.2MB | ✅ 减少 87.6% |
-| 编译时间 | 2 分钟 | 36 秒 | ✅ 快 5.5 倍 |
+| 编译时间 | 2 分钟 | 25 秒 | ✅ 快 4.8 倍 |
+
+### 功能完成度
+
+| 功能模块 | 完成度 | 备注 |
+|---------|--------|------|
+| 会话查询 | ✅ 100% | OpenCode + Claude + CodeBuddy |
+| 文件操作 | ✅ 100% | 读取 + 图片 + 文件树 |
+| Shell API | ✅ 100% | openExternal + openPath |
+| 设置管理 | ✅ 100% | 基础实现 |
+| 终端管理 | ⚠️ 20% | 基础框架 |
+| Git 集成 | ⏳ 0% | 待实现 |
+| WebSocket | ⏳ 0% | 低优先级 |
 
 ### 测试数据（2026-05-10）
 

@@ -51,6 +51,11 @@ async fn main() -> std::io::Result<()> {
                     .route("/terminal", web::post().to(api::terminal::create_terminal))
                     .route("/settings", web::get().to(api::settings::get_settings))
                     .route("/settings", web::post().to(api::settings::update_settings))
+                    .route("/file/read", web::get().to(api::file::read_file))
+                    .route("/file/readImage", web::get().to(api::file::read_image))
+                    .route("/tree", web::get().to(api::tree::get_tree))
+                    .route("/shell/openExternal", web::get().to(api::shell::open_external))
+                    .route("/shell/openPath", web::get().to(api::shell::open_path))
             )
     })
     .bind("127.0.0.1:3000")?
