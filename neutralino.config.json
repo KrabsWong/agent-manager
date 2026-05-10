@@ -1,0 +1,68 @@
+{
+  "$schema": "https://raw.githubusercontent.com/neutralinojs/neutralinojs/main/schemas/neutralino.config.schema.json",
+  "applicationId": "com.yes-sessions.app",
+  "version": "9.0.0",
+  "defaultMode": "window",
+  "port": 0,
+  "token": "yes-sessions-token",
+  "url": "/",
+  "enableServer": true,
+  "enableNativeAPI": true,
+  "modes": {
+    "window": {
+      "title": "Yes Sessions",
+      "width": 1200,
+      "height": 800,
+      "minWidth": 800,
+      "minHeight": 600,
+      "fullScreen": false,
+      "alwaysOnTop": false,
+      "icon": "/assets/icon.png",
+      "enableInspector": false,
+      "borderless": false,
+      "maximize": false,
+      "hidden": false,
+      "resizable": true,
+      "exitProcessOnClose": true
+    }
+  },
+  "nativeAllowList": [
+    "app.*",
+    "os.*",
+    "debug.*",
+    "filesystem.*",
+    "storage.*",
+    "process.*",
+    "events.*",
+    "computer.*",
+    "window.*"
+  ],
+  "globalVariables": {
+    "backend": "rust",
+    "rustServiceUrl": "http://localhost:3000"
+  },
+  "documentRoot": "/dist/",
+  "folder": ".",
+  "logging": {
+    "enabled": true,
+    "writeToLogFile": false
+  },
+  "developerSettings": {
+    "enableInspector": true,
+    "nativeAPIWarning": false
+  },
+  "extensions": [
+    {
+      "id": "rust-service",
+      "path": "./rust-service/",
+      "command": "./yes-sessions-service",
+      "autoStart": true,
+      "autoRestart": true
+    }
+  ],
+  "cli": {
+    "binaryName": "yes-sessions",
+    "frontendLibrary": "react",
+    "frontendFramework": "vite"
+  }
+}

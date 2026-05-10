@@ -87,6 +87,7 @@
     "build:mac": "tsc && vite build && npm run cleanup:build && electron-builder --mac",
     "build:win": "tsc && vite build && npm run cleanup:build && electron-builder --win",
     "build:linux": "tsc && vite build && npm run cleanup:build && electron-builder --linux",
+    "build:frontend": "vite build",
     "cleanup:build": "bash scripts/cleanup-build.sh",
     "preview": "vite preview",
     "test": "vitest",
@@ -97,7 +98,14 @@
     "format": "prettier --write \"src/**/*.{ts,tsx,json,css,md}\" \"electron/**/*.{ts,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,json,css,md}\" \"electron/**/*.{ts,json}\"",
     "typecheck": "tsc --noEmit",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps",
+    "neutralino:dev": "bash scripts/start-neutralino.sh dev",
+    "neutralino:build": "bash scripts/build-neutralino.sh",
+    "neutralino:package": "bash scripts/package-neutralino.sh",
+    "neutralino:run": "neu run",
+    "rust:build": "cd rust-service && cargo build --release",
+    "rust:dev": "cd rust-service && cargo run",
+    "rust:test": "cd rust-service && cargo test"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.1",
