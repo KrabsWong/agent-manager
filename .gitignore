@@ -48,3 +48,12 @@ sidebar.png
 rust-service/target/
 **/*.rs.bk
 Cargo.lock
+
+# Neutralino build artifacts
+bin/
+dist-packages/
+.neutralino/
+resources.neu
+
+# Rust binary in root (copied for packaging)
+rust-service/yes-sessions-service

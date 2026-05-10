@@ -25,7 +25,7 @@ start_rust_service() {
     echo -e "${YELLOW}Starting Rust microservice...${NC}"
     
     # Build Rust service if not exists
-    if [ ! -f "./rust-service/yes-sessions-service" ]; then
+    if [ ! -f "./rust-service/target/release/yes-sessions-service" ]; then
         echo -e "${YELLOW}Building Rust service...${NC}"
         cd rust-service
         cargo build --release
@@ -33,7 +33,7 @@ start_rust_service() {
     fi
     
     # Start Rust service
-    ./rust-service/yes-sessions-service &
+    ./rust-service/target/release/yes-sessions-service &
     RUST_PID=$!
     echo -e "${GREEN}Rust service started with PID: $RUST_PID${NC}"
     

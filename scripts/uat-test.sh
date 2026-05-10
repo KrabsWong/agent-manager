@@ -121,7 +121,7 @@ performance_tests() {
     
     # Test 1: Response time < 200ms
     RESPONSE_TIME=$(curl -w "%{time_total}" -o /dev/null -s http://localhost:3000/health)
-    run_test "Response time < 200ms" "[ '$RESPONSE_TIME' < '0.200' ]"
+    run_test "Response time < 200ms" "awk 'BEGIN{exit ($RESPONSE_TIME < 0.200 ? 0 : 1)}'"
     
     # Test 2: Memory usage < 50MB
     MEMORY_USAGE=$(ps -o rss= -p $RUST_PID | awk '{print $1}')

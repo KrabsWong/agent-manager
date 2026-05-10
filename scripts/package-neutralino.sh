@@ -74,30 +74,74 @@ build_platform() {
 create_package() {
     local target_platform=$1
     local output_dir="dist-packages"
+    local temp_dir="dist-temp"
     
     mkdir -p "${output_dir}"
+    mkdir -p "${temp_dir}/yes-sessions"
     
     echo -e "${YELLOW}Creating distribution package for ${target_platform}...${NC}"
     
+    # Copy frontend resources
+    echo -e "${BLUE}Copying frontend resources...${NC}"
+    cp -r dist/* "${temp_dir}/yes-sessions/"
+    
+    # Copy Neutralino binary for the platform
+    echo -e "${BLUE}Copying Neutralino binary...${NC}"
     case "${target_platform}" in
         mac)
-            cd dist/yes-sessions-mac
-            zip -r "../../${output_dir}/yes-sessions-${VERSION}-mac-arm64.zip" .
-            cd ..
+            cp bin/neutralino-mac_arm64 "${temp_dir}/yes-sessions/yes-sessions"
+            chmod +x "${temp_dir}/yes-sessions/yes-sessions"
             ;;
-        
         win)
-            cd dist/yes-sessions-win
-            7z a "../../${output_dir}/yes-sessions-${VERSION}-win-x64.zip" .
-            cd ..
+            cp bin/neutralino-win_x64.exe "${temp_dir}/yes-sessions/yes-sessions.exe"
             ;;
-        
         linux)
-            cd dist/yes-sessions-linux
-            tar -czf "../../${output_dir}/yes-sessions-${VERSION}-linux-x64.tar.gz" .
-            cd ..
+            cp bin/neutralino-linux_x64 "${temp_dir}/yes-sessions/yes-sessions"
+            chmod +x "${temp_dir}/yes-sessions/yes-sessions"
             ;;
     esac
+    
+    # Copy Rust service
+    echo -e "${BLUE}Copying Rust service...${NC}"
+    case "${target_platform}" in
+        mac)
+            cp rust-service/target/release/yes-sessions-service "${temp_dir}/yes-sessions/"
+            chmod +x "${temp_dir}/yes-sessions/yes-sessions-service"
+            ;;
+        win)
+            if [ -f "rust-service/target/x86_64-pc-windows-msvc/release/yes-sessions-service.exe" ]; then
+                cp rust-service/target/x86_64-pc-windows-msvc/release/yes-sessions-service.exe "${temp_dir}/yes-sessions/"
+            fi
+            ;;
+        linux)
+            if [ -f "rust-service/target/x86_64-unknown-linux-gnu/release/yes-sessions-service" ]; then
+                cp rust-service/target/x86_64-unknown-linux-gnu/release/yes-sessions-service "${temp_dir}/yes-sessions/"
+                chmod +x "${temp_dir}/yes-sessions/yes-sessions-service"
+            fi
+            ;;
+    esac
+    
+    # Copy config file
+    cp neutralino.config.json "${temp_dir}/yes-sessions/"
+    
+    # Create package
+    echo -e "${BLUE}Creating archive...${NC}"
+    cd "${temp_dir}"
+    case "${target_platform}" in
+        mac)
+            zip -r "../${output_dir}/yes-sessions-${VERSION}-mac-arm64.zip" yes-sessions
+            ;;
+        win)
+            7z a "../${output_dir}/yes-sessions-${VERSION}-win-x64.zip" yes-sessions
+            ;;
+        linux)
+            tar -czf "../${output_dir}/yes-sessions-${VERSION}-linux-x64.tar.gz" yes-sessions
+            ;;
+    esac
+    cd ..
+    
+    # Cleanup
+    rm -rf "${temp_dir}"
     
     echo -e "${GREEN}Package created: ${output_dir}/yes-sessions-${VERSION}-${target_platform}*${NC}"
 }
