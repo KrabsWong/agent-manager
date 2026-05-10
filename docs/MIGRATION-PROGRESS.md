@@ -251,31 +251,97 @@ Neutralinojs 主进程 (20MB)
 
 ## 下一步计划
 
-### 短期 (本周)
+### 高优先级（本周）
 
-1. ✅ 完善 Rust 服务基础结构
-2. 🚧 实现 OpenCode 会话查询 API
-3. 🚧 实现 WebSocket 终端通信
-4. 🚧 实现 Rust 适配器
+1. ✅ ~~完善 Rust 服务基础结构~~
+2. ✅ ~~实现 OpenCode 会话查询 API~~
+3. ✅ ~~实现 Rust 后端适配器~~
+4. ⏳ 实现 Claude/CodeBuddy 会话查询 API
+5. ⏳ 添加文件读取 API（/api/file/read）
+6. ⏳ 添加文件树查询 API（/api/tree）
 
-### 中期 (下周)
+### 中优先级（下周）
 
-1. 实现 Neutralino 适配器
-2. 进程生命周期管理
-3. 跨平台打包配置
+1. ⏳ 添加 shell.openExternal API
+2. ⏳ 前端集成测试（Rust 后端联调）
+3. ⏳ 性能优化和缓存策略
+4. ⏳ 实现 Neutralino 适配器
 
-### 长期 (后续)
+### 低优先级（延后）
 
-1. 性能优化
-2. 单元测试覆盖
-3. 文档完善
-4. 用户验收测试
+1. ⏳ WebSocket 终端数据流
+2. ⏳ Git 文件实时监听
+3. ⏳ 跨平台打包配置
+4. ⏳ 用户验收测试
+
+---
+
+## 当前进度
+
+### 已完成 ✅
+
+- [x] Phase 1: API 抽象层重构（100%）
+  - [x] IBackendAdapter 接口定义
+  - [x] ElectronBackendAdapter 实现
+  - [x] 向后兼容的 API 层
+  - [x] 运行时切换后端机制
+
+- [x] Phase 2: Rust 微服务开发（75%）
+  - [x] HTTP API 基础架构（Actix-web）
+  - [x] OpenCode 会话查询完整实现
+  - [x] SQLite 查询引擎（rusqlite）
+  - [x] Rust 后端适配器（HTTP 客户端）
+  - [x] 健康检查和错误处理
+
+### 进行中 ⏳
+
+- [ ] Phase 2: 剩余功能（25%）
+  - [ ] Claude/CodeBuddy 会话查询
+  - [ ] 文件操作 API
+  - [ ] WebSocket 实时通信（低优先级）
+
+### 待开始 ⏸️
+
+- [ ] Phase 3: Neutralinojs 集成（0%）
+- [ ] Phase 4: 测试与优化（0%）
+
+---
+
+## 整体进度
+
+```
+Phase 1: ████████████████████ 100% ✅
+Phase 2: ██████████████░░░░░░  75% ⏳
+Phase 3: ░░░░░░░░░░░░░░░░░░░░   0% ⏸️
+Phase 4: ░░░░░░░░░░░░░░░░░░░░   0% ⏸️
+```
+
+**预计完成时间**: 5周（已用 1.5周）
+
+---
+
+## 技术债务
+
+### 需要优化
+
+1. **消息解析性能**: 大会话（>1000条消息）可能较慢
+2. **缓存策略**: 设置数据应该添加 LRU 缓存
+3. **错误处理**: 需要 more specific error types
+4. **测试覆盖**: 缺少单元测试和集成测试
+
+### 需要文档
+
+1. API 文档（OpenAPI/Swagger）
+2. 架构设计文档
+3. 部署文档
+4. 故障排查指南
 
 ---
 
 ## 参考资料
 
 - [迁移指南完整文档](./docs/MIGRATION-GUIDE.md)
+- [Rust 适配器使用指南](./docs/RUST-ADAPTER-GUIDE.md)
 - [Neutralinojs 官方文档](https://neutralino.js.org/docs/)
 - [Actix-web 文档](https://actix.rs/)
 - [Rusqlite 文档](https://docs.rs/rusqlite/)
@@ -284,4 +350,4 @@ Neutralinojs 主进程 (20MB)
 
 **最后更新**: 2026-05-10  
 **维护者**: Yes Sessions Team  
-**版本**: v1.0
+**版本**: v1.1
