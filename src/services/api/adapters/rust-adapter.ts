@@ -149,7 +149,21 @@ export class RustBackendAdapter implements IBackendAdapter {
     },
 
     getTerminalInfo: async (): Promise<TerminalInfo> => {
-      return { preferred: 'builtin', ghosttyInstalled: false, kittyInstalled: false };
+      try {
+        const response = await this.client.get<{
+          preferred: string;
+          ghostty_installed: boolean;
+          kitty_installed: boolean;
+        }>('/api/terminal/info');
+        return {
+          preferred: response.preferred as TerminalInfo['preferred'],
+          ghosttyInstalled: response.ghostty_installed,
+          kittyInstalled: response.kitty_installed,
+        };
+      } catch (error) {
+        console.error('[Rust] Failed to get terminal info:', error);
+        return { preferred: 'builtin', ghosttyInstalled: false, kittyInstalled: false };
+      }
     },
   };
 

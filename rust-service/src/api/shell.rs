@@ -1,6 +1,7 @@
 use actix_web::{web, HttpResponse};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
+use std::process::Command;
 
 #[derive(Deserialize)]
 pub struct OpenExternalRequest {
@@ -22,6 +23,67 @@ pub struct ApiResponse<T> {
 #[derive(Serialize)]
 pub struct ApiError {
     message: String,
+}
+
+#[derive(Serialize)]
+pub struct TerminalInfo {
+    preferred: String,
+    ghostty_installed: bool,
+    kitty_installed: bool,
+}
+
+fn check_ghostty_installed() -> bool {
+    Command::new("which")
+        .arg("ghostty")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+}
+
+fn check_kitty_installed() -> bool {
+    if Command::new("which")
+        .arg("kitty")
+        .output()
+        .map(|o| o.status.success())
+        .unwrap_or(false)
+    {
+        return true;
+    }
+    
+    let kitty_paths = [
+        "/Applications/kitty.app/Contents/MacOS/kitty",
+    ];
+    
+    for path in kitty_paths {
+        if Path::new(path).exists() {
+            return true;
+        }
+    }
+    
+    false
+}
+
+pub async fn get_terminal_info() -> HttpResponse {
+    let ghostty_installed = check_ghostty_installed();
+    let kitty_installed = check_kitty_installed();
+    
+    let preferred = if ghostty_installed {
+        "ghostty".to_string()
+    } else if kitty_installed {
+        "kitty".to_string()
+    } else {
+        "builtin".to_string()
+    };
+    
+    HttpResponse::Ok().json(ApiResponse {
+        success: true,
+        data: Some(TerminalInfo {
+            preferred,
+            ghostty_installed,
+            kitty_installed,
+        }),
+        error: None,
+    })
 }
 
 pub async fn open_external(req: web::Query<OpenExternalRequest>) -> HttpResponse {

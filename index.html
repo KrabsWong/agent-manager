@@ -5,9 +5,161 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Yes Sessions</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --bg-gradient-start: #0f172a;
+        --bg-gradient-mid: #1e293b;
+        --bg-gradient-end: #334155;
+        --text-color: #f1f5f9;
+        --text-secondary: #cbd5e1;
+        --accent-primary: #94a3b8;
+        --accent-secondary: #cbd5e1;
+        --loading-bar-bg: rgba(148, 163, 184, 0.2);
+        --glow-color: rgba(148, 163, 184, 0.15);
+        --version-color: rgba(148, 163, 184, 0.4);
+      }
+
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg-gradient-start: #f8fafc;
+          --bg-gradient-mid: #f1f5f9;
+          --bg-gradient-end: #e2e8f0;
+          --text-color: #1e293b;
+          --text-secondary: #475569;
+          --accent-primary: #334155;
+          --accent-secondary: #475569;
+          --loading-bar-bg: rgba(51, 65, 85, 0.15);
+          --glow-color: rgba(100, 116, 139, 0.15);
+          --version-color: rgba(100, 116, 139, 0.5);
+        }
+      }
+
+      #loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          160deg,
+          var(--bg-gradient-start) 0%,
+          var(--bg-gradient-mid) 50%,
+          var(--bg-gradient-end) 100%
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 28px;
+        z-index: 9999;
+        transition: opacity 0.3s ease;
+      }
+
+      #loading.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .logo-wrapper {
+        position: relative;
+        animation: float 4s ease-in-out infinite;
+      }
+
+      .logo {
+        width: 120px;
+        height: 120px;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        object-fit: cover;
+      }
+
+      .logo-glow {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 160px;
+        height: 160px;
+        background: radial-gradient(circle, var(--glow-color) 0%, transparent 70%);
+        border-radius: 50%;
+        z-index: -1;
+        animation: pulse 3s ease-in-out infinite;
+      }
+
+      .app-title {
+        color: var(--text-color);
+        font-size: 20px;
+        font-weight: 600;
+        letter-spacing: 1px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+
+      .loading-bar {
+        width: 160px;
+        height: 3px;
+        background: var(--loading-bar-bg);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+
+      .loading-progress {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(
+          90deg,
+          var(--accent-secondary) 0%,
+          var(--accent-primary) 50%,
+          var(--accent-secondary) 100%
+        );
+        border-radius: 2px;
+        animation: loading 2s ease-in-out infinite;
+      }
+
+      @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-8px); }
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+        50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+      }
+
+      @keyframes loading {
+        0% { width: 0%; margin-left: 0%; }
+        50% { width: 60%; margin-left: 20%; }
+        100% { width: 0%; margin-left: 100%; }
+      }
+
+      .version {
+        position: absolute;
+        bottom: 24px;
+        color: var(--version-color);
+        font-size: 11px;
+        letter-spacing: 0.5px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+    </style>
   </head>
   <body>
+    <div id="loading">
+      <div class="logo-wrapper">
+        <div class="logo-glow"></div>
+        <img src="./logo.png" alt="Yes Sessions" class="logo" />
+      </div>
+      <h1 class="app-title">Yes Sessions</h1>
+      <div class="loading-bar">
+        <div class="loading-progress"></div>
+      </div>
+    </div>
     <div id="root"></div>
+    <div class="version">v9.0.0</div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

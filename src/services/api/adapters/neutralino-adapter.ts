@@ -120,13 +120,15 @@ export class NeutralinoStorageAdapter implements IStorageAdapter {
         const data = await window.Neutralino.storage.getData(key);
         const value = JSON.parse(data);
         this.cache.set(key, value);
+        console.log(`[Neutralino Storage] Loaded ${key}:`, value);
         return value;
       }
     } catch (error) {
-      console.warn(`[Neutralino] Storage key "${key}" not found:`, error);
+      console.warn(`[Neutralino Storage] Key "${key}" not found, using default`);
     }
 
     if (defaultValue !== undefined) {
+      this.cache.set(key, defaultValue);
       return defaultValue;
     }
 
@@ -138,16 +140,27 @@ export class NeutralinoStorageAdapter implements IStorageAdapter {
 
     try {
       if (typeof window !== 'undefined' && window.Neutralino) {
-        await window.Neutralino.storage.setData(key, JSON.stringify(value));
+        const jsonValue = JSON.stringify(value);
+        await window.Neutralino.storage.setData(key, jsonValue);
+        console.log(`[Neutralino Storage] Saved ${key}:`, value);
+      } else {
+        console.warn('[Neutralino Storage] Neutralino not available, data only in cache');
       }
     } catch (error) {
-      console.error(`[Neutralino] Failed to set storage key "${key}":`, error);
+      console.error(`[Neutralino Storage] Failed to save ${key}:`, error);
       throw error;
     }
   }
 
   async delete(key: string): Promise<void> {
     this.cache.delete(key);
+    try {
+      if (typeof window !== 'undefined' && window.Neutralino) {
+        await window.Neutralino.storage.setData(key, '');
+      }
+    } catch (error) {
+      console.warn(`[Neutralino Storage] Failed to delete ${key}:`, error);
+    }
   }
 
   async clear(): Promise<void> {
@@ -247,14 +260,41 @@ export class NeutralinoBackendAdapter implements IBackendAdapter {
     },
 
     getTerminalInfo: async (): Promise<TerminalInfo> => {
-      return { preferred: 'builtin', ghosttyInstalled: false, kittyInstalled: false };
+      try {
+        const response = await this.client.get<{
+          preferred: string;
+          ghostty_installed: boolean;
+          kitty_installed: boolean;
+        }>('/api/terminal/info');
+        return {
+          preferred: response.preferred as TerminalInfo['preferred'],
+          ghosttyInstalled: response.ghostty_installed,
+          kittyInstalled: response.kitty_installed,
+        };
+      } catch (error) {
+        console.error('[Neutralino] Failed to get terminal info:', error);
+        return { preferred: 'builtin', ghosttyInstalled: false, kittyInstalled: false };
+      }
     },
   };
 
   readonly settings = {
     get: async (): Promise<AppSettings> => {
       try {
-        return await this.storage.get<AppSettings>('settings');
+        const settings = await this.storage.get<AppSettings>('settings');
+        return {
+          language: settings.language || 'en',
+          theme: settings.theme || 'system',
+          accentColor: settings.accentColor || 'default',
+          autoStart: settings.autoStart ?? false,
+          lightweightMode: settings.lightweightMode ?? false,
+          defaultApp: settings.defaultApp || null,
+          collapseBashBlocks: settings.collapseBashBlocks ?? true,
+          enableTitleMarquee: settings.enableTitleMarquee ?? false,
+          showThinkingContent: settings.showThinkingContent ?? true,
+          sidebarCollapsed: settings.sidebarCollapsed ?? false,
+          preferredTerminal: settings.preferredTerminal || 'auto',
+        };
       } catch {
         return {
           language: 'en',
@@ -276,6 +316,7 @@ export class NeutralinoBackendAdapter implements IBackendAdapter {
       const current = await this.settings.get();
       const updated = { ...current, ...settings };
       await this.storage.set('settings', updated);
+      console.log('[Neutralino] Settings saved:', updated);
     },
 
     reset: async (): Promise<void> => {

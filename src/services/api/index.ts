@@ -7,10 +7,11 @@
 import type { IBackendAdapter, IStorageAdapter } from './interface';
 import { ElectronBackendAdapter, ElectronStorageAdapter } from './adapters/electron-adapter';
 import { RustBackendAdapter, RustStorageAdapter } from './adapters/rust-adapter';
+import { NeutralinoBackendAdapter, NeutralinoStorageAdapter } from './adapters/neutralino-adapter';
 
 export type BackendType = 'electron' | 'rust' | 'neutralino';
 
-let currentBackend: BackendType = 'electron';  // Will be switched by main.tsx based on environment
+let currentBackend: BackendType = 'electron';
 let apiInstance: IBackendAdapter | null = null;
 let storageInstance: IStorageAdapter | null = null;
 
@@ -25,11 +26,6 @@ export function getCurrentBackend(): BackendType {
  * Switch backend implementation
  * 
  * This allows switching from Electron to Rust/Neutralino without code changes
- * 
- * @example
- * // Switch to Rust backend
- * import { switchBackend } from '@/lib/api';
- * switchBackend('rust');
  */
 export function switchBackend(backend: BackendType): void {
   if (backend === currentBackend) return;
@@ -71,8 +67,7 @@ function createBackendAdapter(type: BackendType): IBackendAdapter {
     case 'rust':
       return new RustBackendAdapter();
     case 'neutralino':
-      // TODO: Implement in Phase 3
-      throw new Error('Neutralino backend not implemented yet');
+      return new NeutralinoBackendAdapter();
     default:
       throw new Error(`Unknown backend: ${type}`);
   }
@@ -88,10 +83,9 @@ function createStorageAdapter(type: BackendType): IStorageAdapter {
     case 'rust':
       return new RustStorageAdapter(new RustBackendAdapter()['client']);
     case 'neutralino':
-      // TODO: Implement in Phase 3
-      throw new Error('Neutralino storage not implemented yet');
+      return new NeutralinoStorageAdapter();
     default:
-      throw new Error(`Unknown backend: ${type}`);
+      throw new Error(`Unknown storage: ${type}`);
   }
 }
 

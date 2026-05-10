@@ -49,6 +49,7 @@ async fn main() -> std::io::Result<()> {
                     .route("/sessions/{appType}/{id}", web::get().to(api::sessions::get_session_detail))
                     .route("/sessions/stats/{appType}", web::get().to(api::sessions::get_stats))
                     .route("/terminal", web::post().to(api::terminal::create_terminal))
+                    .route("/terminal/info", web::get().to(api::shell::get_terminal_info))
                     .route("/settings", web::get().to(api::settings::get_settings))
                     .route("/settings", web::post().to(api::settings::update_settings))
                     .route("/file/read", web::get().to(api::file::read_file))

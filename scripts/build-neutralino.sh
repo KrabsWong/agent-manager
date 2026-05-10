@@ -35,6 +35,13 @@ echo -e "${GREEN}Rust binary copied${NC}"
 echo -e "${BLUE}[4/5] Preparing Neutralino resources...${NC}"
 mkdir -p resources/bin
 
+# Copy dist files to resources
+echo "Copying dist to resources..."
+cp -r dist/* resources/ 2>/dev/null || true
+cp dist/index.html resources/ 2>/dev/null || true
+cp dist/file-preview.html resources/ 2>/dev/null || true
+cp -r dist/assets resources/ 2>/dev/null || true
+
 # Copy platform-specific binaries
 case "$(uname -s)" in
     Darwin*)
