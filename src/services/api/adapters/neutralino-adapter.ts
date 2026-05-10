@@ -175,7 +175,6 @@ export class NeutralinoBackendAdapter implements IBackendAdapter {
   private client: RustHttpClient;
   private storage: NeutralinoStorageAdapter;
   private rustServicePid: number | null = null;
-  private wsConnections: Map<string, WebSocket> = new Map();
 
   constructor(baseUrl: string = RUST_SERVICE_URL) {
     this.client = new RustHttpClient(baseUrl);
@@ -273,7 +272,7 @@ export class NeutralinoBackendAdapter implements IBackendAdapter {
         };
       } catch (error) {
         console.error('[Neutralino] Failed to get terminal info:', error);
-        return { preferred: 'builtin', ghosttyInstalled: false, kittyInstalled: false };
+        return { preferred: 'auto', ghosttyInstalled: false, kittyInstalled: false };
       }
     },
   };
@@ -422,43 +421,6 @@ export class NeutralinoBackendAdapter implements IBackendAdapter {
 
     onChange: (_callback: (dirPath: string) => void): (() => void) => {
       console.warn('[Neutralino] git.onChange not implemented');
-      return () => {};
-    },
-  };
-
-  readonly pty = {
-    create: async (
-      sessionId: string,
-      options?: { cwd?: string }
-    ): Promise<{ sessionId: string; shell: string }> => {
-      return this.client.post('/api/terminal', { sessionId, cwd: options?.cwd });
-    },
-
-    write: async (_sessionId: string, _data: string): Promise<void> => {
-      console.warn('[Neutralino] pty.write requires WebSocket');
-    },
-
-    resize: async (_sessionId: string, _cols: number, _rows: number): Promise<void> => {
-      console.warn('[Neutralino] pty.resize requires WebSocket');
-    },
-
-    kill: async (_sessionId: string): Promise<void> => {
-      console.warn('[Neutralino] pty.kill requires WebSocket');
-    },
-
-    onData: (sessionId: string, _callback: (data: string) => void): (() => void) => {
-      console.warn('[Neutralino] pty.onData requires WebSocket');
-      return () => {
-        const ws = this.wsConnections.get(sessionId);
-        if (ws) {
-          ws.close();
-          this.wsConnections.delete(sessionId);
-        }
-      };
-    },
-
-    onExit: (_sessionId: string, _callback: (exitCode: number) => void): (() => void) => {
-      console.warn('[Neutralino] pty.onExit requires WebSocket');
       return () => {};
     },
   };

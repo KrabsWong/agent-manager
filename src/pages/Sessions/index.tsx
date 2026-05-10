@@ -34,7 +34,7 @@ import { api } from '@/lib/api';
 import { VirtualSessionList, type ViewMode } from '@/components/sessions/VirtualSessionList';
 import { APP_LABELS, APP_WEBSITES, APP_COLORS } from '@/config/apps';
 import { getAppIcon } from '@/components/AppIcons';
-import { BuiltInTerminal, type BuiltInTerminalRef } from '@/components/BuiltInTerminal';
+
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { APP_ORDER, isAppSupported } from '@/config/apps';
 import type { AppType, Session } from '@/types';
@@ -55,8 +55,6 @@ function truncateText(text: string, maxLength: number): string {
 export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
   const { t } = useTranslation();
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
-  const [isTerminalOpen, setIsTerminalOpen] = useState(false);
-  const terminalRef = useRef<BuiltInTerminalRef>(null);
 
   // Sidebar collapse state
   const { sidebarCollapsed } = useSettingsStore();
@@ -196,46 +194,21 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
     // VS Code Extension doesn't support resume
     if (selectedApp === 'vscode-extension') return;
 
-    // Check if using built-in terminal
-    const isBuiltInTerminal = terminalInfo?.preferred === 'builtin';
-
-    if (isBuiltInTerminal) {
-      // Open built-in terminal and trigger replay
-      setIsTerminalOpen(true);
-
-      // Get session name for tab title
-      const sessionName = selectedSession.firstMessage
-        ? truncateText(selectedSession.firstMessage, 30)
-        : selectedSession.fileName || selectedSession.id.slice(0, 8);
-
-      // Wait for terminal to be ready then replay
-      setTimeout(async () => {
-        if (terminalRef.current) {
-          // Wait a bit for PTY to be ready then trigger replay (this will also create the tab)
-          await terminalRef.current?.replay(selectedSession.id, selectedApp, sessionName, selectedSession.directory);
-        }
-      }, 100);
-    } else {
-      // Use external terminal
-      await resumeMutation.mutateAsync({
-        sessionId: selectedSession.id,
-        appType: selectedApp,
-        workingDir: selectedSession.directory,
-      });
-    }
+    await resumeMutation.mutateAsync({
+      sessionId: selectedSession.id,
+      appType: selectedApp,
+      workingDir: selectedSession.directory,
+    });
   };
 
-  // Check if terminal supports resume
-  // Built-in terminal is always available, otherwise check external terminals
-  // VS Code Extension doesn't support resume since it's not a CLI tool
-  // Note: 'auto' preference means system will auto-detect, so we check if any terminal is available
   const canResume =
     selectedApp !== 'vscode-extension' &&
-    (terminalInfo?.preferred === 'builtin' ||
-      terminalInfo?.preferred === 'auto' ||
+    (terminalInfo?.preferred === 'auto' ||
       terminalInfo?.ghosttyInstalled ||
       terminalInfo?.kittyInstalled ||
-      terminalInfo?.preferred === 'terminal');
+      terminalInfo?.preferred === 'terminal' ||
+      terminalInfo?.preferred === 'ghostty' ||
+      terminalInfo?.preferred === 'kitty');
 
   const handleOpenFilePreview = async () => {
     if (!selectedSession?.directory) return;
@@ -498,16 +471,16 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                               <p>
                                 {!canResume
                                   ? t('sessions.installTerminalTip', 'Install Ghostty or Kitty for best experience')
-                                  : terminalInfo?.preferred === 'builtin'
-                                    ? t('sessions.resumeInBuiltInTerminal', 'Resume in built-in terminal')
-                                    : t('sessions.resumeInTerminal', {
-                                        terminal:
-                                          terminalInfo?.preferred === 'ghostty'
-                                            ? 'Ghostty'
-                                            : terminalInfo?.preferred === 'kitty'
-                                              ? 'Kitty'
+                                  : t('sessions.resumeInTerminal', {
+                                      terminal:
+                                        terminalInfo?.preferred === 'ghostty'
+                                          ? 'Ghostty'
+                                          : terminalInfo?.preferred === 'kitty'
+                                            ? 'Kitty'
+                                            : terminalInfo?.preferred === 'terminal'
+                                              ? 'Terminal'
                                               : 'Terminal',
-                                      })}
+                                    })}
                               </p>
                             </TooltipContent>
                           </Tooltip>
@@ -655,13 +628,6 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
           )}
         </div>
       </div>
-
-      {/* Built-in Terminal */}
-      <BuiltInTerminal
-        ref={terminalRef}
-        isOpen={isTerminalOpen}
-        onClose={() => setIsTerminalOpen(false)}
-      />
     </div>
   );
 }

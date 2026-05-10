@@ -156,13 +156,13 @@ export class RustBackendAdapter implements IBackendAdapter {
           kitty_installed: boolean;
         }>('/api/terminal/info');
         return {
-          preferred: response.preferred as TerminalInfo['preferred'],
+          preferred: response.preferred as 'auto' | 'ghostty' | 'kitty' | 'terminal',
           ghosttyInstalled: response.ghostty_installed,
           kittyInstalled: response.kitty_installed,
         };
       } catch (error) {
         console.error('[Rust] Failed to get terminal info:', error);
-        return { preferred: 'builtin', ghosttyInstalled: false, kittyInstalled: false };
+        return { preferred: 'auto', ghosttyInstalled: false, kittyInstalled: false };
       }
     },
   };

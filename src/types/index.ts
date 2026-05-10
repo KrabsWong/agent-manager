@@ -49,7 +49,7 @@ export interface AppSettings {
   sidebarCollapsed: boolean;
 
   // Terminal
-  preferredTerminal: 'auto' | 'ghostty' | 'kitty' | 'terminal' | 'builtin';
+  preferredTerminal: 'auto' | 'ghostty' | 'kitty' | 'terminal';
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {

@@ -93,19 +93,6 @@ export interface IBackendAdapter {
     stopWatching(): Promise<void>;
     onChange(callback: (dirPath: string) => void): () => void;
   };
-
-  // PTY Terminal API
-  pty: {
-    create(sessionId: string, options?: { cwd?: string }): Promise<{
-      sessionId: string;
-      shell: string;
-    }>;
-    write(sessionId: string, data: string): Promise<void>;
-    resize(sessionId: string, cols: number, rows: number): Promise<void>;
-    kill(sessionId: string): Promise<void>;
-    onData(sessionId: string, callback: (data: string) => void): () => void;
-    onExit(sessionId: string, callback: (exitCode: number) => void): () => void;
-  };
 }
 
 /**

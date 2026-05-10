@@ -62,7 +62,7 @@ export interface GitFileDiffResult {
 }
 
 export interface TerminalInfo {
-  preferred: 'auto' | 'ghostty' | 'kitty' | 'terminal' | 'builtin';
+  preferred: 'auto' | 'ghostty' | 'kitty' | 'terminal';
   ghosttyInstalled: boolean;
   kittyInstalled: boolean;
 }

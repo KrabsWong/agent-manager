@@ -16,7 +16,7 @@ export interface InitialSettings {
   enableTitleMarquee?: boolean;
   collapseBashBlocks?: boolean;
   showThinkingContent?: boolean;
-  preferredTerminal?: 'auto' | 'ghostty' | 'kitty' | 'terminal' | 'builtin';
+  preferredTerminal?: 'auto' | 'ghostty' | 'kitty' | 'terminal';
   sidebarCollapsed?: boolean;
   chatLayout?: 'left' | 'bubble';
 }

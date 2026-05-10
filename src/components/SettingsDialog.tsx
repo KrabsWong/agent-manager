@@ -109,7 +109,24 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   );
 }
 
-// 通用设置
+// Terminal settings component
+function TerminalSettings() {
+  const { t } = useTranslation();
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-sm font-medium">{t('settings.terminalTitle') || 'Terminal'}</h3>
+        <p className="text-xs text-muted-foreground">
+          {t('settings.terminalDescription') || 'Choose your preferred terminal application'}
+        </p>
+      </div>
+      <TerminalSelector />
+    </div>
+  );
+}
+
+// General settings component
 import type { AccentColor } from '@/lib/theme/colors';
 
 interface GeneralSettingsProps {
@@ -465,23 +482,6 @@ function ExperienceSettings() {
           />
         </div>
       </button>
-    </div>
-  );
-}
-
-// Terminal settings component
-function TerminalSettings() {
-  const { t } = useTranslation();
-
-  return (
-    <div className="space-y-4">
-      <div>
-        <h3 className="text-sm font-medium">{t('settings.terminalTitle') || 'Terminal'}</h3>
-        <p className="text-xs text-muted-foreground">
-          {t('settings.terminalDescription') || 'Choose your preferred terminal application'}
-        </p>
-      </div>
-      <TerminalSelector />
     </div>
   );
 }

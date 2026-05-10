@@ -70,16 +70,16 @@ export default defineConfig({
         onstart(options) {
           options.startup();
         },
-        vite: {
-          build: {
-            sourcemap: false, // 生产环境禁用 sourcemap
-            minify: isProduction ? 'terser' : false,
-            outDir: 'dist-electron',
-            rollupOptions: {
-              external: ['electron', 'better-sqlite3', 'keytar', 'node-pty'],
+vite: {
+            build: {
+              sourcemap: false, // 生产环境禁用 sourcemap
+              minify: isProduction ? 'terser' : false,
+              outDir: 'dist-electron',
+              rollupOptions: {
+                external: ['electron', 'better-sqlite3', 'keytar', 'node-pty'],
+              },
             },
           },
-        },
       },
       {
         // Preload script

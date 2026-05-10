@@ -11,8 +11,6 @@
  */
 
 import type { AppSettings, Session, SessionDetail } from '@/types';
-import { Terminal } from '@xterm/xterm';
-import { FitAddon } from '@xterm/addon-fit';
 import { getApi } from '@/services/api';
 
 /**
@@ -188,135 +186,6 @@ export const gitApi = {
   },
 };
 
-/**
- * PTY Terminal API - delegates to backend adapter
- */
-export interface PTYSession {
-  id: string;
-  terminal: Terminal;
-  fitAddon: FitAddon;
-}
-
-class PTYAPI {
-  private sessions: Map<string, PTYSession> = new Map();
-
-  /**
-   * Create a new PTY session
-   */
-  async create(sessionId: string, cwd?: string): Promise<PTYSession | null> {
-    try {
-      const api = getApi();
-      await api.pty.create(sessionId, { cwd });
-
-      // Create xterm terminal with scrollback buffer
-      const terminal = new Terminal({
-        cursorBlink: true,
-        fontSize: 14,
-        fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-        scrollback: 10000,
-        allowProposedApi: true,
-        convertEol: true,
-        theme: {
-          background: '#1a1a1a',
-          foreground: '#f0f0f0',
-          cursor: '#f0f0f0',
-          selectionBackground: '#404040',
-          black: '#000000',
-          red: '#e06c75',
-          green: '#98c379',
-          yellow: '#d19a66',
-          blue: '#61afef',
-          magenta: '#c678dd',
-          cyan: '#56b6c2',
-          white: '#abb2bf',
-          brightBlack: '#5c6370',
-          brightRed: '#e06c75',
-          brightGreen: '#98c379',
-          brightYellow: '#d19a66',
-          brightBlue: '#61afef',
-          brightMagenta: '#c678dd',
-          brightCyan: '#56b6c2',
-          brightWhite: '#ffffff',
-        },
-      });
-
-      const fitAddon = new FitAddon();
-      terminal.loadAddon(fitAddon);
-
-      const session: PTYSession = {
-        id: sessionId,
-        terminal,
-        fitAddon,
-      };
-
-      this.sessions.set(sessionId, session);
-
-      // Listen for data from PTY
-      const cleanup = api.pty.onData(sessionId, (data: string) => {
-        terminal.write(data);
-      });
-
-      // Listen for PTY exit
-      api.pty.onExit(sessionId, (exitCode: number) => {
-        terminal.writeln(`\r\n\x1b[31mProcess exited with code ${exitCode}\x1b[0m`);
-        this.sessions.delete(sessionId);
-        cleanup();
-      });
-
-      // Handle input from terminal
-      terminal.onData((data) => {
-        this.write(sessionId, data);
-      });
-
-      return session;
-    } catch (error) {
-      console.error('Failed to create PTY session:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Write data to PTY
-   */
-  async write(sessionId: string, data: string): Promise<void> {
-    await getApi().pty.write(sessionId, data);
-  }
-
-  /**
-   * Resize PTY
-   */
-  async resize(sessionId: string, cols: number, rows: number): Promise<void> {
-    await getApi().pty.resize(sessionId, cols, rows);
-  }
-
-  /**
-   * Kill PTY session
-   */
-  async kill(sessionId: string): Promise<void> {
-    await getApi().pty.kill(sessionId);
-    this.sessions.delete(sessionId);
-  }
-
-  /**
-   * Get session
-   */
-  getSession(sessionId: string): PTYSession | undefined {
-    return this.sessions.get(sessionId);
-  }
-
-  /**
-   * Check if session exists
-   */
-  hasSession(sessionId: string): boolean {
-    return this.sessions.has(sessionId);
-  }
-}
-
-export const ptyApi = new PTYAPI();
-
-/**
- * Export unified API object (for compatibility)
- */
 export const api = {
   sessions: sessionsApi,
   settings: settingsApi,
@@ -327,7 +196,6 @@ export const api = {
   file: fileApi,
   tree: treeApi,
   git: gitApi,
-  pty: ptyApi,
 };
 
 /**
