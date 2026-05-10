@@ -26,6 +26,7 @@ pub struct HistoryEntry {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ClaudeSession {
     pub id: String,
     pub app_type: String,
@@ -41,6 +42,7 @@ pub struct ClaudeSession {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ClaudeMessage {
     #[serde(rename = "type")]
     pub msg_type: String,
@@ -51,18 +53,25 @@ pub struct ClaudeMessage {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub content: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "tool_name")]
     pub tool_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "tool_input")]
+    pub tool_input: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "tool_output")]
     pub tool_output: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub thinking: Option<String>,
+    #[serde(rename = "reasoning_content")]
+    pub reasoning_content: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub callId: Option<String>,
+    pub call_id: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ClaudeSessionDetail {
     pub id: String,
     pub app_type: String,
@@ -474,10 +483,11 @@ impl ClaudeStorage {
                         role: None,
                         content: Some(self.truncate_message(tool_result, 300)),
                         tool_name: Some("unknown".to_string()),
+                        tool_input: None,
                         tool_output: Some(serde_json::json!({ "output": tool_result })),
-                        thinking: None,
+                        reasoning_content: None,
                         model: None,
-                        callId: msg.get("sourceToolAssistantUUID").and_then(|id| id.as_str()).map(|s| s.to_string()),
+                        call_id: msg.get("sourceToolAssistantUUID").and_then(|id| id.as_str()).map(|s| s.to_string()),
                     });
                 }
                 return None;
@@ -491,50 +501,142 @@ impl ClaudeStorage {
                 role: Some("user".to_string()),
                 content: Some(content),
                 tool_name: None,
+                tool_input: None,
                 tool_output: None,
-                thinking: None,
+                reasoning_content: None,
                 model: self.extract_model_from_message(msg),
-                callId: None,
+                call_id: None,
             });
         }
 
         if msg_type == "assistant" {
             let message_obj = msg.get("message");
+            let model = self.extract_model_from_message(msg);
             
-            let content = if let Some(content_val) = message_obj.and_then(|m| m.get("content")) {
-                if let Some(content_str) = content_val.as_str() {
-                    Some(content_str.to_string())
-                } else if let Some(content_arr) = content_val.as_array() {
-                    let text_parts = content_arr
+            // Check if content is an array
+            if let Some(content_val) = message_obj.and_then(|m| m.get("content")) {
+                if let Some(content_arr) = content_val.as_array() {
+                    // Separate different content types
+                    let thinking_items: Vec<_> = content_arr
                         .iter()
-                        .filter(|item| item.get("type").and_then(|t| t.as_str()) == Some("text"))
+                        .filter(|item| {
+                            item.get("type").and_then(|t| t.as_str()) == Some("thinking") 
+                                && item.get("thinking").is_some()
+                        })
+                        .collect();
+                    
+                    let text_items: Vec<_> = content_arr
+                        .iter()
+                        .filter(|item| {
+                            item.get("type").and_then(|t| t.as_str()) == Some("text") 
+                                && item.get("text").is_some()
+                        })
+                        .collect();
+                    
+                    let tool_use_items: Vec<_> = content_arr
+                        .iter()
+                        .filter(|item| item.get("type").and_then(|t| t.as_str()) == Some("tool_use"))
+                        .collect();
+                    
+                    // If only thinking items, return as reasoning content
+                    if !thinking_items.is_empty() && text_items.is_empty() && tool_use_items.is_empty() {
+                        let reasoning_content = thinking_items
+                            .iter()
+                            .filter_map(|item| item.get("thinking").and_then(|t| t.as_str()))
+                            .collect::<Vec<_>>()
+                            .join("\n");
+                        
+                        return Some(ClaudeMessage {
+                            msg_type: "assistant".to_string(),
+                            timestamp: Some(timestamp.to_string()),
+                            role: Some("assistant".to_string()),
+                            content: Some("".to_string()),
+                            tool_name: None,
+                            tool_input: None,
+                            tool_output: None,
+                            reasoning_content: Some(reasoning_content),
+                            model,
+                            call_id: None,
+                        });
+                    }
+                    
+                    // Process tool_use items
+                    if !tool_use_items.is_empty() {
+                        let text_content = text_items
+                            .iter()
+                            .filter_map(|item| item.get("text").and_then(|t| t.as_str()))
+                            .collect::<Vec<_>>()
+                            .join("\n");
+                        
+                        let first_tool = &tool_use_items[0];
+                        let tool_id = first_tool.get("id").and_then(|id| id.as_str()).unwrap_or("unknown");
+                        let tool_name = first_tool.get("name").and_then(|n| n.as_str()).unwrap_or("unknown");
+                        let tool_input = first_tool.get("input").cloned();
+                        
+                        return Some(ClaudeMessage {
+                            msg_type: "tool_use".to_string(),
+                            timestamp: Some(timestamp.to_string()),
+                            role: Some("assistant".to_string()),
+                            content: Some(text_content),
+                            tool_name: Some(tool_name.to_string()),
+                            tool_input,
+                            tool_output: None,
+                            reasoning_content: None,
+                            model,
+                            call_id: Some(tool_id.to_string()),
+                        });
+                    }
+                    
+                    // Regular text content
+                    let text_content = text_items
+                        .iter()
                         .filter_map(|item| item.get("text").and_then(|t| t.as_str()))
                         .collect::<Vec<_>>()
                         .join("\n");
                     
-                    Some(text_parts)
-                } else {
-                    None
+                    return Some(ClaudeMessage {
+                        msg_type: "assistant".to_string(),
+                        timestamp: Some(timestamp.to_string()),
+                        role: Some("assistant".to_string()),
+                        content: Some(text_content),
+                        tool_name: None,
+                        tool_input: None,
+                        tool_output: None,
+                        reasoning_content: None,
+                        model,
+                        call_id: None,
+                    });
                 }
-            } else {
-                None
-            };
-
-            let thinking = message_obj
-                .and_then(|m| m.get("thinking"))
-                .and_then(|t| t.as_str())
-                .map(|s| s.to_string());
-
+                
+                // String content (fallback)
+                if let Some(content_str) = content_val.as_str() {
+                    return Some(ClaudeMessage {
+                        msg_type: "assistant".to_string(),
+                        timestamp: Some(timestamp.to_string()),
+                        role: Some("assistant".to_string()),
+                        content: Some(content_str.to_string()),
+                        tool_name: None,
+                        tool_input: None,
+                        tool_output: None,
+                        reasoning_content: None,
+                        model,
+                        call_id: None,
+                    });
+                }
+            }
+            
+            // Fallback
             return Some(ClaudeMessage {
                 msg_type: "assistant".to_string(),
                 timestamp: Some(timestamp.to_string()),
                 role: Some("assistant".to_string()),
-                content,
+                content: None,
                 tool_name: None,
+                tool_input: None,
                 tool_output: None,
-                thinking,
-                model: self.extract_model_from_message(msg),
-                callId: None,
+                reasoning_content: None,
+                model,
+                call_id: None,
             });
         }
 
@@ -554,10 +656,11 @@ impl ClaudeStorage {
             role,
             content,
             tool_name: msg.get("tool_name").and_then(|t| t.as_str()).map(|s| s.to_string()),
+            tool_input: None,
             tool_output: msg.get("tool_output").cloned(),
-            thinking: None,
+            reasoning_content: None,
             model: None,
-            callId: None,
+            call_id: None,
         })
     }
 

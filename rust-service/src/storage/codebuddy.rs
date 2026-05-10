@@ -97,6 +97,7 @@ pub struct CodebuddyProviderData {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CodebuddySession {
     pub id: String,
     pub app_type: String,
@@ -112,6 +113,7 @@ pub struct CodebuddySession {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CodebuddyMessage {
     #[serde(rename = "type")]
     pub msg_type: String,
@@ -122,20 +124,24 @@ pub struct CodebuddyMessage {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub content: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "tool_name")]
     pub tool_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "tool_input")]
     pub tool_input: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "tool_output")]
     pub tool_output: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub callId: Option<String>,
+    pub call_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub metadata: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct CodebuddySessionDetail {
     pub id: String,
     pub app_type: String,
@@ -473,7 +479,7 @@ impl CodebuddyStorage {
                         tool_input: None,
                         tool_output: None,
                         model: current_model.clone(),
-                        callId: None,
+                        call_id: None,
                         metadata: None,
                     });
                 } else if entry.entry_type == "message" && entry.role.as_deref() == Some("assistant") {
@@ -500,7 +506,7 @@ impl CodebuddyStorage {
                         tool_input: None,
                         tool_output: None,
                         model: current_model.clone(),
-                        callId: None,
+                        call_id: None,
                         metadata: None,
                     });
                 } else if entry.entry_type == "function_call" {
@@ -563,7 +569,7 @@ impl CodebuddyStorage {
                         tool_input: Some(tool_input),
                         tool_output: None,
                         model: current_model.clone(),
-                        callId: Some(call_id.clone()),
+                        call_id: Some(call_id.clone()),
                         metadata: None,
                     });
                 } else if entry.entry_type == "function_call_result" {
@@ -603,7 +609,7 @@ impl CodebuddyStorage {
                         tool_input: None,
                         tool_output: Some(serde_json::json!({ "output": output_text })),
                         model: current_model.clone(),
-                        callId: entry.callId.clone(),
+                        call_id: entry.callId.clone(),
                         metadata,
                     });
                 }

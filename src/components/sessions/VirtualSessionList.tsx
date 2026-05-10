@@ -58,7 +58,8 @@ function useDateGroupedSessions(
     const groups = new Map<string, Session[]>();
 
     for (const session of sessions) {
-      const date = new Date(session.updatedAt);
+      const timestamp = typeof session.updatedAt === 'string' ? parseInt(session.updatedAt, 10) : session.updatedAt;
+      const date = new Date(timestamp);
       const dateKey = date.toLocaleDateString('zh-CN', {
         year: 'numeric',
         month: '2-digit',
@@ -73,7 +74,11 @@ function useDateGroupedSessions(
 
     // Sort sessions within each group by updatedAt descending
     for (const [, groupSessions] of groups) {
-      groupSessions.sort((a, b) => b.updatedAt - a.updatedAt);
+      groupSessions.sort((a, b) => {
+        const tsA = typeof a.updatedAt === 'string' ? parseInt(a.updatedAt, 10) : a.updatedAt;
+        const tsB = typeof b.updatedAt === 'string' ? parseInt(b.updatedAt, 10) : b.updatedAt;
+        return tsB - tsA;
+      });
     }
 
     // Sort date keys descending
@@ -150,15 +155,21 @@ function useDirectoryGroupedSessions(
 
     // Sort sessions within each group by updatedAt descending
     for (const [, groupSessions] of groups) {
-      groupSessions.sort((a, b) => b.updatedAt - a.updatedAt);
+      groupSessions.sort((a, b) => {
+        const tsA = typeof a.updatedAt === 'string' ? parseInt(a.updatedAt, 10) : a.updatedAt;
+        const tsB = typeof b.updatedAt === 'string' ? parseInt(b.updatedAt, 10) : b.updatedAt;
+        return tsB - tsA;
+      });
     }
 
     // Sort directories by their most recent session's updatedAt descending
     const sortedDirs = Array.from(groups.keys()).sort((a, b) => {
       const sessionsA = groups.get(a)!;
       const sessionsB = groups.get(b)!;
-      const latestA = sessionsA[0]?.updatedAt || 0;
-      const latestB = sessionsB[0]?.updatedAt || 0;
+      const rawA = sessionsA[0]?.updatedAt || 0;
+      const rawB = sessionsB[0]?.updatedAt || 0;
+      const latestA = typeof rawA === 'string' ? parseInt(rawA, 10) : rawA;
+      const latestB = typeof rawB === 'string' ? parseInt(rawB, 10) : rawB;
       return latestB - latestA;
     });
 
@@ -389,9 +400,9 @@ interface SessionCardProps {
 }
 
 function SessionCard({ session, isSelected, onClick, viewMode }: SessionCardProps) {
-  // Format date + time for directory view (MM/DD HH:MM)
-  const formatDateTime = (timestamp: number) => {
-    const date = new Date(timestamp);
+  const formatDateTime = (timestamp: number | string) => {
+    const ts = typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp;
+    const date = new Date(ts);
     const dateStr = date.toLocaleDateString('zh-CN', {
       month: '2-digit',
       day: '2-digit',

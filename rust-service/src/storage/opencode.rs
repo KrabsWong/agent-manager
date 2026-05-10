@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OpenCodeSession {
     pub id: String,
     pub app_type: String,
@@ -18,6 +19,7 @@ pub struct OpenCodeSession {
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OpenCodeSessionDetail {
     #[serde(flatten)]
     pub session: OpenCodeSession,
@@ -25,18 +27,23 @@ pub struct OpenCodeSessionDetail {
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct OpenCodeMessage {
     #[serde(rename = "type")]
     pub message_type: String,
     pub timestamp: String,
     pub content: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "reasoning_content")]
     pub reasoning_content: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "tool_name")]
     pub tool_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "tool_input")]
     pub tool_input: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "tool_output")]
     pub tool_output: Option<serde_json::Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,

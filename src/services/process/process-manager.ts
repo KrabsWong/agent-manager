@@ -17,7 +17,7 @@ export interface ProcessInfo {
 
 export class ProcessManager {
   private processes: Map<string, ProcessInfo> = new Map();
-  private healthCheckInterval: number | null = null;
+  private healthCheckInterval: ReturnType<typeof setInterval> | null = null;
   private isNeutralino: boolean = false;
 
   constructor() {
@@ -107,12 +107,8 @@ export class ProcessManager {
   /**
    * Start process via Electron IPC (fallback)
    */
-  private async startViaElectron(executablePath: string): Promise<number> {
-    if (typeof window !== 'undefined' && window.electronAPI) {
-      const result = await window.electronAPI.process.exec(executablePath);
-      return result.pid;
-    }
-    throw new Error('No process execution method available');
+  private async startViaElectron(_executablePath: string): Promise<number> {
+    throw new Error('Process execution via Electron not implemented');
   }
 
   /**
@@ -135,8 +131,6 @@ export class ProcessManager {
     try {
       if (this.isNeutralino && window.Neutralino) {
         await window.Neutralino.process.kill(processInfo.pid);
-      } else if (typeof window !== 'undefined' && window.electronAPI) {
-        await window.electronAPI.process.kill(processInfo.pid);
       }
 
       processInfo.status = 'stopped';
@@ -177,8 +171,6 @@ export class ProcessManager {
     try {
       if (this.isNeutralino && window.Neutralino) {
         await window.Neutralino.process.kill(info.pid);
-      } else if (typeof window !== 'undefined' && window.electronAPI) {
-        await window.electronAPI.process.kill(info.pid);
       }
 
       info.status = 'stopped';
@@ -190,7 +182,7 @@ export class ProcessManager {
   /**
    * Start health check monitoring
    */
-  private async startHealthCheck(): void {
+  private startHealthCheck(): void {
     if (this.healthCheckInterval) return;
 
     this.healthCheckInterval = setInterval(async () => {

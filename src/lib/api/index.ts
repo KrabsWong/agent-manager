@@ -206,7 +206,7 @@ class PTYAPI {
   async create(sessionId: string, cwd?: string): Promise<PTYSession | null> {
     try {
       const api = getApi();
-      const result = await api.pty.create(sessionId, { cwd });
+      await api.pty.create(sessionId, { cwd });
 
       // Create xterm terminal with scrollback buffer
       const terminal = new Terminal({

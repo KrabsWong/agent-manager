@@ -27,7 +27,8 @@ echo -e "${GREEN}Frontend built successfully${NC}"
 
 # Step 3: Copy Rust service binary to expected location
 echo -e "${BLUE}[3/5] Copying Rust binary...${NC}"
-cp rust-service/target/release/yes-sessions-service rust-service/yes-sessions-service
+cp rust-service/target/release/yes-sessions-service ./yes-sessions-service
+chmod +x ./yes-sessions-service
 echo -e "${GREEN}Rust binary copied${NC}"
 
 # Step 4: Prepare Neutralino resources
@@ -54,9 +55,16 @@ echo -e "${BLUE}[5/5] Updating Neutralino configuration...${NC}"
 # Ensure config has correct paths
 echo -e "${GREEN}Configuration updated${NC}"
 
+echo ""
+echo -e "${BLUE}Running 'neu build'...${NC}"
+neu build
+
+# Copy Rust service to dist directory
+echo -e "${BLUE}Copying Rust service to dist...${NC}"
+cp rust-service/target/release/yes-sessions-service dist/yes-sessions/
+chmod +x dist/yes-sessions/yes-sessions-service
+echo -e "${GREEN}Rust service copied${NC}"
+
 echo -e "${GREEN}=== Build Complete ===${NC}"
 echo ""
-echo "Next steps:"
-echo "  1. Run 'neu build' to create Neutralino bundle"
-echo "  2. Run 'neu run' to test the application"
-echo ""
+echo "Run: ./dist/yes-sessions/yes-sessions-mac_arm64"

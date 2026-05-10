@@ -260,7 +260,15 @@ export class NeutralinoBackendAdapter implements IBackendAdapter {
         return {
           language: 'en',
           theme: 'system',
-          sessionPageSize: 20,
+          accentColor: 'default',
+          autoStart: false,
+          lightweightMode: false,
+          defaultApp: null,
+          collapseBashBlocks: true,
+          enableTitleMarquee: false,
+          showThinkingContent: true,
+          sidebarCollapsed: false,
+          preferredTerminal: 'auto',
         };
       }
     },

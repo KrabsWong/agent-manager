@@ -158,9 +158,10 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
     if (!sessions) return;
     const allGroups = new Set<string>();
     sessions.forEach((session) => {
+      const ts = typeof session.updatedAt === 'string' ? parseInt(session.updatedAt, 10) : session.updatedAt;
       const groupKey =
         viewMode === 'date'
-          ? new Date(session.updatedAt).toLocaleDateString('zh-CN', {
+          ? new Date(ts).toLocaleDateString('zh-CN', {
               year: 'numeric',
               month: '2-digit',
               day: '2-digit',
@@ -176,15 +177,16 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
     sessions && sessions.length > 0
       ? collapsedGroups.size ===
         new Set(
-          sessions.map((s) =>
-            viewMode === 'date'
-              ? new Date(s.updatedAt).toLocaleDateString('zh-CN', {
+          sessions.map((s) => {
+            const ts = typeof s.updatedAt === 'string' ? parseInt(s.updatedAt, 10) : s.updatedAt;
+            return viewMode === 'date'
+              ? new Date(ts).toLocaleDateString('zh-CN', {
                   year: 'numeric',
                   month: '2-digit',
                   day: '2-digit',
                 })
-              : s.directory || t('sessions.noDirectoryGroup', '— No Directory —')
-          )
+              : s.directory || t('sessions.noDirectoryGroup', '— No Directory —');
+          })
         ).size
       : false;
 
@@ -517,7 +519,7 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                         Updated:
                       </span>
                       <span className="text-xs text-muted-foreground font-mono">
-                        {new Date(selectedSession.updatedAt).toLocaleString('zh-CN', {
+                        {new Date(typeof selectedSession.updatedAt === 'string' ? parseInt(selectedSession.updatedAt, 10) : selectedSession.updatedAt).toLocaleString('zh-CN', {
                           year: 'numeric',
                           month: '2-digit',
                           day: '2-digit',

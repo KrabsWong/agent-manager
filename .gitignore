@@ -45,6 +45,7 @@ sidebar.png
 *.temp
 
 # Rust build artifacts
+yes-sessions-service
 rust-service/target/
 **/*.rs.bk
 Cargo.lock

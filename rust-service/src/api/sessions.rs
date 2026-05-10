@@ -6,6 +6,7 @@ use crate::storage::claude::ClaudeStorage;
 use crate::storage::codebuddy::CodebuddyStorage;
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Session {
     pub id: String,
     pub app_type: String,
