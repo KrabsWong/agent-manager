@@ -14,6 +14,9 @@ import { cn } from '@/lib/utils';
 import { createHighlighterCore, type HighlighterCore } from 'shiki/core';
 import { createOnigurumaEngine } from 'shiki/engine/oniguruma';
 
+// Import WASM file statically (fix for Neutralino)
+import shikiWasm from 'shiki/wasm';
+
 // Import only common languages (JavaScript, TypeScript, Markdown, Kotlin, Go, Rust)
 import javascript from 'shiki/dist/langs/javascript.mjs';
 import typescript from 'shiki/dist/langs/typescript.mjs';
@@ -100,13 +103,14 @@ function getLanguage(fileName: string): string {
     return specialFileMap[baseName];
   }
 
-  // Check for .env files
   if (baseName.startsWith('.env')) {
-    return 'bash';
+    return 'text';
   }
 
   const ext = fileName.split('.').pop()?.toLowerCase() || '';
-  return languageMap[ext] || 'text';
+  const lang = languageMap[ext] || 'text';
+  console.log('[FilePreview] File:', fileName, 'Extension:', ext, 'Language:', lang);
+  return lang;
 }
 
 // Global highlighter instance
@@ -128,7 +132,7 @@ async function getHighlighter(): Promise<HighlighterCore> {
       go,
       rust,
     ],
-    engine: createOnigurumaEngine(import('shiki/wasm')),
+    engine: createOnigurumaEngine(shikiWasm),
   });
 
   globalHighlighter = highlighter;
