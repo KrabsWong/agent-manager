@@ -43,3 +43,8 @@ sidebar.png
 # Temporary files
 *.tmp
 *.temp
+
+# Rust build artifacts
+rust-service/target/
+**/*.rs.bk
+Cargo.lock

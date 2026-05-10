@@ -1,184 +1,107 @@
 /**
- * API Layer - Frontend IPC Wrappers
+ * API Layer - Frontend IPC Wrappers (Backward Compatible)
  *
- * Provides type-safe wrappers around electronAPI.invoke
+ * This file provides the same API interface as before, but now delegates to
+ * the backend adapter system. Existing components don't need to change.
+ *
+ * Migration path:
+ * Phase 1: Keep this file, delegate to adapter
+ * Phase 2: Gradually migrate components to use getApi() directly
+ * Phase 3: Deprecate this file after full migration
  */
 
-import type { ApiResponse, AppSettings, Session, SessionDetail } from '@/types';
+import type { AppSettings, Session, SessionDetail } from '@/types';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
+import { getApi } from '@/services/api';
 
 /**
- * Extract data from API response or throw error
- */
-function extractData<T>(response: ApiResponse<T>): T {
-  if (!response.success) {
-    throw new Error(response.error?.message || 'Unknown error');
-  }
-  return response.data as T;
-}
-
-/**
- * Extract data from API response or throw error (for void operations)
- */
-function extractVoid(response: ApiResponse<void>): void {
-  if (!response.success) {
-    throw new Error(response.error?.message || 'Unknown error');
-  }
-}
-
-/**
- * Sessions API
+ * Sessions API - delegates to backend adapter
  */
 export const sessionsApi = {
   getAll: async (appType: string): Promise<Session[]> => {
-    const response = (await window.electronAPI.invoke('sessions:getAll', appType)) as ApiResponse<
-      Session[]
-    >;
-    return extractData(response);
+    return getApi().sessions.getAll(appType);
   },
 
   getDetail: async (sessionId: string, appType: string): Promise<SessionDetail | null> => {
-    const response = (await window.electronAPI.invoke(
-      'sessions:getDetail',
-      sessionId,
-      appType
-    )) as ApiResponse<SessionDetail | null>;
-    return extractData(response);
+    return getApi().sessions.getDetail(sessionId, appType);
   },
 
-  getStats: async (
-    appType: string
-  ): Promise<{
-    totalSessions: number;
-    totalMessages: number;
-    firstSessionDate?: number;
-    lastSessionDate?: number;
-  }> => {
-    const response = (await window.electronAPI.invoke(
-      'sessions:getStats',
-      appType
-    )) as ApiResponse<{
-      totalSessions: number;
-      totalMessages: number;
-      firstSessionDate?: number;
-      lastSessionDate?: number;
-    }>;
-    return extractData(response);
+  getStats: async (appType: string) => {
+    return getApi().sessions.getStats(appType);
   },
 
-  getSupportStatus: async (
-    appType: string
-  ): Promise<{
-    supported: boolean;
-    status: string;
-    isAvailable: boolean;
-    notAvailableReason?: string;
-  }> => {
-    const response = (await window.electronAPI.invoke(
-      'sessions:getSupportStatus',
-      appType
-    )) as ApiResponse<{
-      supported: boolean;
-      status: string;
-      isAvailable: boolean;
-      notAvailableReason?: string;
-    }>;
-    return extractData(response);
+  getSupportStatus: async (appType: string) => {
+    return getApi().sessions.getSupportStatus(appType);
   },
 
   resume: async (sessionId: string, appType: string, workingDir?: string): Promise<void> => {
-    const response = (await window.electronAPI.invoke(
-      'sessions:resume',
-      sessionId,
-      appType,
-      workingDir
-    )) as ApiResponse<void>;
-    return extractData(response);
+    return getApi().sessions.resume(sessionId, appType, workingDir);
   },
 
-  getTerminalInfo: async (): Promise<{
-    preferred: 'auto' | 'ghostty' | 'kitty' | 'terminal' | 'builtin';
-    ghosttyInstalled: boolean;
-    kittyInstalled: boolean;
-  }> => {
-    const response = (await window.electronAPI.invoke('sessions:getTerminalInfo')) as ApiResponse<{
-      preferred: 'auto' | 'ghostty' | 'kitty' | 'terminal' | 'builtin';
-      ghosttyInstalled: boolean;
-      kittyInstalled: boolean;
-    }>;
-    return extractData(response);
+  getTerminalInfo: async () => {
+    return getApi().sessions.getTerminalInfo();
   },
 };
 
 /**
- * Settings API
+ * Settings API - delegates to backend adapter
  */
 export const settingsApi = {
   get: async (): Promise<AppSettings> => {
-    const response = (await window.electronAPI.invoke('settings:get')) as ApiResponse<AppSettings>;
-    return extractData(response);
+    return getApi().settings.get();
   },
 
   update: async (settings: Partial<AppSettings>): Promise<void> => {
-    const response = (await window.electronAPI.invoke(
-      'settings:update',
-      settings
-    )) as ApiResponse<void>;
-    return extractVoid(response);
+    return getApi().settings.update(settings);
   },
 
   reset: async (): Promise<void> => {
-    const response = (await window.electronAPI.invoke('settings:reset')) as ApiResponse<void>;
-    return extractData(response);
+    return getApi().settings.reset();
   },
 };
 
 /**
- * App API
+ * App API - delegates to backend adapter
  */
 export const appApi = {
   getVersion: async (): Promise<string> => {
-    const response = (await window.electronAPI.invoke('app:getVersion')) as ApiResponse<string>;
-    return extractData(response);
+    return getApi().app.getVersion();
   },
 };
 
 /**
- * Config Import/Export API
+ * Config API - delegates to backend adapter
  */
 export const configApi = {
   export: async (): Promise<Record<string, unknown>> => {
-    const response = (await window.electronAPI.invoke('config:export')) as ApiResponse<
-      Record<string, unknown>
-    >;
-    return extractData(response);
+    return getApi().config.export();
   },
 
   import: async (data: Record<string, unknown>): Promise<void> => {
-    const response = (await window.electronAPI.invoke('config:import', data)) as ApiResponse<void>;
-    return extractData(response);
+    return getApi().config.import(data);
   },
 };
 
 /**
- * Shell API
+ * Shell API - delegates to backend adapter
  */
 export const shellApi = {
   openExternal: async (url: string): Promise<void> => {
-    await window.electronAPI.invoke('shell:openExternal', url);
+    return getApi().shell.openExternal(url);
   },
+
   openPath: async (filePath: string): Promise<void> => {
-    await window.electronAPI.invoke('shell:openPath', filePath);
+    return getApi().shell.openPath(filePath);
   },
 };
 
 /**
- * File Preview API
+ * File Preview API - delegates to backend adapter
  */
 export const filePreviewApi = {
   open: async (dirPath: string, sessionTitle?: string, appType?: string): Promise<void> => {
-    await window.electronAPI.invoke('file-preview:open', dirPath, sessionTitle, appType);
+    return getApi().filePreview.open(dirPath, sessionTitle, appType);
   },
 };
 
@@ -191,47 +114,24 @@ export interface TreeNode {
 }
 
 /**
- * Tree API
+ * Tree API - delegates to backend adapter
  */
 export const treeApi = {
   getDirectoryTree: async (dirPath: string): Promise<TreeNode[]> => {
-    const response = (await window.electronAPI.invoke('tree:get', dirPath)) as {
-      success: boolean;
-      data?: TreeNode[];
-      error?: string;
-    };
-    if (!response.success) {
-      throw new Error(response.error || 'Failed to get directory tree');
-    }
-    return response.data || [];
+    return getApi().tree.getDirectoryTree(dirPath);
   },
 };
 
 /**
- * File API
+ * File API - delegates to backend adapter
  */
 export const fileApi = {
   read: async (filePath: string): Promise<string> => {
-    const response = (await window.electronAPI.invoke('file:read', filePath)) as {
-      success: boolean;
-      data?: string;
-      error?: { message: string };
-    };
-    if (!response.success) {
-      throw new Error(response.error?.message || 'Failed to read file');
-    }
-    return response.data || '';
+    return getApi().file.read(filePath);
   },
+
   readImage: async (filePath: string): Promise<string> => {
-    const response = (await window.electronAPI.invoke('file:readImage', filePath)) as {
-      success: boolean;
-      data?: string;
-      error?: { message: string };
-    };
-    if (!response.success) {
-      throw new Error(response.error?.message || 'Failed to read image');
-    }
-    return response.data || '';
+    return getApi().file.readImage(filePath);
   },
 };
 
@@ -260,62 +160,36 @@ export interface GitFileDiffResult {
 }
 
 /**
- * Git API
+ * Git API - delegates to backend adapter
  */
 export const gitApi = {
   getStatus: async (dirPath: string): Promise<GitStatusResult> => {
-    const response = (await window.electronAPI.invoke(
-      'git:status',
-      dirPath
-    )) as ApiResponse<GitStatusResult>;
-    return extractData(response);
+    return getApi().git.getStatus(dirPath);
   },
 
   getDiff: async (dirPath: string, filePath?: string): Promise<string> => {
-    const response = (await window.electronAPI.invoke(
-      'git:diff',
-      dirPath,
-      filePath
-    )) as ApiResponse<string>;
-    return extractData(response);
+    return getApi().git.getDiff(dirPath, filePath);
   },
 
   getFileDiff: async (dirPath: string, filePath: string): Promise<GitFileDiffResult> => {
-    const response = (await window.electronAPI.invoke(
-      'git:fileDiff',
-      dirPath,
-      filePath
-    )) as ApiResponse<GitFileDiffResult>;
-    return extractData(response);
+    return getApi().git.getFileDiff(dirPath, filePath);
   },
 
   startWatching: async (dirPath: string): Promise<void> => {
-    const response = (await window.electronAPI.invoke(
-      'git:watch:start',
-      dirPath
-    )) as ApiResponse<void>;
-    return extractVoid(response);
+    return getApi().git.startWatching(dirPath);
   },
 
   stopWatching: async (): Promise<void> => {
-    const response = (await window.electronAPI.invoke('git:watch:stop')) as ApiResponse<void>;
-    return extractVoid(response);
+    return getApi().git.stopWatching();
   },
 
   onChange: (callback: (dirPath: string) => void): (() => void) => {
-    const handler = (_event: unknown, ...args: unknown[]) => {
-      const data = args[0] as { dirPath: string };
-      callback(data.dirPath);
-    };
-    window.electronAPI.on('git:changed', handler);
-    return () => {
-      window.electronAPI.removeAllListeners('git:changed');
-    };
+    return getApi().git.onChange(callback);
   },
 };
 
 /**
- * PTY Terminal API
+ * PTY Terminal API - delegates to backend adapter
  */
 export interface PTYSession {
   id: string;
@@ -331,16 +205,8 @@ class PTYAPI {
    */
   async create(sessionId: string, cwd?: string): Promise<PTYSession | null> {
     try {
-      const response = (await window.electronAPI.invoke('pty:create', sessionId, { cwd })) as {
-        success: boolean;
-        sessionId?: string;
-        shell?: string;
-        error?: string;
-      };
-
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to create PTY session');
-      }
+      const api = getApi();
+      const result = await api.pty.create(sessionId, { cwd });
 
       // Create xterm terminal with scrollback buffer
       const terminal = new Terminal({
@@ -349,7 +215,7 @@ class PTYAPI {
         fontFamily: 'Menlo, Monaco, "Courier New", monospace',
         scrollback: 10000,
         allowProposedApi: true,
-        convertEol: true,  // Convert \n to \r\n
+        convertEol: true,
         theme: {
           background: '#1a1a1a',
           foreground: '#f0f0f0',
@@ -386,25 +252,16 @@ class PTYAPI {
       this.sessions.set(sessionId, session);
 
       // Listen for data from PTY
-      const dataHandler = (...args: unknown[]) => {
-        const data = args[0] as { sessionId: string; data: string };
-        if (data.sessionId === sessionId) {
-          terminal.write(data.data);
-        }
-      };
-
-      window.electronAPI.on('pty:data', dataHandler);
+      const cleanup = api.pty.onData(sessionId, (data: string) => {
+        terminal.write(data);
+      });
 
       // Listen for PTY exit
-      const exitHandler = (...args: unknown[]) => {
-        const data = args[0] as { sessionId: string; exitCode: number; signal?: number };
-        if (data.sessionId === sessionId) {
-          terminal.writeln(`\r\n\x1b[31mProcess exited with code ${data.exitCode}\x1b[0m`);
-          this.sessions.delete(sessionId);
-        }
-      };
-
-      window.electronAPI.on('pty:exit', exitHandler);
+      api.pty.onExit(sessionId, (exitCode: number) => {
+        terminal.writeln(`\r\n\x1b[31mProcess exited with code ${exitCode}\x1b[0m`);
+        this.sessions.delete(sessionId);
+        cleanup();
+      });
 
       // Handle input from terminal
       terminal.onData((data) => {
@@ -422,21 +279,21 @@ class PTYAPI {
    * Write data to PTY
    */
   async write(sessionId: string, data: string): Promise<void> {
-    await window.electronAPI.invoke('pty:write', sessionId, data);
+    await getApi().pty.write(sessionId, data);
   }
 
   /**
    * Resize PTY
    */
   async resize(sessionId: string, cols: number, rows: number): Promise<void> {
-    await window.electronAPI.invoke('pty:resize', sessionId, cols, rows);
+    await getApi().pty.resize(sessionId, cols, rows);
   }
 
   /**
    * Kill PTY session
    */
   async kill(sessionId: string): Promise<void> {
-    await window.electronAPI.invoke('pty:kill', sessionId);
+    await getApi().pty.kill(sessionId);
     this.sessions.delete(sessionId);
   }
 
@@ -457,7 +314,9 @@ class PTYAPI {
 
 export const ptyApi = new PTYAPI();
 
-// Export all APIs
+/**
+ * Export unified API object (for compatibility)
+ */
 export const api = {
   sessions: sessionsApi,
   settings: settingsApi,
@@ -470,3 +329,10 @@ export const api = {
   git: gitApi,
   pty: ptyApi,
 };
+
+/**
+ * Export new backend adapter API (for future use)
+ */
+export { getApi, getStorage, switchBackend, getCurrentBackend } from '@/services/api/index';
+export type { IBackendAdapter, IStorageAdapter } from '@/services/api/interface';
+export type { BackendType } from '@/services/api/index';

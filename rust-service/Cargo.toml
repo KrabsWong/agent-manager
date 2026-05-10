@@ -1,0 +1,44 @@
+[package]
+name = "yes-sessions-service"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# HTTP Server
+actix-web = "4.5"
+actix-web-actors = "4.3"
+actix-cors = "0.7"
+
+# Async Runtime
+tokio = { version = "1.35", features = ["full"] }
+
+# Database
+rusqlite = { version = "0.30", features = ["bundled"] }
+
+# Terminal PTY
+portable-pty = "0.8"
+
+# File Watcher
+notify = "6.1"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# UUID
+uuid = { version = "1.6", features = ["v4"] }
+
+# Logging
+log = "0.4"
+env_logger = "0.11"
+
+# Error Handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Utilities
+dirs = "5.0"
+chrono = { version = "0.4", features = ["serde"] }
+
+[dev-dependencies]
+tokio-test = "0.4"
