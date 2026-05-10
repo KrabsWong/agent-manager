@@ -247,8 +247,7 @@ export class NeutralinoBackendAdapter implements IBackendAdapter {
     },
 
     getTerminalInfo: async (): Promise<TerminalInfo> => {
-      console.warn('[Neutralino] sessions.getTerminalInfo not implemented');
-      return { preferred: 'auto', ghosttyInstalled: false, kittyInstalled: false };
+      return { preferred: 'builtin', ghosttyInstalled: false, kittyInstalled: false };
     },
   };
 

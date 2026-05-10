@@ -228,9 +228,11 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
   // Check if terminal supports resume
   // Built-in terminal is always available, otherwise check external terminals
   // VS Code Extension doesn't support resume since it's not a CLI tool
+  // Note: 'auto' preference means system will auto-detect, so we check if any terminal is available
   const canResume =
     selectedApp !== 'vscode-extension' &&
     (terminalInfo?.preferred === 'builtin' ||
+      terminalInfo?.preferred === 'auto' ||
       terminalInfo?.ghosttyInstalled ||
       terminalInfo?.kittyInstalled ||
       terminalInfo?.preferred === 'terminal');

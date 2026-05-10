@@ -149,8 +149,7 @@ export class RustBackendAdapter implements IBackendAdapter {
     },
 
     getTerminalInfo: async (): Promise<TerminalInfo> => {
-      console.warn('[Rust] sessions.getTerminalInfo not implemented');
-      return { preferred: 'auto', ghosttyInstalled: false, kittyInstalled: false };
+      return { preferred: 'builtin', ghosttyInstalled: false, kittyInstalled: false };
     },
   };
 
