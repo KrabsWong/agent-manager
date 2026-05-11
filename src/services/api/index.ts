@@ -5,13 +5,12 @@
  */
 
 import type { IBackendAdapter, IStorageAdapter } from './interface';
-import { ElectronBackendAdapter, ElectronStorageAdapter } from './adapters/electron-adapter';
 import { RustBackendAdapter, RustStorageAdapter } from './adapters/rust-adapter';
 import { NeutralinoBackendAdapter, NeutralinoStorageAdapter } from './adapters/neutralino-adapter';
 
-export type BackendType = 'electron' | 'rust' | 'neutralino';
+export type BackendType = 'rust' | 'neutralino';
 
-let currentBackend: BackendType = 'electron';
+let currentBackend: BackendType = 'rust';
 let apiInstance: IBackendAdapter | null = null;
 let storageInstance: IStorageAdapter | null = null;
 
@@ -25,7 +24,7 @@ export function getCurrentBackend(): BackendType {
 /**
  * Switch backend implementation
  * 
- * This allows switching from Electron to Rust/Neutralino without code changes
+ * This allows switching between Rust and Neutralino without code changes
  */
 export function switchBackend(backend: BackendType): void {
   if (backend === currentBackend) return;
@@ -62,8 +61,6 @@ export function getStorage(): IStorageAdapter {
  */
 function createBackendAdapter(type: BackendType): IBackendAdapter {
   switch (type) {
-    case 'electron':
-      return new ElectronBackendAdapter();
     case 'rust':
       return new RustBackendAdapter();
     case 'neutralino':
@@ -78,8 +75,6 @@ function createBackendAdapter(type: BackendType): IBackendAdapter {
  */
 function createStorageAdapter(type: BackendType): IStorageAdapter {
   switch (type) {
-    case 'electron':
-      return new ElectronStorageAdapter();
     case 'rust':
       return new RustStorageAdapter(new RustBackendAdapter()['client']);
     case 'neutralino':

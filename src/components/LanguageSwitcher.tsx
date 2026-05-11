@@ -23,9 +23,12 @@ export function LanguageSwitcher() {
     // Change language immediately
     await i18n.changeLanguage(value);
 
-    // Persist to electron-store
+    // Persist to localStorage
     try {
-      await window.electronAPI.invoke('settings:update', { language: value });
+      const currentSettings = localStorage.getItem('yes-sessions-settings');
+      const settings = currentSettings ? JSON.parse(currentSettings) : {};
+      const merged = { ...settings, language: value };
+      localStorage.setItem('yes-sessions-settings', JSON.stringify(merged));
       console.log('[LanguageSwitcher] Language saved:', value);
     } catch (error) {
       console.error('[LanguageSwitcher] Failed to save language:', error);

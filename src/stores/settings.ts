@@ -109,13 +109,17 @@ const getInitialSettings = (): Partial<SettingsState> => {
   };
 };
 
-// 同步到主进程
-const syncToMain = async (key: string, value: unknown): Promise<void> => {
+// 同步到存储
+const syncToStorage = async (key: string, value: unknown): Promise<void> => {
   try {
-    await window.electronAPI.invoke('settings:update', { [key]: value });
-    console.log('[SettingsStore] Saved', key, ':', value);
+    // Neutralino/Web 环境 - 使用 localStorage 或 Neutralino storage
+    const currentSettings = localStorage.getItem('yes-sessions-settings');
+    const settings = currentSettings ? JSON.parse(currentSettings) : {};
+    const merged = { ...settings, [key]: value };
+    localStorage.setItem('yes-sessions-settings', JSON.stringify(merged));
+    console.log('[Settings] Saved', key, ':', value);
   } catch (error) {
-    console.error('[SettingsStore] Failed to save', key, ':', error);
+    console.error('[Settings] Failed to save', key, ':', error);
   }
 };
 
@@ -137,21 +141,15 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   updateSettings: async (newSettings) => {
     set(newSettings);
     
-    // 检查运行环境
-    if (typeof window !== 'undefined' && window.electronAPI) {
-      // Electron 环境
-      await window.electronAPI.invoke('settings:update', newSettings);
-    } else {
-      // Neutralino/Web 环境 - 使用 localStorage 或 Neutralino storage
-      try {
-        const currentSettings = localStorage.getItem('yes-sessions-settings');
-        const settings = currentSettings ? JSON.parse(currentSettings) : {};
-        const merged = { ...settings, ...newSettings };
-        localStorage.setItem('yes-sessions-settings', JSON.stringify(merged));
-        console.log('[Settings] Saved to localStorage:', newSettings);
-      } catch (error) {
-        console.error('[Settings] Failed to save:', error);
-      }
+    // Neutralino/Web 环境 - 使用 localStorage
+    try {
+      const currentSettings = localStorage.getItem('yes-sessions-settings');
+      const settings = currentSettings ? JSON.parse(currentSettings) : {};
+      const merged = { ...settings, ...newSettings };
+      localStorage.setItem('yes-sessions-settings', JSON.stringify(merged));
+      console.log('[Settings] Saved to localStorage:', newSettings);
+    } catch (error) {
+      console.error('[Settings] Failed to save:', error);
     }
   },
   updateSetting: async <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => {
@@ -159,7 +157,7 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     if (typeof value === 'function') return;
 
     set({ [key]: value } as Partial<SettingsState>);
-    await syncToMain(key as string, value);
+    await syncToStorage(key as string, value);
   },
 
   // Computed: settings object
@@ -183,59 +181,59 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   // ============ 原 settings actions ============
   setDefaultApp: async (app) => {
     set({ defaultApp: app });
-    await syncToMain('defaultApp', app);
+    await syncToStorage('defaultApp', app);
   },
 
   // ============ 原 experience actions ============
   toggleTitleMarquee: async () => {
     const newValue = !get().enableTitleMarquee;
     set({ enableTitleMarquee: newValue });
-    await syncToMain('enableTitleMarquee', newValue);
+    await syncToStorage('enableTitleMarquee', newValue);
   },
 
   setTitleMarquee: async (enabled) => {
     set({ enableTitleMarquee: enabled });
-    await syncToMain('enableTitleMarquee', enabled);
+    await syncToStorage('enableTitleMarquee', enabled);
   },
 
   toggleCollapseBashBlocks: async () => {
     const newValue = !get().collapseBashBlocks;
     set({ collapseBashBlocks: newValue });
-    await syncToMain('collapseBashBlocks', newValue);
+    await syncToStorage('collapseBashBlocks', newValue);
   },
 
   setCollapseBashBlocks: async (enabled) => {
     set({ collapseBashBlocks: enabled });
-    await syncToMain('collapseBashBlocks', enabled);
+    await syncToStorage('collapseBashBlocks', enabled);
   },
 
   toggleShowThinkingContent: async () => {
     const newValue = !get().showThinkingContent;
     set({ showThinkingContent: newValue });
-    await syncToMain('showThinkingContent', newValue);
+    await syncToStorage('showThinkingContent', newValue);
   },
 
   setShowThinkingContent: async (enabled) => {
     set({ showThinkingContent: enabled });
-    await syncToMain('showThinkingContent', enabled);
+    await syncToStorage('showThinkingContent', enabled);
   },
 
   // ============ 对话布局 Actions ============
   setChatLayout: async (layout) => {
     set({ chatLayout: layout });
-    await syncToMain('chatLayout', layout);
+    await syncToStorage('chatLayout', layout);
   },
 
   toggleChatLayout: async () => {
     const newValue = get().chatLayout === 'left' ? 'bubble' : 'left';
     set({ chatLayout: newValue });
-    await syncToMain('chatLayout', newValue);
+    await syncToStorage('chatLayout', newValue);
   },
 
   // ============ 原 ThemeProvider actions ============
   setTheme: async (theme) => {
     set({ theme });
-    await syncToMain('theme', theme);
+    await syncToStorage('theme', theme);
   },
 
   toggleTheme: async () => {
@@ -244,35 +242,35 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     const currentIndex = themes.indexOf(currentTheme);
     const nextTheme = themes[(currentIndex + 1) % themes.length];
     set({ theme: nextTheme });
-    await syncToMain('theme', nextTheme);
+    await syncToStorage('theme', nextTheme);
   },
 
   setAccentColor: async (color) => {
     set({ accentColor: color });
-    await syncToMain('accentColor', color);
+    await syncToStorage('accentColor', color);
   },
 
   resetAccentColor: async () => {
     set({ accentColor: defaultAccentColor });
-    await syncToMain('accentColor', defaultAccentColor);
+    await syncToStorage('accentColor', defaultAccentColor);
   },
 
   // ============ Sidebar Actions ============
   toggleSidebar: async () => {
     const newValue = !get().sidebarCollapsed;
     set({ sidebarCollapsed: newValue });
-    await syncToMain('sidebarCollapsed', newValue);
+    await syncToStorage('sidebarCollapsed', newValue);
   },
 
   setSidebarCollapsed: async (collapsed) => {
     set({ sidebarCollapsed: collapsed });
-    await syncToMain('sidebarCollapsed', collapsed);
+    await syncToStorage('sidebarCollapsed', collapsed);
   },
 
   // ============ Terminal Actions ============
   setPreferredTerminal: async (terminal) => {
     set({ preferredTerminal: terminal });
-    await syncToMain('preferredTerminal', terminal);
+    await syncToStorage('preferredTerminal', terminal);
   },
 }));
 

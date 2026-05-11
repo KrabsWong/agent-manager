@@ -96,7 +96,8 @@ brew install --cask yes-sessions
 
 ### 技术栈
 
-- **框架**: Electron + React 18 + TypeScript
+- **框架**: React 18 + TypeScript
+- **桌面**: Neutralinojs
 - **构建**: Vite
 - **样式**: Tailwind CSS + shadcn/ui
 - **状态管理**: Zustand + TanStack Query
@@ -134,12 +135,6 @@ src/
   lib/             # 工具函数
   types/           # TypeScript 类型定义
   hooks/           # 自定义 hooks
-
-electron/
-  services/        # 主进程服务
-    session/       # 各 AI 工具的会话读取服务
-  handlers/        # IPC 处理程序
-  ipc/             # IPC 通信
 ```
 
 ---

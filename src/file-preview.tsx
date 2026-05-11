@@ -54,32 +54,25 @@ function waitForNeutralino(timeout = 1000): Promise<boolean> {
 }
 
 async function initBackend() {
-  const isElectron = typeof (window as any).process !== 'undefined' && (window as any).process?.versions?.electron;
+  let backend: 'rust' | 'neutralino' = 'rust';
+  let isNeutralino = await waitForNeutralino(2000);
   
-  let backend: 'electron' | 'rust' | 'neutralino' = 'rust';
-  let isNeutralino = false;
-  
-  if (!isElectron) {
-    isNeutralino = await waitForNeutralino(2000);
-    if (isNeutralino) {
-      backend = 'neutralino';
-      try {
-        await (window as any).Neutralino.init();
-        console.log('[FilePreview] Neutralino initialized');
-      } catch (error) {
-        console.error('[FilePreview] Neutralino init failed:', error);
-        backend = 'rust';
-        isNeutralino = false;
-      }
+  if (isNeutralino) {
+    backend = 'neutralino';
+    try {
+      await (window as any).Neutralino.init();
+      console.log('[FilePreview] Neutralino initialized');
+    } catch (error) {
+      console.error('[FilePreview] Neutralino init failed:', error);
+      backend = 'rust';
+      isNeutralino = false;
     }
-  } else {
-    backend = 'electron';
   }
   
   switchBackend(backend);
   console.log(`[FilePreview] Backend: ${backend}`);
   
-  return { isElectron, isNeutralino };
+  return { isNeutralino };
 }
 
 interface TreeItemProps {
@@ -243,22 +236,6 @@ function FilePreviewApp() {
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, [theme, accentColor, applyTheme]);
-
-  useEffect(() => {
-    const handleThemeChanged = (...args: unknown[]) => {
-      const [_theme, _accentColor] = args as [Theme, AccentColor];
-      setTheme(_theme);
-      setAccentColor(_accentColor);
-    };
-
-    // Only listen to electron events in Electron environment
-    if (typeof (window as any).electronAPI !== 'undefined') {
-      (window as any).electronAPI.on('theme:changed', handleThemeChanged);
-      return () => {
-        (window as any).electronAPI.removeAllListeners('theme:changed');
-      };
-    }
-  }, []);
 
   const loadTree = useCallback(async () => {
     if (!sessionDirectory) return;

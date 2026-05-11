@@ -126,12 +126,7 @@ declare global {
       };
     };
     
-    electronAPI?: {
-      process: {
-        exec: (command: string, args?: string[]) => Promise<{ pid: number }>;
-        kill: (pid: number) => Promise<void>;
-      };
-    };
+    
   }
 }
 

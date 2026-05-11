@@ -2,22 +2,18 @@
 
 ## 📋 核心文档
 
-### 🚀 迁移指南（必读）
+### 🚀 架构与迁移
 
-- **[MIGRATION-GUIDE.md](MIGRATION-GUIDE.md)** - **完整的迁移实施指南**
-  - 技术选型决策
-  - 最终架构设计
-  - 性能基准数据
-  - 实施路线图（5周计划）
-  - 风险评估与应对
-  
-  **👉 开始重构前，请先阅读此文档**
+- **[NEUTRALINO-MIGRATION-SUMMARY.md](NEUTRALINO-MIGRATION-SUMMARY.md)** - Neutralinojs 迁移总结
+  - 迁移结果与性能对比
+  - 架构变更说明
+  - 功能支持状态
 
 ---
 
 ## 📚 技术参考文档
 
-### 1. 架构与部署
+### 1. 部署与打包
 
 - **[packaging-deployment-guide.md](packaging-deployment-guide.md)** - 打包与部署完整方案
   - Neutralinojs + Rust 微服务架构
@@ -25,23 +21,17 @@
   - 跨平台打包方案
   - 开发环境设置
 
-### 2. 存储方案
+- **[neutralino-packaging-guide.md](neutralino-packaging-guide.md)** - Neutralino 打包指南
+  - 打包流程详解
+  - 配置说明
+  - 常见问题
 
-- **[storage-solution-design.md](storage-solution-design.md)** - 存储方案设计
-  - Neutralino.storage（系统配置）
-  - Rust rusqlite（OpenCode 数据）
-  - 窗口位置自动保存
-  - 完整实现代码
+### 2. 后端开发
 
-### 3. 性能对比
-
-- **[rust-performance-comparison.md](rust-performance-comparison.md)** - Rust vs Electron 性能对比
-  - 查询性能基准测试
-  - 内存占用对比
-  - 启动性能分析
-  - HTTP 通信开销
-
-### 4. 终端集成
+- **[RUST-ADAPTER-GUIDE.md](RUST-ADAPTER-GUIDE.md)** - Rust 后端适配器使用指南
+  - 快速开始
+  - API 使用示例
+  - 功能状态
 
 - **[rust-terminal-integration.md](rust-terminal-integration.md)** - Rust 终端集成方案
   - portable-pty 集成
@@ -49,14 +39,25 @@
   - 前端 xterm.js 集成
   - 性能优化方案
 
+### 3. 存储方案
+
+- **[storage-solution-design.md](storage-solution-design.md)** - 存储方案设计
+  - Neutralino.storage（系统配置）
+  - Rust rusqlite（OpenCode 数据）
+  - 窗口位置自动保存
+  - 完整实现代码
+
 ---
 
-## 📁 历史文档（参考）
+## 📁 项目管理
 
-以下文档记录了项目发布和管理相关信息，供参考：
-
-- **[HOMEBREW_CASK_GUIDE.md](HOMEBREW_CASK_GUIDE.md)** - Homebrew 发布指南
 - **[VERSION_MANAGEMENT.md](VERSION_MANAGEMENT.md)** - 版本管理文档
+  - 自动化版本管理工作流
+  - PR 标签使用说明
+  
+- **[HOMEBREW_CASK_GUIDE.md](HOMEBREW_CASK_GUIDE.md)** - Homebrew 发布指南
+  - Cask 配置
+  - 发布流程
 
 ---
 
@@ -64,36 +65,36 @@
 
 ### 开发者
 
-1. 阅读 **[MIGRATION-GUIDE.md](MIGRATION-GUIDE.md)** 了解完整方案
+1. 阅读 **[NEUTRALINO-MIGRATION-SUMMARY.md](NEUTRALINO-MIGRATION-SUMMARY.md)** 了解架构
 2. 参考 **[packaging-deployment-guide.md](packaging-deployment-guide.md)** 搭建开发环境
 3. 查看具体模块实现文档（存储、终端等）
 
-### 项目负责人
+### 新功能开发
 
-1. 阅读 **[MIGRATION-GUIDE.md](MIGRATION-GUIDE.md)** 第 1-3 章（决策、架构）
-2. 查看第 6 章（实施路线图）制定计划
-3. 评估第 7 章（风险评估）
+1. 参考 **[RUST-ADAPTER-GUIDE.md](RUST-ADAPTER-GUIDE.md)** 了解后端 API
+2. 查看相关技术文档（终端集成、存储等）
+3. 遵循 **[VERSION_MANAGEMENT.md](VERSION_MANAGEMENT.md)** 的版本管理流程
 
 ---
 
 ## 📊 文档统计
 
 ```
-核心文档: 1 个
-技术参考: 4 个
-历史文档: 2 个
+架构文档: 1 个
+技术参考: 5 个
+项目管理: 2 个
 ─────────────────
-总计: 7 个文档
+总计: 8 个文档
 ```
 
 ---
 
 ## 📝 文档维护
 
-- **核心文档**: 随项目进展更新
+- **架构文档**: 随项目进展更新
 - **技术参考**: 实施过程中补充细节
-- **历史文档**: 仅供参考，不更新
+- **项目管理**: 流程变更时更新
 
 ---
 
-**最后更新**: 2026-05-10
+**最后更新**: 2026-05-11

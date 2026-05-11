@@ -3,10 +3,9 @@ node_modules
 
 # Build outputs
 dist
-dist-electron
 
 # Release artifacts
-release
+release/
 
 # Environment files
 .env
@@ -47,14 +46,12 @@ sidebar.png
 
 # Rust build artifacts
 yes-sessions-service
-release/
 rust-service/target/
 **/*.rs.bk
 Cargo.lock
 
 # Neutralino build artifacts
 bin/
-dist-packages/
 .neutralino/
 resources.neu
 resources/

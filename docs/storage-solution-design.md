@@ -4,11 +4,11 @@
 
 ### 当前系统存储分为 3 类：
 
-| 存储类型 | Electron 实现 | 文件位置 | 用途 |
-|---------|--------------|---------|------|
-| **系统设置** | electron-store (JSON) | `%APPDATA%/yes-sessions-config.json` | 语言、主题、窗口位置 |
-| **应用数据** | better-sqlite3 | `%APPDATA%/yes-sessions.db` | 历史数据（几乎未使用） |
-| **外部数据** | better-sqlite3 | `~/.local/share/opencode/opencode.db` | OpenCode 会话历史 |
+| 存储类型 | 实现方案 | 文件位置 | 用途 |
+|---------|---------|---------|------|
+| **系统设置** | Neutralino.storage (JSON) | `~/Library/Application Support/yes-sessions/` | 语言、主题、窗口位置 |
+| **应用数据** | localStorage | Browser | 前端状态持久化 |
+| **外部数据** | Rust rusqlite | `~/.local/share/opencode/opencode.db` | OpenCode 会话历史 |
 
 ---
 
@@ -501,11 +501,13 @@ windowStateManager.initialize();
 
 ### 系统设置存储性能
 
-| 操作 | electron-store | Neutralino.storage | 性能对比 |
-|------|---------------|-------------------|---------|
-| **读取设置** | 5ms | 2ms | **快 2.5倍** ✅ |
-| **写入设置** | 10ms | 3ms | **快 3倍** ✅ |
-| **内存占用** | 10MB | 0MB (内置) | **节省 10MB** ✅ |
+| 操作 | localStorage | Neutralino.storage | 性能对比 |
+|------|-------------|-------------------|---------|
+| **读取设置** | <1ms | 2ms | localStorage 更快 |
+| **写入设置** | <1ms | 3ms | localStorage 更快 |
+| **内存占用** | Browser | 0MB (内置) | Neutralino 节省依赖 |
+
+**建议**: 开发环境用 localStorage，生产环境用 Neutralino.storage
 
 ---
 
@@ -537,28 +539,27 @@ Linux:
 
 ## 迁移对比总结
 
-### 完整解决方案对比
+### 完整解决方案
 
-| 存储类型 | Electron | Neutralinojs 方案 | 复杂度 | 性能 | 推荐度 |
-|---------|---------|------------------|--------|------|--------|
-| **系统设置** | electron-store | Neutralino.storage | 低 | **更快** | ⭐⭐⭐⭐⭐ |
-| **窗口位置** | electron-store | Neutralino.storage | 低 | **更快** | ⭐⭐⭐⭐⭐ |
-| **OpenCode 数据** | better-sqlite3 | Rust 微服务 | 中 | 相近 | ⭐⭐⭐⭐⭐ |
+| 存储类型 | 方案 | 复杂度 | 性能 | 推荐度 |
+|---------|-----|--------|------|--------|
+| **系统设置** | Neutralino.storage | 低 | 快 | ⭐⭐⭐⭐⭐ |
+| **窗口位置** | Neutralino.storage | 低 | 快 | ⭐⭐⭐⭐⭐ |
+| **OpenCode 数据** | Rust 微服务 | 中 | 快 | ⭐⭐⭐⭐⭐ |
 
 ---
 
 ## 迁移步骤
 
-### 第 1 步：替换 electron-store
+### 使用 Neutralino.storage
 
 ```typescript
-// 旧代码 (Electron)
-import Store from 'electron-store';
-const store = new Store();
-store.set('settings', { language: 'zh' });
-
-// 新代码 (Neutralinojs)
+// 存储设置
 await Neutralino.storage.setData('settings', JSON.stringify({ language: 'zh' }));
+
+// 读取设置
+const data = await Neutralino.storage.getData('settings');
+const settings = JSON.parse(data);
 ```
 
 ---
@@ -590,20 +591,20 @@ windowStateManager.initialize();
 
 ## 最终结论
 
-### Rust 微服务 + Neutralino.storage 完美解决所有存储问题
+### Neutralino.storage + Rust 微服务完美解决所有存储问题
 
 | 存储需求 | 解决方案 | 效果 |
 |---------|---------|------|
-| **系统设置** | Neutralino.storage | ✅ 性能更好，代码更简单 |
+| **系统设置** | Neutralino.storage | ✅ 性能优秀，代码简单 |
 | **窗口位置** | Neutralino.storage | ✅ 自动保存，零维护 |
 | **OpenCode 数据** | Rust 微服务 | ✅ 性能接近原生，实时监听 |
 
 **推荐度**: ⭐⭐⭐⭐⭐ **强烈推荐**
 
 **理由**:
-1. ✅ 完全替代 Electron 存储方案
-2. ✅ 性能更好（内存缓存）
-3. ✅ 代码更简单（零依赖）
+1. ✅ 轻量级存储方案
+2. ✅ 性能优秀（内存缓存）
+3. ✅ 代码简单（零依赖）
 4. ✅ 自动跨平台路径管理
 
 ---

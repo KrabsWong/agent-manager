@@ -2,7 +2,7 @@
 
 ## 概述
 
-Rust 后端适配器允许前端通过 HTTP API 调用 Rust 微服务，替代 Electron IPC。
+Rust 后端适配器允许前端通过 HTTP API 调用 Rust 微服务。
 
 ## 快速开始
 
@@ -99,15 +99,6 @@ testRustBackend().catch(console.error);
 | pty 数据流 | ⚠️ | 需要 WebSocket |
 | git 实时监听 | ⚠️ | 需要 WebSocket |
 
-## 切换回 Electron
-
-```typescript
-import { switchBackend } from '@/lib/api';
-
-// 切换回 Electron 后端
-switchBackend('electron');
-```
-
 ## 错误处理
 
 ```typescript
@@ -116,8 +107,6 @@ try {
 } catch (error) {
   if (error.message.includes('HTTP')) {
     console.error('Rust service error:', error);
-    // 尝试切换回 Electron
-    switchBackend('electron');
   }
 }
 ```
@@ -130,7 +119,7 @@ try {
 import { getCurrentBackend } from '@/lib/api';
 
 console.log('Current backend:', getCurrentBackend());
-// Output: 'rust' | 'electron' | 'neutralino'
+// Output: 'rust' | 'neutralino'
 ```
 
 ### Rust 服务日志
@@ -141,20 +130,11 @@ cd rust-service
 RUST_LOG=info cargo run
 ```
 
-## 性能对比
-
-| 操作 | Electron IPC | Rust HTTP | 性能 |
-|------|-------------|----------|------|
-| 会话列表查询 | 12ms | 13-15ms | +8% |
-| 设置读取 | 5ms | 2-3ms | **快 2.5倍** ✅ |
-| 设置写入 | 10ms | 3-4ms | **快 3倍** ✅ |
-
 ## 注意事项
 
 1. **服务依赖**: 使用 Rust 后端前，必须启动 Rust 微服务
 2. **WebSocket**: 终端实时通信需要 WebSocket 支持（待实现）
-3. **错误处理**: HTTP 连接失败时建议降级到 Electron
-4. **缓存**: 设置数据在内存中缓存，减少 HTTP 请求
+3. **缓存**: 设置数据在内存中缓存，减少 HTTP 请求
 
 ## 下一步
 
@@ -165,5 +145,5 @@ RUST_LOG=info cargo run
 
 ---
 
-**最后更新**: 2026-05-10  
-**版本**: v1.0
+**最后更新**: 2026-05-11  
+**版本**: v1.1

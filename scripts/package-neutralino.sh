@@ -80,7 +80,7 @@ build_platform() {
 # Function to create distribution package
 create_package() {
     local target_platform=$1
-    local output_dir="dist-packages"
+    local output_dir="release"
     
     mkdir -p "${output_dir}"
     
@@ -108,8 +108,8 @@ mkdir -p "dist/Yes Sessions.app/Contents/MacOS"
         chmod +x "dist/Yes Sessions.app/Contents/MacOS/yes-sessions-service"
         
         # Copy icon for Finder display
-        if [ -f "build/icon.icns" ]; then
-            cp build/icon.icns "dist/Yes Sessions.app/Contents/Resources/app.icns"
+        if [ -f "public/icon.icns" ]; then
+            cp public/icon.icns "dist/Yes Sessions.app/Contents/Resources/app.icns"
         fi
         
         # Create Info.plist

@@ -19,9 +19,8 @@ import type {
  * Backend Adapter Interface
  * 
  * All methods must be implemented by each adapter:
- * - ElectronAdapter: Uses window.electronAPI (current)
- * - RustAdapter: Uses HTTP fetch to localhost:3000 (future)
- * - NeutralinoAdapter: Uses Neutralino APIs + HTTP (future)
+ * - RustAdapter: Uses HTTP fetch to localhost:3000
+ * - NeutralinoAdapter: Uses Neutralino APIs + HTTP
  */
 export interface IBackendAdapter {
   // Sessions API

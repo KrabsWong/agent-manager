@@ -29,26 +29,20 @@ function waitForNeutralino(timeout = 1000): Promise<boolean> {
 
 async function initApp() {
   const startTime = performance.now();
-  const isElectron = typeof (window as any).process !== 'undefined' && (window as any).process?.versions?.electron;
   
-  let backend: 'electron' | 'rust' | 'neutralino' = 'rust';
-  let isNeutralino = false;
+  let backend: 'rust' | 'neutralino' = 'rust';
+  let isNeutralino = await waitForNeutralino(2000);
   
-  if (!isElectron) {
-    isNeutralino = await waitForNeutralino(2000);
-    if (isNeutralino) {
-      backend = 'neutralino';
-      try {
-        await (window as any).Neutralino.init();
-        console.log('[API] Neutralino initialized');
-      } catch (error) {
-        console.error('[API] Neutralino init failed:', error);
-        backend = 'rust';
-        isNeutralino = false;
-      }
+  if (isNeutralino) {
+    backend = 'neutralino';
+    try {
+      await (window as any).Neutralino.init();
+      console.log('[API] Neutralino initialized');
+    } catch (error) {
+      console.error('[API] Neutralino init failed:', error);
+      backend = 'rust';
+      isNeutralino = false;
     }
-  } else {
-    backend = 'electron';
   }
   
   switchBackend(backend);
