@@ -5,7 +5,7 @@
   "defaultMode": "window",
   "port": 0,
   "token": "yes-sessions-token",
-  "url": "/resources/",
+  "url": "/resources/index.html",
   "enableServer": true,
   "enableNativeAPI": true,
   "modes": {
@@ -17,7 +17,6 @@
       "minHeight": 600,
       "fullScreen": false,
       "alwaysOnTop": false,
-      
       "enableInspector": true,
       "borderless": false,
       "maximize": false,
@@ -36,19 +35,6 @@
     "events.*",
     "computer.*",
     "window.*"
-  ],
-  "globalVariables": {
-    "backend": "rust",
-    "rustServiceUrl": "http://localhost:3000"
-  },
-  "enableExtensions": true,
-  "extensions": [
-    {
-      "id": "rust.service",
-      "command": "${NL_PATH}/yes-sessions-service",
-      "autoStart": true,
-      "autoRestart": true
-    }
   ],
   "globalVariables": {
     "backend": "rust",

@@ -67,6 +67,13 @@ build_platform() {
     echo -e "${BLUE}Building Neutralino bundle...${NC}"
     neu build --release
     
+    # Remove non-macOS arm64 binaries to save space
+    echo -e "${BLUE}Cleaning non-macOS arm64 binaries...${NC}"
+    rm -f dist/yes-sessions/yes-sessions-linux_*
+    rm -f dist/yes-sessions/yes-sessions-win_*
+    rm -f dist/yes-sessions/yes-sessions-mac_x64
+    rm -f dist/yes-sessions/yes-sessions-mac_universal
+    
     echo -e "${GREEN}${target_platform} build complete${NC}"
 }
 
@@ -74,74 +81,83 @@ build_platform() {
 create_package() {
     local target_platform=$1
     local output_dir="dist-packages"
-    local temp_dir="dist-temp"
     
     mkdir -p "${output_dir}"
-    mkdir -p "${temp_dir}/yes-sessions"
     
     echo -e "${YELLOW}Creating distribution package for ${target_platform}...${NC}"
     
-    # Copy frontend resources
-    echo -e "${BLUE}Copying frontend resources...${NC}"
-    cp -r dist/* "${temp_dir}/yes-sessions/"
-    
-    # Copy Neutralino binary for the platform
-    echo -e "${BLUE}Copying Neutralino binary...${NC}"
-    case "${target_platform}" in
-        mac)
-            cp bin/neutralino-mac_arm64 "${temp_dir}/yes-sessions/yes-sessions"
-            chmod +x "${temp_dir}/yes-sessions/yes-sessions"
-            ;;
-        win)
-            cp bin/neutralino-win_x64.exe "${temp_dir}/yes-sessions/yes-sessions.exe"
-            ;;
-        linux)
-            cp bin/neutralino-linux_x64 "${temp_dir}/yes-sessions/yes-sessions"
-            chmod +x "${temp_dir}/yes-sessions/yes-sessions"
-            ;;
-    esac
-    
-    # Copy Rust service
-    echo -e "${BLUE}Copying Rust service...${NC}"
-    case "${target_platform}" in
-        mac)
-            cp rust-service/target/release/yes-sessions-service "${temp_dir}/yes-sessions/"
-            chmod +x "${temp_dir}/yes-sessions/yes-sessions-service"
-            ;;
-        win)
-            if [ -f "rust-service/target/x86_64-pc-windows-msvc/release/yes-sessions-service.exe" ]; then
-                cp rust-service/target/x86_64-pc-windows-msvc/release/yes-sessions-service.exe "${temp_dir}/yes-sessions/"
-            fi
-            ;;
-        linux)
-            if [ -f "rust-service/target/x86_64-unknown-linux-gnu/release/yes-sessions-service" ]; then
-                cp rust-service/target/x86_64-unknown-linux-gnu/release/yes-sessions-service "${temp_dir}/yes-sessions/"
-                chmod +x "${temp_dir}/yes-sessions/yes-sessions-service"
-            fi
-            ;;
-    esac
-    
-    # Copy config file
-    cp neutralino.config.json "${temp_dir}/yes-sessions/"
-    
-    # Create package
-    echo -e "${BLUE}Creating archive...${NC}"
-    cd "${temp_dir}"
-    case "${target_platform}" in
-        mac)
-            zip -r "../${output_dir}/yes-sessions-${VERSION}-mac-arm64.zip" yes-sessions
-            ;;
-        win)
-            7z a "../${output_dir}/yes-sessions-${VERSION}-win-x64.zip" yes-sessions
-            ;;
-        linux)
-            tar -czf "../${output_dir}/yes-sessions-${VERSION}-linux-x64.tar.gz" yes-sessions
-            ;;
-    esac
-    cd ..
-    
-    # Cleanup
-    rm -rf "${temp_dir}"
+    # Create macOS .app bundle
+    if [ "${target_platform}" = "mac" ]; then
+        echo -e "${BLUE}Creating macOS .app bundle...${NC}"
+        
+mkdir -p "dist/Yes Sessions.app/Contents/MacOS"
+        mkdir -p "dist/Yes Sessions.app/Contents/Resources"
+        
+        # Copy executable
+        cp dist/yes-sessions/yes-sessions-mac_arm64 "dist/Yes Sessions.app/Contents/MacOS/yes-sessions"
+        chmod +x "dist/Yes Sessions.app/Contents/MacOS/yes-sessions"
+        
+        # Copy resources.neu (must be in same dir as executable)
+        cp dist/yes-sessions/resources.neu "dist/Yes Sessions.app/Contents/MacOS/"
+        
+        # Copy config file (must be in same dir as executable)
+        cp neutralino.config.json "dist/Yes Sessions.app/Contents/MacOS/"
+        
+        # Copy Rust service
+        cp rust-service/target/release/yes-sessions-service "dist/Yes Sessions.app/Contents/MacOS/"
+        chmod +x "dist/Yes Sessions.app/Contents/MacOS/yes-sessions-service"
+        
+        # Copy icon for Finder display
+        if [ -f "build/icon.icns" ]; then
+            cp build/icon.icns "dist/Yes Sessions.app/Contents/Resources/app.icns"
+        fi
+        
+        # Create Info.plist
+        cat > "dist/Yes Sessions.app/Contents/Info.plist" << 'PLIST_EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleExecutable</key>
+    <string>yes-sessions</string>
+    <key>CFBundleIconFile</key>
+    <string>app.icns</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.yes-sessions.app</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>Yes Sessions</string>
+    <key>CFBundleDisplayName</key>
+    <string>Yes Sessions</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>${VERSION}</string>
+    <key>CFBundleVersion</key>
+    <string>${VERSION}</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>11.0</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSRequiresAquaSystemAppearance</key>
+    <false/>
+</dict>
+</plist>
+PLIST_EOF
+        
+        # Create PkgInfo
+        echo -n "APPLyes-sessions" > "dist/Yes Sessions.app/Contents/PkgInfo"
+        
+        echo -e "${GREEN}.app bundle created${NC}"
+        
+        # Zip the .app
+        cd dist
+        zip -r "../${output_dir}/yes-sessions-${VERSION}-mac-arm64.zip" "Yes Sessions.app"
+        cd ..
+    fi
     
     echo -e "${GREEN}Package created: ${output_dir}/yes-sessions-${VERSION}-${target_platform}*${NC}"
 }

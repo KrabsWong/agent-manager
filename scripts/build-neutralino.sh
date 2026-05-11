@@ -22,6 +22,12 @@ echo -e "${GREEN}Rust service built successfully${NC}"
 
 # Step 2: Build frontend with Vite
 echo -e "${BLUE}[2/5] Building frontend...${NC}"
+# Clean old assets before Vite build
+rm -rf dist/assets
+rm -rf dist/yes-sessions
+rm -rf "dist/Yes Sessions.app"
+rm -f dist/yes-sessions-release.zip
+rm -rf resources/assets
 npm run build:frontend
 echo -e "${GREEN}Frontend built successfully${NC}"
 
@@ -34,10 +40,6 @@ echo -e "${GREEN}Rust binary copied${NC}"
 # Step 4: Prepare Neutralino resources
 echo -e "${BLUE}[4/5] Preparing Neutralino resources...${NC}"
 mkdir -p resources/bin
-
-# Clean old assets to avoid accumulation
-echo "Cleaning old assets..."
-rm -rf resources/assets
 
 # Copy dist files to resources
 echo "Copying dist to resources..."
@@ -100,6 +102,14 @@ echo -e "${GREEN}Configuration updated${NC}"
 echo ""
 echo -e "${BLUE}Running 'neu build'...${NC}"
 neu build
+
+# Remove non-macOS binaries to save space
+echo -e "${BLUE}Cleaning non-macOS binaries...${NC}"
+rm -f dist/yes-sessions/yes-sessions-linux_*
+rm -f dist/yes-sessions/yes-sessions-win_*
+rm -f dist/yes-sessions/yes-sessions-mac_x64
+rm -f dist/yes-sessions/yes-sessions-mac_universal
+echo -e "${GREEN}Only macOS arm64 binary retained${NC}"
 
 # Copy Rust service to dist directory
 echo -e "${BLUE}Copying Rust service to dist...${NC}"
