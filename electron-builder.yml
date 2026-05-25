@@ -46,8 +46,8 @@ linux:
   icon: build/icons
 publish:
   provider: github
-  owner: yes-sessions
-  repo: yes-sessions-electron
+  owner: KrabsWong
+  repo: agent-manager
   releaseType: release
 nsis:
   oneClick: false

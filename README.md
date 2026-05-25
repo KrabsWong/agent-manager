@@ -11,13 +11,13 @@ AI CLI 工具会话管理器 - 浏览、管理和恢复 AI 应用的对话历史
 自动下载并安装最新版本：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yes-sessions/yes-sessions-electron/main/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/KrabsWong/agent-manager/main/scripts/install.sh | bash
 ```
 
 安装指定版本：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/yes-sessions/yes-sessions-electron/main/scripts/install.sh | bash -s -- -v 8.2.1
+curl -fsSL https://raw.githubusercontent.com/KrabsWong/agent-manager/main/scripts/install.sh | bash -s -- -v 9.0.0
 ```
 
 ### 方式二：Homebrew
@@ -29,7 +29,7 @@ brew install --cask yes-sessions
 
 ### 方式三：手动安装
 
-1. 从 [Releases](https://github.com/yes-sessions/yes-sessions-electron/releases) 下载对应架构的 DMG
+1. 从 [Releases](https://github.com/KrabsWong/agent-manager/releases) 下载对应架构的 DMG
 2. 移除安全隔离属性：
    ```bash
    xattr -c ~/Downloads/Yes-Sessions-*.dmg

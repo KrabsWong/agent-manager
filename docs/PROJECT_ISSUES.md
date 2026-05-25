@@ -1,6 +1,6 @@
 # Yes Sessions 项目 review 记录
 
-**版本**: 8.2.1
+**版本**: 9.0.0
 **更新日期**: 2026-05-25
 **用途**: 当前项目的架构、功能和维护风险清单
 
@@ -28,7 +28,7 @@
 - 已补会话列表组件级交互测试，覆盖 `VirtualSessionList` 的日期/目录分组渲染、session 选择回调、全部折叠和展开行为。
 - 已补会话详情组件级交互测试，覆盖 `ConversationView` 的 system/user/assistant 渲染、tool call 展示以及展开后输入/输出展示。
 - 本文档和 `docs/PROJECT_RESEARCH.md` 已从旧的 CC Switch/Tauri 重写语境更新为当前 Yes Sessions/Electron 项目事实。
-- README、安装脚本、Homebrew 和版本管理文档中的示例版本已同步到当前 `package.json` 版本 `8.2.1` 语境，支持矩阵和应用描述已统一为当前支持/暂未接入状态。
+- README、安装脚本、Homebrew 和版本管理文档中的示例版本已同步到当前 `package.json` 版本语境，支持矩阵和应用描述已统一为当前支持/暂未接入状态。
 - 运行时 i18n 和备份 locale 中的不支持应用文案已统一为“暂未接入 / Not Connected”，并删除未被当前源码使用的 `APP_TYPES` 兼容导出别名。
 - 已移除当前源码未引用的历史依赖，包括旧版 `xterm` 包、CodeMirror/@uiw 编辑器链路、表单/图表/代理/自动更新相关包，并同步清理打包白名单中的无效条目。
 - 已继续清理无引用的 shadcn switch 组件、对应 Radix 依赖、未使用的 `png-to-ico` 依赖，以及 Vite Electron external 中已不存在的 `keytar` 残留。
@@ -64,7 +64,7 @@
 - Git diff 预览中剩余的关闭按钮 title、图片 alt 和行数单位已迁入运行时 `diff.*` i18n key，并同步重新生成备份 locale 文件。
 - 主题快速切换按钮的 hover title 已迁入运行时 `settings.*` i18n key，并同步重新生成备份 locale 文件。
 - 已删除当前无引用的 `Card`、`Input`、`Label` shadcn 组件文件，并移除 `Layout` 中重复的 i18n 副作用导入；i18n 初始化保留在应用入口 `src/main.tsx` 和文件预览入口 `src/file-preview.tsx`。
-- 安装脚本、README、安装文档和 Homebrew 指南中的 GitHub Release/Raw URL 已统一到当前 `electron-builder.yml` 的发布仓库 `yes-sessions/yes-sessions-electron`，并修正安装脚本 help 里的旧版本示例与 `docs/INSTALL_SCRIPT.md` 中错位的 Markdown 片段。
+- 安装脚本、README、安装文档和 Homebrew 指南中的 GitHub Release/Raw URL 已修正到当前仓库 `KrabsWong/agent-manager` 和公开 Homebrew 产物仓库 `KrabsWong/homebrew-yes-sessions`，并修正安装脚本 help 里的旧版本示例与 `docs/INSTALL_SCRIPT.md` 中错位的 Markdown 片段。
 - 主进程错误工具已移除旧 `CCError` 命名和未使用的 Result/sync wrapper/helper 导出，保留当前 IPC registry 实际使用的 `AppRuntimeError`、validation/input 工厂和 async IPC 错误包装。
 - 已删除无 UI 入口的 config import/export 和 renderer shell API，包括对应 IPC channel、handler、wrapper 与 config-store 导入导出方法；外链打开仍由主进程窗口策略处理。
 - 会话消息 parser 已从动态注册表收敛为静态内置 parser 表，删除未使用的 register/unregister/get parser API，当前只暴露生产使用的解析和能力判断函数。

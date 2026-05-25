@@ -25,12 +25,12 @@ if [[ "$OSTYPE" != "darwin"* ]]; then
     echo "其他平台的支持正在开发中，敬请期待！"
     echo ""
     echo -e "${BLUE}访问 GitHub 获取更多信息:${NC}"
-    echo "https://github.com/yes-sessions/yes-sessions-electron"
+    echo "https://github.com/KrabsWong/agent-manager"
     exit 1
 fi
 
 # 配置
-REPO="yes-sessions/yes-sessions-electron"
+REPO="KrabsWong/agent-manager"
 APP_NAME="Yes-Sessions"
 INSTALL_DIR="/Applications"
 
@@ -66,12 +66,12 @@ while [[ $# -gt 0 ]]; do
             echo "用法: $0 [选项]"
             echo ""
             echo "选项:"
-            echo "  -v, --version <版本>    指定安装版本 (例如: 8.2.1)"
+            echo "  -v, --version <版本>    指定安装版本 (例如: 9.0.0)"
             echo "  -h, --help              显示此帮助信息"
             echo ""
             echo "示例:"
             echo "  $0                      # 安装最新版本"
-            echo "  $0 -v 8.2.1             # 安装指定版本"
+            echo "  $0 -v 9.0.0             # 安装指定版本"
             echo ""
             echo "环境变量:"
             echo "  YS_VERSION              指定版本号 (优先级低于命令行参数)"
@@ -103,10 +103,10 @@ if [ -z "$VERSION" ]; then
             echo ""
             echo "解决方案："
             echo "  1. 手动指定版本安装:"
-            echo "     curl -fsSL ... | bash -s -- -v 8.2.1"
+            echo "     curl -fsSL ... | bash -s -- -v 9.0.0"
             echo ""
             echo "  2. 设置环境变量:"
-            echo "     YS_VERSION=8.2.1 curl -fsSL ... | bash"
+            echo "     YS_VERSION=9.0.0 curl -fsSL ... | bash"
             echo ""
             exit 1
         fi
