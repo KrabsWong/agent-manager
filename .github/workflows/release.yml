@@ -93,7 +93,7 @@ jobs:
       - name: Calculate SHA256
         id: sha256
         run: |
-          ARM64_SHA=$(shasum -a 256 dist/Yes-Sessions-*-arm64.dmg | cut -d' ' -f1)
+          ARM64_SHA=$(shasum -a 256 release/Yes-Sessions-*-arm64.dmg | cut -d' ' -f1)
           echo "arm64=$ARM64_SHA" >> $GITHUB_OUTPUT
           echo "ARM64 SHA256: $ARM64_SHA"
 
@@ -102,7 +102,7 @@ jobs:
         with:
           tag_name: ${{ steps.resolve-tag.outputs.tag }}
           files: |
-            dist/Yes-Sessions-*-arm64.dmg
+            release/Yes-Sessions-*-arm64.dmg
           body: |
             ## 安装指南
 
@@ -210,7 +210,7 @@ jobs:
           GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
           VERSION=${{ steps.verify-version.outputs.version }}
-          DMG_FILE=$(ls dist/Yes-Sessions-*-arm64.dmg)
+          DMG_FILE=$(ls release/Yes-Sessions-*-arm64.dmg)
 
           # 构建 release notes
           RELEASE_NOTES="## Yes Sessions v${VERSION}
