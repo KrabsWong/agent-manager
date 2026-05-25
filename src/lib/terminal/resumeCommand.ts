@@ -19,6 +19,9 @@ export function buildResumeCommand(appType: AppType, sessionId: string): ResumeC
     case 'codebuddy':
       return { command: 'codebuddy', args: [`--resume=${sessionId}`] };
 
+    case 'codex':
+      return { command: 'codex', args: ['resume', sessionId] };
+
     default:
       throw new Error(`Resume not supported for app type: ${appType}`);
   }
