@@ -19,6 +19,10 @@ describe('resumeCommand', () => {
       command: 'codebuddy',
       args: ['--resume=session-1'],
     });
+    expect(buildResumeCommand('codex', 'session-1')).toEqual({
+      command: 'codex',
+      args: ['resume', 'session-1'],
+    });
   });
 
   it('rejects unsupported app types', () => {

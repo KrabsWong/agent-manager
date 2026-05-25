@@ -10,6 +10,7 @@ import { claudeSessionService } from '../services/session/claude';
 import { claudeInternalSessionService } from '../services/session/claude-internal';
 import { opencodeSessionService } from '../services/session/opencode';
 import { codebuddySessionService } from '../services/session/codebuddy';
+import { codexSessionService } from '../services/session/codex';
 import { vscodeExtensionSessionService } from '../services/session/vscode-extension';
 import { resumeSessionInTerminal, getTerminalInfo } from '../services/terminal/launcher';
 import { APP_SESSION_SUPPORT } from '../../src/config/apps';
@@ -64,6 +65,15 @@ function registerSessionServices(): void {
     getSessionDetail: (sessionId: string) => codebuddySessionService.getSessionDetail(sessionId),
     getStats: () => codebuddySessionService.getStats(),
     isAvailable: () => codebuddySessionService.isAvailable(),
+  });
+
+  // Codex
+  sessionServiceRegistry.register({
+    appType: 'codex',
+    getAllSessions: () => codexSessionService.getAllSessions(),
+    getSessionDetail: (sessionId: string) => codexSessionService.getSessionDetail(sessionId),
+    getStats: () => codexSessionService.getStats(),
+    isAvailable: () => codexSessionService.isAvailable(),
   });
 
   // VSCode Extension
@@ -137,7 +147,11 @@ export function registerSessionsHandlers(): void {
         if (vscodeSession) {
           return vscodeSession;
         }
-        return await opencodeSessionService.getSessionDetail(sessionId);
+        const opencodeSession = await opencodeSessionService.getSessionDetail(sessionId);
+        if (opencodeSession) {
+          return opencodeSession;
+        }
+        return codexSessionService.getSessionDetail(sessionId);
       } catch (error) {
         log.error('Failed to get session detail:', error);
         throw error;

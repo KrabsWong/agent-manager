@@ -61,6 +61,10 @@ vi.mock('@electron/services/session/codebuddy', () => ({
   codebuddySessionService: mocks.makeService('codebuddy'),
 }));
 
+vi.mock('@electron/services/session/codex', () => ({
+  codexSessionService: mocks.makeService('codex'),
+}));
+
 vi.mock('@electron/services/session/vscode-extension', () => ({
   vscodeExtensionSessionService: mocks.makeService('vscode-extension'),
 }));
@@ -106,7 +110,7 @@ describe('sessions handler registration', () => {
     });
     await expect(supportHandler?.({}, 'codex')).resolves.toEqual({
       ...APP_SESSION_SUPPORT.codex,
-      isAvailable: false,
+      isAvailable: true,
     });
   });
 });

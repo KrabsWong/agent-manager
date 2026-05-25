@@ -63,7 +63,7 @@ export const APP_SESSION_SUPPORT: Record<
   opencode: { supported: true, status: 'full' },
   codebuddy: { supported: true, status: 'full' },
   'vscode-extension': { supported: true, status: 'full' },
-  codex: { supported: false, status: 'coming_soon' },
+  codex: { supported: true, status: 'full' },
   gemini: { supported: false, status: 'coming_soon' },
 };
 

@@ -378,15 +378,21 @@ export function getToolType(toolName: string): ToolType {
     return 'plan';
   }
 
-  if (['read', 'write', 'glob', 'grep', 'edit', 'ls', 'mkdir'].includes(name)) {
+  if (
+    ['read', 'write', 'glob', 'grep', 'edit', 'ls', 'mkdir', 'apply_patch'].includes(name) ||
+    name.includes('file')
+  ) {
     return 'filesystem';
   }
 
-  if (['search', 'fetch', 'curl'].includes(name)) {
+  if (['search', 'fetch', 'curl', 'web'].some((item) => name.includes(item))) {
     return 'search';
   }
 
-  if (['bash', 'python', 'node', 'npm'].includes(name)) {
+  if (
+    ['bash', 'python', 'node', 'npm', 'exec_command', 'write_stdin', 'shell'].includes(name) ||
+    name.includes('command')
+  ) {
     return 'code';
   }
 
@@ -406,6 +412,9 @@ export function getToolDisplayName(toolName: string): string {
     ls: 'List Directory',
     mkdir: 'Create Directory',
     bash: 'Execute Command',
+    exec_command: 'Execute Command',
+    write_stdin: 'Write Stdin',
+    apply_patch: 'Apply Patch',
     skill: 'MCP Skill',
     EnterPlanMode: 'Enter Plan Mode',
     ExitPlanMode: 'Exit Plan Mode',
@@ -446,8 +455,8 @@ export function getToolSummary(toolName: string, input?: Record<string, unknown>
     }
   }
 
-  if (name === 'bash') {
-    const command = input.command;
+  if (name === 'bash' || name === 'exec_command') {
+    const command = input.command || input.cmd;
     if (typeof command === 'string') {
       if (command.length > 50) {
         return command.substring(0, 50) + '...';
