@@ -68,7 +68,7 @@ interface CodebuddyMessageEntry {
   }; // Provider-specific metadata including model info
 }
 
-export class CodebuddySessionService {
+class CodebuddySessionService {
   /**
    * Check if Codebuddy data exists
    */

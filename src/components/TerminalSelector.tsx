@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Terminal, Ghost, Cat, Monitor } from 'lucide-react';
+import { Terminal, Ghost, Cat } from 'lucide-react';
 import { useTerminalInfo } from '@/hooks/useSessions';
 import { useSettings } from '@/hooks/useSettings';
 import { useToast } from '@/hooks/useToast';
@@ -26,13 +26,6 @@ export function TerminalSelector() {
       label: t('settings.terminalAuto', 'Auto-detect'),
       icon: <Terminal className="h-4 w-4" />,
       description: t('settings.terminalAutoDesc', 'Automatically select best available terminal'),
-      alwaysAvailable: true,
-    },
-    {
-      id: 'builtin',
-      label: t('settings.terminalBuiltin', 'Built-in Terminal'),
-      icon: <Monitor className="h-4 w-4" />,
-      description: t('settings.terminalBuiltinDesc', 'Integrated terminal in the app window'),
       alwaysAvailable: true,
     },
     {

@@ -26,16 +26,6 @@ extraResources:
       - '!**/binding.gyp'
       - '!**/build/Makefile'
       - '!**/build/*.mk'
-  - from: node_modules/keytar
-    to: node_modules/keytar
-    filter:
-      - '**/*'
-      - '!**/*.map'
-      - '!**/*.ts'
-      - '!**/test/**/*'
-      - '!**/tests/**/*'
-      - '!**/docs/**/*'
-      - '!**/*.md'
 mac:
   category: public.app-category.developer-tools
   target:

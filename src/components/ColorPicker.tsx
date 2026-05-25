@@ -30,7 +30,7 @@ function getColorPreviewStyle(colorId: AccentColor, isDark: boolean): React.CSSP
 }
 
 // 检查是否使用深色勾选标记
-function useDarkCheck(colorId: AccentColor): boolean {
+function shouldUseDarkCheck(colorId: AccentColor): boolean {
   return colorId === 'default' || ['yellow', 'lime'].includes(colorId);
 }
 
@@ -39,13 +39,12 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
   const { resolvedTheme } = useTheme();
   const { toast } = useToast();
   const isDark = resolvedTheme === 'dark';
-  const currentColor = getColorById(value);
 
   const handleColorChange = (colorId: AccentColor) => {
     onChange(colorId);
     toast({
-      title: t('settings.accentColorChanged', 'Accent color changed'),
-      description: t(`settings.colors.${colorId}`) || getColorById(colorId).name,
+      title: t('settings.accentColorChanged'),
+      description: t(`settings.colors.${colorId}`),
     });
   };
 
@@ -57,9 +56,7 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
             className="w-5 h-5 rounded-full border border-border/60 shrink-0"
             style={getColorPreviewStyle(value, isDark)}
           />
-          <span className="text-sm text-muted-foreground">
-            {t(`settings.colors.${value}`) || currentColor.name}
-          </span>
+          <span className="text-sm text-muted-foreground">{t(`settings.colors.${value}`)}</span>
         </div>
         <DialogTrigger asChild>
           <button className="flex items-center justify-center w-8 h-8 rounded-md border border-border/60 hover:border-primary-border hover:bg-primary-muted transition-colors shrink-0">
@@ -69,7 +66,7 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
       </div>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{t('settings.selectAccentColor') || 'Select Accent Color'}</DialogTitle>
+          <DialogTitle>{t('settings.selectAccentColor')}</DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-5 gap-3 py-4">
@@ -85,7 +82,7 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
                   'hover:bg-accent',
                   isSelected && 'bg-primary-muted'
                 )}
-                title={t(`settings.colors.${color.id}`) || color.name}
+                title={t(`settings.colors.${color.id}`)}
               >
                 <div
                   className={cn(
@@ -100,10 +97,10 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
                       <Check
                         className={cn(
                           'h-5 w-5',
-                          useDarkCheck(color.id) ? 'text-black' : 'text-white'
+                          shouldUseDarkCheck(color.id) ? 'text-black' : 'text-white'
                         )}
                         style={{
-                          filter: useDarkCheck(color.id)
+                          filter: shouldUseDarkCheck(color.id)
                             ? 'none'
                             : 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))',
                         }}
@@ -117,7 +114,7 @@ export function ColorPicker({ value, onChange }: ColorPickerProps) {
                     isSelected ? 'font-medium text-primary' : 'text-muted-foreground'
                   )}
                 >
-                  {t(`settings.colors.${color.id}`) || color.name}
+                  {t(`settings.colors.${color.id}`)}
                 </span>
               </button>
             );

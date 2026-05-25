@@ -76,7 +76,7 @@ export default defineConfig({
             minify: isProduction ? 'terser' : false,
             outDir: 'dist-electron',
             rollupOptions: {
-              external: ['electron', 'better-sqlite3', 'keytar', 'node-pty'],
+              external: ['electron', 'better-sqlite3'],
             },
           },
         },

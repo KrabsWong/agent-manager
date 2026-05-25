@@ -8,9 +8,10 @@ import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { GitBranch, FileText, Plus, Minus, Circle, AlertCircle, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { gitApi, type GitStatusResult, type GitFileChange } from '@/lib/api';
+import { gitApi } from '@/lib/api/git';
 import { Button } from '@/components/ui/button';
 import { useGitWatch } from '@/hooks/useGitWatch';
+import type { GitFileChange, GitStatusResult } from '@/types';
 
 interface GitDiffViewProps {
   sessionDirectory?: string;
@@ -52,6 +53,8 @@ function FileChangeRow({
   return (
     <button
       onClick={onClick}
+      data-testid="git-change-row"
+      data-file-path={file.path}
       className={cn(
         'w-full flex items-center gap-2 py-1.5 px-2 hover:bg-primary-muted transition-colors text-left group',
         isSelected && 'bg-primary-light hover:bg-primary-light'
@@ -124,7 +127,6 @@ export function GitDiffView({
 
   // Handle git changes - reload status and refresh selected file diff
   const handleGitChange = useCallback(() => {
-    console.log('[GitDiffView] Git changes detected, reloading...');
     loadGitStatus();
     // If a file is selected, notify parent to refresh the diff
     if (selectedFile && onFileSelect) {
@@ -240,7 +242,7 @@ export function GitDiffView({
   }
 
   return (
-    <div className={cn('h-full flex flex-col', className)}>
+    <div className={cn('h-full flex flex-col', className)} data-testid="git-diff-view">
       {/* Header with branch info and summary */}
       <div className="px-3 py-2 border-b bg-muted/20 shrink-0 space-y-2">
         <div className="flex items-center justify-between">

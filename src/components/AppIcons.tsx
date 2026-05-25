@@ -122,20 +122,16 @@ export function getAppIcon(
   className = ''
 ): React.ReactNode {
   const sizeNum = typeof size === 'string' ? parseInt(size) : size;
-  
+
   // Use inline SVG for Codebuddy
   if (appType === 'codebuddy') {
     return <CodebuddyIconSVG size={sizeNum} className={className} />;
   }
-  
+
   // Use local PNG for VS Code Extension
   if (appType === 'vscode-extension') {
     return <VSCodeIcon size={sizeNum} className={className} />;
   }
-  
+
   return <IconFromCDN appType={appType} size={size} className={className} />;
 }
-
-// Re-export from central config for backward compatibility
-// 请优先从 @/config/apps 导入
-export { APP_LABELS, APP_WEBSITES, APP_ORDER as APP_TYPES, APP_COLORS } from '@/config/apps';

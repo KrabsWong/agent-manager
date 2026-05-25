@@ -1,1065 +1,126 @@
-# CC Switch 项目问题分析文档
+# Yes Sessions 项目 review 记录
+
+**版本**: 8.2.1
+**更新日期**: 2026-05-25
+**用途**: 当前项目的架构、功能和维护风险清单
+
+## 已处理
+
+- `chatLayout` 已补入共享 `AppSettings` 和 `DEFAULT_SETTINGS`，避免设置重置/导入导出时丢失该布局配置。
+- 删除未被引用的 `src/hooks/usePerformance.ts`，减少调试型死代码。
+- 移除多处运行路径上的调试 `console.log`，主进程 Git watcher 改用 `electron-log`。
+- README 已注明实际 i18n 资源位于 `src/lib/i18n/index.ts`，`src/locales/*.json` 只是参考。
+- 已移除内置终端特性，包括 renderer xterm 客户端、主进程 PTY manager、`node-pty`/`@xterm/*` 依赖、设置中的 builtin 选项和打包白名单；历史 `builtin` 配置会迁移回默认 `auto`。
+- `src/lib/api/` 已继续按领域拆分为 `sessions/settings/app/files/git` 等模块，并删除无额外抽象价值的 barrel 入口 `src/lib/api/index.ts`；调用方直接依赖对应领域 wrapper。
+- `electron/main.ts` 已把应用级 IPC 注册、文件预览窗口、文件读取、tree/git handler 注册拆到 `electron/handlers/app.ts`。
+- `electron/handlers/app.ts` 已继续收敛为聚合注册入口，settings/file-preview/file/git handler 已拆成独立模块。
+- 已补最小 Vitest 覆盖：API response helper、应用配置一致性、默认设置形状。`npx vitest run` 现在可作为有效质量门。
+- 已补 session message parser 测试，覆盖 OpenCode 文件块、Claude 清理、Codebuddy 清理和 VS Code HTML 转换。
+- 已补 ConversationView 纯逻辑测试，覆盖 Claude XML 解析、消息 turn 分组、延迟 tool result 匹配、工具分类/摘要、语言识别、时间/值格式化和 diff 计算。
+- 已补 file/git API wrapper 测试，覆盖 IPC channel、参数透传、成功/失败响应处理、Git watch 监听和清理。
+- 已补 settings store mutation 测试，覆盖默认值补齐、局部初始设置合并、通用更新、布局/侧栏/theme toggle 和主进程同步失败时的本地状态行为。
+- `SettingsDialog` 的体验设置 toggle UI 已收敛为 `ToggleSettingItem`，减少重复 JSX。
+- `InitialSettings`、`IElectronAPI`、`AccentColor` 已收敛到共享类型；settings store 的状态字段从 `AppSettings` 派生，减少新增设置时的重复维护点。
+- 设置迁移逻辑已收敛到 `src/lib/settings/migration.ts`，主进程配置存储和 renderer settings store 共用同一套归一化规则；electron-store 会记录 `settingsVersion`，启动、读取、更新、导入时都会补齐缺失字段并过滤非法持久化值。
+- Git handler 已从 shell 字符串拼接改为 `execFile` 参数数组调用，并对传入的 repo 文件路径做相对路径约束，降低路径注入和越界读取风险。
+- 文件读取 handler 已增加目录根约束：`tree:get` 会注册 realpath 后的允许根目录，`file:read` 和 `file:readImage` 只允许读取该根目录内的文件，并用 realpath 防止路径穿越或 symlink 越界。
+- 已补 Electron IPC contract 测试，覆盖 `ipcRegistry` 统一成功/失败响应包装、注册覆盖、注销/清理，以及 `registerAppHandlers()` 聚合注册入口。
+- 已补会话列表组件级交互测试，覆盖 `VirtualSessionList` 的日期/目录分组渲染、session 选择回调、全部折叠和展开行为。
+- 已补会话详情组件级交互测试，覆盖 `ConversationView` 的 system/user/assistant 渲染、tool call 展示以及展开后输入/输出展示。
+- 本文档和 `docs/PROJECT_RESEARCH.md` 已从旧的 CC Switch/Tauri 重写语境更新为当前 Yes Sessions/Electron 项目事实。
+- README、安装脚本、Homebrew 和版本管理文档中的示例版本已同步到当前 `package.json` 版本 `8.2.1` 语境，支持矩阵和应用描述已统一为当前支持/暂未接入状态。
+- 运行时 i18n 和备份 locale 中的不支持应用文案已统一为“暂未接入 / Not Connected”，并删除未被当前源码使用的 `APP_TYPES` 兼容导出别名。
+- 已移除当前源码未引用的历史依赖，包括旧版 `xterm` 包、CodeMirror/@uiw 编辑器链路、表单/图表/代理/自动更新相关包，并同步清理打包白名单中的无效条目。
+- 已继续清理无引用的 shadcn switch 组件、对应 Radix 依赖、未使用的 `png-to-ico` 依赖，以及 Vite Electron external 中已不存在的 `keytar` 残留。
+- 已继续清理确认无引用的组件/工具和依赖：`HelpDialog`、`ConfirmDialog`、`EmptyState`、`Badge`、`Spinner`、`ScrollArea`、`src/lib/session-files.ts`、`@radix-ui/react-scroll-area`，并删除旧非 Electron 迁移日志。
+- `src/locales/en.json` 和 `src/locales/zh.json` 已从运行时 `src/lib/i18n/index.ts` 重新生成，移除旧的通用 CRUD/empty state 备份文案，保持备份/参考文件与实际加载资源一致。
+- 已删除确认无入口的旧会话上下文组件；文件预览/Git diff 已统一走独立预览窗口，相关未引用的旧搜索和 context panel 翻译也已裁剪。
+- Git、文件树、会话统计、支持状态和终端信息等 IPC payload 类型已收敛到 `src/types/ipc.ts`，renderer API wrapper 和 Electron handler 共用同一套类型定义。
+- `ipcRegistry.register()` 已支持可选运行时参数校验；文件、Git、settings、session 等本地能力 IPC 通道已补基础参数校验，并补充 registry/validation contract 测试。
+- 旧的 CC Switch 重写计划、Session Viewer 早期计划、Bad Cases 和 `docs/superpowers/` 历史计划材料已压缩为短归档说明，避免旧依赖、旧任务指令和旧路线图被误认为当前事实。
+- 文件读取允许根已从全局集合改为按 `webContents` sender 隔离：窗口必须先通过 `tree:get` 注册目录，才能在同一窗口内调用 `file:read`/`file:readImage` 读取该目录下文件，并已补 handler 测试覆盖跨窗口拒绝访问。
+- `ipcRegistry.register()` 已支持可选返回值校验；文件树、Git status/file diff、session stats/support status 和 terminal info 等稳定 IPC payload 已补轻量 schema 校验和 contract 测试。
+- `sessions:getAll` 和 `sessions:getDetail` 已补 `Session[]` / `SessionDetail | null` 轻量返回值校验，覆盖会话基础字段、消息数组和消息基础字段，保留各来源 metadata 扩展。
+- 已补 Playwright Electron smoke：`npm run test:e2e` 会先执行 `tsc && vite build`，再以生产入口启动 Electron，并验证主窗口 preload、核心 settings/session IPC 和可选 session detail 路径。
+- 主进程运行时对 `electron` 模块的导入已改为 default import 后解构，修复生产构建产物在 `electron .` 启动时对 CommonJS named export 不兼容的问题。
+- 已删除未提交的旧非 Electron 迁移残留，避免无关产物继续污染源码边界。
+- 已将分散在 `src/` 和 `electron/` 下的 Vitest 文件集中迁移到 `tests/src/` 与 `tests/electron/`，`e2e/` 保持独立，并同步更新测试 import 与文档。
+- 已新增 `tsconfig.test.json`，并让 `npm run typecheck` 同时覆盖集中测试目录、E2E 和测试配置文件；format 脚本也已纳入 `tests/`、`e2e/` 和根配置文件。
+- Electron E2E 已补设置弹窗路径：覆盖主窗口打开设置、General/Experience/Terminal tab 切换和弹窗关闭，避免设置 UI 回归只由组件/手工验证兜底。
+- `SessionDetail` IPC 返回值校验已从基础字段类型推进到按消息类型校验语义必需字段：普通消息需要内容/推理/脱敏内容，`tool_use` 需要工具名和输入，`tool_result` 需要工具名和输出。
+- `AppSupportSummary.status` 已从裸 `string` 收紧为共享 `AppSupportStatus` 枚举，并在 IPC result 校验中拒绝未知支持状态。
+- 已移除 settings store 中无引用的旧 `useExperienceStore` 兼容导出，避免后续代码继续依赖已合并的旧 store 名称。
+- 已删除无入口的手工调试脚本，避免未纳入 package 脚本/文档的 VS Code session 探查和 Mermaid smoke 代码继续作为维护负担。
+- preload 中重复的 `Window.electronAPI` / `__INITIAL_SETTINGS__` 全局声明已移除，renderer 全局类型统一由 `src/types/electron.d.ts` 维护。
+- 已移除 `package.json` 中与 `electron-builder.yml` 重复且不一致的旧打包配置，Electron Builder 配置事实来源统一为 `electron-builder.yml`。
+- 已移除未直接使用的顶层 `javascript-obfuscator` devDependency；生产混淆仍通过 `vite-plugin-javascript-obfuscator` 及其自带依赖执行。
+- 已将纯类型包 `@types/react-syntax-highlighter` 从运行时 dependencies 移到 devDependencies，生产依赖集合只保留实际运行时的 `react-syntax-highlighter`。
+- Tailwind content 扫描范围已从模板遗留的根级 `pages/components/app` 目录收敛到当前实际入口 `index.html`、`file-preview.html` 和 `src/**/*`。
+- 应用会话支持状态已从主进程 `sessions:getSupportStatus` 的重复硬编码表收敛到共享 `src/config/apps.ts`，renderer 和 Electron handler 共用同一份 `APP_SESSION_SUPPORT`。
+- `IElectronAPI` 已从任意字符串 channel 收紧为共享 `IpcChannel` / `IpcEventChannel`，renderer 侧 IPC 调用和事件监听能在类型检查阶段发现拼写错误。
+- 已从 `IpcChannel` 删除没有 renderer API wrapper、也没有 Electron handler 的旧通道声明：`app:checkForUpdates`、`app:quit`、`app:minimize`、`config:backup`。
+- `SessionStatsSummary` 已改为复用业务层 `SessionStats` 类型，删除无引用的 `AppSessionSupport` 类型；`sessionsApi` 的 appType 参数也已从裸 `string` 收紧为 `AppType` 并补 wrapper 测试。
+- `SessionServiceRegistry` 已删除无生产调用的 `getAll()` / `has()` 方法和旧 `SessionServiceInterface` 类型别名，`SessionService.getStats()` 也改为复用共享 `SessionStats`。
+- Git diff 预览中剩余的关闭按钮 title、图片 alt 和行数单位已迁入运行时 `diff.*` i18n key，并同步重新生成备份 locale 文件。
+- 主题快速切换按钮的 hover title 已迁入运行时 `settings.*` i18n key，并同步重新生成备份 locale 文件。
+- 已删除当前无引用的 `Card`、`Input`、`Label` shadcn 组件文件，并移除 `Layout` 中重复的 i18n 副作用导入；i18n 初始化保留在应用入口 `src/main.tsx` 和文件预览入口 `src/file-preview.tsx`。
+- 安装脚本、README、安装文档和 Homebrew 指南中的 GitHub Release/Raw URL 已统一到当前 `electron-builder.yml` 的发布仓库 `yes-sessions/yes-sessions-electron`，并修正安装脚本 help 里的旧版本示例与 `docs/INSTALL_SCRIPT.md` 中错位的 Markdown 片段。
+- 主进程错误工具已移除旧 `CCError` 命名和未使用的 Result/sync wrapper/helper 导出，保留当前 IPC registry 实际使用的 `AppRuntimeError`、validation/input 工厂和 async IPC 错误包装。
+- 已删除无 UI 入口的 config import/export 和 renderer shell API，包括对应 IPC channel、handler、wrapper 与 config-store 导入导出方法；外链打开仍由主进程窗口策略处理。
+- 会话消息 parser 已从动态注册表收敛为静态内置 parser 表，删除未使用的 register/unregister/get parser API，当前只暴露生产使用的解析和能力判断函数。
+- `ConversationView` 目录入口已停止 re-export 内部子组件、类型和工具函数，页面侧只通过该入口消费主组件，内部测试按需直连具体模块。
+- 应用配置模块已删除仅测试使用的描述表、支持/不支持列表 helper 和聚合信息 helper；`isAppSupported()` 直接从共享 `APP_SESSION_SUPPORT` 派生。
+- hooks 导出面已继续收窄：`settingsKeys`、toast reducer、顶层 toast 函数和 toast 类型不再对模块外导出，只保留当前组件实际消费的 hook。
+- 已删除应用自有 `yes-sessions.db` 管理器和 schema：当前没有业务读写该库，设置持久化走 `electron-store`，`better-sqlite3` 仅保留给 OpenCode 外部 SQLite 会话读取。
+- 性能监控和 Git watcher 服务导出面已收窄：删除未使用的内存日志方法、`PerformanceMonitor` class export 和 `getGitWatcher()`。
+- 共享 `ErrorCode` 已收窄到当前 IPC 错误包装实际产生的 `UNKNOWN_ERROR`、`VALIDATION_ERROR`、`INVALID_INPUT`，删除未使用的通用错误码和 `ERROR_CODES` 导出。
+- 文件预览 IPC/API 已删除未被预览入口读取的 `appType` 参数，保留实际使用的目录和会话标题。
+- 各会话来源服务已停止导出 class 构造器，只保留 handler 注册实际消费的单例服务导出。
+- 文件预览独立入口和错误边界中的用户可见兜底文案已迁入运行时 i18n 资源，并同步备份 locale。
+- 会话详情头部的会话 ID、更新时间、工作目录、未命名会话、新消息提示和复制 title 已迁入运行时 i18n 资源；更新时间格式跟随当前语言。
+- 会话列表卡片的未命名会话兜底和目录视图日期格式已改为复用 `sessions.untitledSession` 和当前 i18n 语言。
+- Electron E2E 已补临时 Codebuddy fixture 路径：在隔离 HOME 中创建最小 JSONL 会话，覆盖会话列表发现、选择、详情加载和 user/tool/assistant 内容渲染。
+- Electron E2E 已补文件预览窗口路径：复用隔离 Codebuddy fixture，从会话详情打开独立文件预览窗口，覆盖文件树渲染、项目文件选择和内容读取。
+- Electron E2E 已补 Git diff 用户路径：在临时 git 仓库 fixture 中制造已提交文件的工作区修改，覆盖文件预览窗口 Git tab、变更文件选择和 diff 内容渲染。
+- 外部终端恢复逻辑已拆出纯函数测试：覆盖 Ghostty/Kitty/Terminal.app 的选择优先级、不可用偏好回退、工作目录存在/缺失时的启动参数，以及各应用 resume 命令映射；`getTerminalInfo()` 现在返回实际有效终端，避免偏好终端不可用时 UI 禁用 Resume。
+- 会话详情、工具调用、Mermaid 图表、文件预览和虚拟列表中的剩余硬编码用户可见文案已迁入运行时 i18n 资源，并同步重新生成备份 locale。
+- 会话列表日期分组已从本地化显示字符串改为稳定的 `YYYY-MM-DD` group key，展示时再按当前 i18n 语言格式化；折叠状态、排序和语言显示不再耦合，`VirtualSessionList` 也不再需要外部传入翻译函数。
+- 会话组件内部已移除未被项目消费的 default export，统一使用 named export；代码块组件中的剩余用户可见文案也已迁入运行时 i18n 资源并同步备份 locale。
+- Renderer API 入口已删除未提供额外抽象价值的聚合 `api` 对象，调用方改为直接使用 `filePreviewApi`、`fileApi` 等具名 API wrapper，减少重复入口和间接依赖。
+- Renderer API wrapper 已停止 re-export 业务/IPC payload 类型；组件和测试统一从 `src/types` 引用共享类型，API 模块只保留调用封装职责。
+- IPC registry 已移除未被生产代码消费的 `has()`、`getChannels()`、`unregister()` 和内部类型导出，只保留注册 handler 与应用退出清理所需的公开能力。
+- 配置存储模块已停止导出 `ConfigStore` class 和 `StoreSchema` 类型，只保留生产代码实际消费的 `configStore` 单例。
+- 终端 launcher 已停止导出仅模块内部使用的 Ghostty/Kitty 安装检测函数；外部只保留恢复会话和读取终端信息两个业务入口。
+- 路径边界工具已停止导出单根判断 helper，只保留生产代码实际消费的多根校验入口 `isPathInsideAnyRoot()`。
+- 主题颜色工具已移除无消费者的 `defaultAccentColor` 导出，并将仅内部使用的 `ColorOption` 类型收为模块私有。
+- Git IPC handler 已停止导出仅注册函数内部调用的 `getGitStatus()`、`getGitDiff()` 和 `getFileDiffContent()`；主进程错误工具中的 `AppRuntimeError` 也已收为模块私有。
+- Session service registry 已停止导出仅测试 mock 使用的 `SessionService` 接口；hooks 中也已将完整 `sessionsKeys` 收为模块私有，只暴露设置更新需要复用的 `terminalInfoQueryKey()`。
+- ConversationView 代码块主题对象 `tokyoNightTheme` 已收为 `CodeBlock.tsx` 模块私有，避免内部语法高亮样式成为组件公共 API。
+- 测试文件已统一位于 `tests/` 和 `e2e/` 下，当前 `src/` 与 `electron/` 中没有散落的 `.test` / `.spec` / `__tests__` 文件；继续保留集中测试目录结构。
+- 设置弹窗和会话页中已确认存在运行时 i18n key 的旧硬编码 fallback 已移除，用户可见文案继续以 `src/lib/i18n/index.ts` 为事实来源。
+- ThemeProvider 已移除旧“兼容” action wrapper，context 直接暴露 settings store 的 async theme/accent action；仅 `resetAccentColor()` 继续封装额外 DOM 变量清理。
+- 已移除无 UI 入口的会话搜索过滤/高亮死路径，包括 `ConversationView.searchQuery` 传递链、`HighlightedText` 组件和对应自维持测试；README 与研究文档也已停止宣称当前支持全文搜索。
+- ConversationView 已移除被常量永久关闭的代码块折叠、长回复截断和工具输出折叠分支，并清理对应未使用常量与 i18n 文案；仅保留实际生效的超长代码禁用语法高亮保护。
+- 主题切换模块已删除无消费者的 `ThemeToggleButton` 备用按钮，并清理仅该按钮使用的 `themeSwitchToLight` / `themeSwitchToDark` 文案。
+- 语言、主题和主色调设置组件中已确认存在运行时 i18n key 的旧 fallback 文案已移除，设置 UI 文案继续统一来自 `src/lib/i18n/index.ts`。
+- Renderer API 调用方已从 `@/lib/api` barrel 改为直接导入 `@/lib/api/{app,files,git,sessions,settings}`，并删除 `src/lib/api/index.ts` 这个重复入口。
+- IPC `appTypeArg()` 校验已改为复用 `src/config/apps.ts` 的 `APP_ORDER`，删除 validation 模块里重复手写的应用类型集合。
+- 设置归一化逻辑已改为复用 `src/config/apps.ts` 的 `APP_ORDER` 校验默认应用，并将语言类型收敛到当前实际提供的 `en` / `zh` 两种运行时资源。
 
-**版本**: 3.12.3  
-**分析日期**: 2026-04-08  
-**用途**: 代码审查和重构参考
+## 当前风险
 
----
+本轮优化到此收口。下面两项不再在当前 goal 中继续展开，后续如果要继续提高可靠性，可以从这里恢复。
 
-## 目录
+### 1. 测试覆盖仍需继续拓宽
 
-1. [概述](#1-概述)
-2. [架构层问题](#2-架构层问题)
-3. [代码质量问题](#3-代码质量问题)
-4. [性能问题](#4-性能问题)
-5. [可维护性问题](#5-可维护性问题)
-6. [安全问题](#6-安全问题)
-7. [测试问题](#7-测试问题)
-8. [重构建议](#8-重构建议)
+`npx vitest run` 已可运行，覆盖纯逻辑、renderer API wrapper、settings store、IPC registry contract、部分主进程边界、会话列表和会话详情组件交互、外部终端选择和启动参数构建。`npm run test:e2e` 已覆盖生产入口 Electron 启动、核心 IPC smoke、设置弹窗 tab 交互、使用隔离 Codebuddy fixture 的列表到详情路径、文件预览窗口的文件树和内容读取路径，以及 Git diff 面板的变更选择和内容渲染路径。剩余缺口主要是不能在自动化里稳定验证真实 GUI 终端启动后的系统级行为。
 
----
+### 2. 复杂 session payload 仍缺少业务级语义校验
 
-## 1. 概述
+主要 IPC payload 类型已集中到 `src/types/ipc.ts`，renderer API wrapper 和 Electron handler 已共享类型定义；高风险 IPC 通道的输入参数已补运行时校验，稳定结构化返回值和会话基础 payload 也已补轻量校验。`SessionDetail` 现在会校验不同 message type 的语义必需字段，`AppSupportSummary.status` 也会限制在已知支持状态内。剩余风险集中在更细的跨来源业务语义，例如不同工具的 message metadata、tool call/tool result 配对策略和特殊内容块含义，当前仍主要依赖 TypeScript 类型和 parser/组件测试。
 
-本文档基于对 CC Switch 项目代码的深入分析，列出当前实现中存在的架构、代码质量、性能、可维护性等方面的问题。这些问题按照严重程度分类，并提供具体的代码引用和改进建议。
+## 建议的下一轮重构
 
-### 1.1 问题统计概览
-
-| 问题类别 | 严重   | 中等   | 轻微   | 总计   |
-| -------- | ------ | ------ | ------ | ------ |
-| 架构问题 | 5      | 8      | 3      | 16     |
-| 代码质量 | 3      | 12     | 8      | 23     |
-| 性能问题 | 2      | 5      | 4      | 11     |
-| 可维护性 | 4      | 10     | 6      | 20     |
-| 安全问题 | 2      | 3      | 2      | 7      |
-| **总计** | **16** | **38** | **23** | **77** |
-
----
-
-## 2. 架构层问题
-
-### 2.1 严重问题
-
-#### 2.1.1 巨型文件 - ProviderService (2495行) ⚠️ CRITICAL
-
-**文件**: `src-tauri/src/services/provider/mod.rs`
-
-**问题描述**:
-
-- 单文件包含2495行代码，职责过于集中
-- 包含68个函数，违反单一职责原则
-- 测试代码(437行)与业务逻辑混杂
-
-**代码片段**:
-
-```rust
-// src-tauri/src/services/provider/mod.rs - 2495行
-pub struct ProviderService;
-
-impl ProviderService {
-    // 68个函数，包括:
-    // - CRUD操作
-    // - 配置验证
-    // - 导入导出
-    // - 测试辅助函数
-    // ...
-}
-```
-
-**影响**:
-
-- 代码难以理解
-- 修改风险高
-- 测试困难
-- 团队协作冲突
-
-**建议**:
-
-```rust
-// 拆分为多个服务
-pub struct ProviderCrudService;      // 基础CRUD
-pub struct ProviderValidationService; // 验证逻辑
-pub struct ProviderImportService;     // 导入导出
-pub struct ProviderLiveSyncService;   // 实时配置同步
-```
-
-#### 2.1.2 巨型文件 - ProxyService (2790行) ⚠️ CRITICAL
-
-**文件**: `src-tauri/src/services/proxy.rs`
-
-**问题描述**:
-
-- 单文件2790行，包含代理服务的所有逻辑
-- 混合了业务逻辑、配置管理、接管逻辑
-
-**建议**:
-拆分为:
-
-- `proxy_takeover.rs` - 接管逻辑
-- `proxy_config_manager.rs` - 配置管理
-- `proxy_token_manager.rs` - Token管理
-- `proxy_live_sync.rs` - 实时配置同步
-
-#### 2.1.3 巨型组件 - ProviderForm (1815行) ⚠️ CRITICAL
-
-**文件**: `src/components/providers/forms/ProviderForm.tsx`
-
-**问题描述**:
-
-- 单组件1815行
-- 处理5种不同应用的表单逻辑
-- 导入大量hooks和工具函数
-
-**代码片段**:
-
-```typescript
-// 导入大量依赖
-import { useProviderCategory, useApiKeyState, ... } from "./hooks"; // 16个hooks
-import { CLAUDE_DEFAULT_CONFIG, ... } from "./helpers"; // 5个配置
-```
-
-**建议**:
-
-- 按应用类型拆分为独立组件
-- 使用策略模式统一表单逻辑
-- 提取通用逻辑到自定义hooks
-
-#### 2.1.4 巨型文件 - lib.rs (1543行) ⚠️ CRITICAL
-
-**文件**: `src-tauri/src/lib.rs`
-
-**问题描述**:
-
-- 应用初始化逻辑过于集中
-- 包含100+个Tauri命令注册
-- 深链接处理、托盘创建、插件初始化混杂
-
-**建议**:
-
-```rust
-// 拆分为模块
-mod app_initialization;
-mod command_registry;
-mod plugin_setup;
-mod tray_setup;
-mod deeplink_handler;
-```
-
-#### 2.1.5 循环依赖风险
-
-**文件**: 多处
-
-**问题描述**:
-
-- `services::provider` 导入 `services::mcp`
-- `services::mcp` 可能反向依赖
-- 复杂的模块导入链
-
-**代码片段**:
-
-```rust
-// src-tauri/src/services/provider/mod.rs:18
-use crate::services::mcp::McpService;
-
-// src-tauri/src/services/mcp.rs 中可能反向依赖provider
-```
-
-**建议**:
-
-- 引入事件总线解耦
-- 使用依赖注入
-- 定义清晰的模块边界
-
-### 2.2 中等问题
-
-#### 2.2.1 紧耦合的配置适配器
-
-**文件**: `src-tauri/src/codex_config.rs`, `gemini_config.rs`, `opencode_config.rs`
-
-**问题描述**:
-
-- 每个应用都有独立的配置适配器
-- 大量重复的配置读写逻辑
-- 缺乏统一的配置抽象层
-
-**重复模式**:
-
-```rust
-// codex_config.rs
-pub fn write_codex_live_atomic(...)
-pub fn update_codex_toml_field(...)
-
-// gemini_config.rs
-pub fn write_gemini_env_atomic(...)
-
-// opencode_config.rs
-pub fn write_opencode_live(...)
-```
-
-**建议**:
-
-```rust
-// 统一的配置适配器trait
-trait ConfigAdapter {
-    fn read_config(&self) -> Result<Value, Error>;
-    fn write_config(&self, config: &Value) -> Result<(), Error>;
-    fn format(&self) -> ConfigFormat; // JSON, TOML, ENV
-}
-```
-
-#### 2.2.2 过度复杂的Provider元数据结构
-
-**文件**: `src-tauri/src/provider.rs`
-
-**问题描述**:
-
-- `ProviderMeta` 包含25+个字段
-- 大量Option字段，难以理解和使用
-- 缺乏子结构分组
-
-**代码片段**:
-
-```rust
-pub struct ProviderMeta {
-    pub custom_endpoints: HashMap<String, CustomEndpoint>,
-    pub common_config_enabled: Option<bool>,
-    pub usage_script: Option<UsageScript>,
-    pub endpoint_auto_select: Option<bool>,
-    pub cost_multiplier: Option<String>,
-    pub pricing_model_source: Option<String>,
-    pub limit_daily_usd: Option<String>,
-    pub limit_monthly_usd: Option<String>,
-    pub test_config: Option<ProviderTestConfig>,
-    pub proxy_config: Option<ProviderProxyConfig>,
-    pub api_format: Option<String>,
-    pub auth_binding: Option<AuthBinding>,
-    pub live_config_managed: Option<bool>,
-    // ... 更多字段
-}
-```
-
-**建议**:
-
-```rust
-pub struct ProviderMeta {
-    pub endpoints: EndpointConfig,
-    pub billing: BillingConfig,
-    pub testing: TestingConfig,
-    pub proxy: ProxyConfig,
-    pub auth: AuthConfig,
-}
-```
-
-#### 2.2.3 数据库Schema与模型不完全映射
-
-**文件**: `src-tauri/src/database/schema.rs`
-
-**问题描述**:
-
-- JSON字段缺乏结构化验证
-- 部分字段直接存储序列化JSON
-- 类型安全依赖运行时验证
-
-**代码片段**:
-
-```rust
-// providers表的settings_config字段
-settings_config TEXT NOT NULL,  -- 存储JSON，但无schema验证
-meta TEXT NOT NULL DEFAULT '{}', -- ProviderMeta序列化
-```
-
-**建议**:
-
-- 使用强类型的JSON Schema验证
-- 考虑使用PostgreSQL的JSONB类型（如果迁移）
-- 添加数据库层面的CHECK约束
-
-#### 2.2.4 前端状态管理过度复杂
-
-**文件**: `src/hooks/useProviderActions.ts`, `useSettings.ts`
-
-**问题描述**:
-
-- 多个hooks职责重叠
-- TanStack Query与本地状态混合
-- 乐观更新逻辑分散
-
-**建议**:
-
-- 统一使用TanStack Query管理服务端状态
-- 提取通用mutation模式
-- 使用Zustand管理客户端状态
-
-#### 2.2.5 类型定义分散
-
-**文件**: `src/types.ts`, `src-tauri/src/provider.rs`
-
-**问题描述**:
-
-- 前端和后端类型定义重复
-- 缺乏代码生成工具保持同步
-- 类型转换容易出错
-
-**建议**:
-
-- 使用ts-rs自动生成TypeScript类型
-- 或定义共享的JSON Schema
-
-#### 2.2.6 配置预设硬编码
-
-**文件**: `src/config/*ProviderPresets.ts`
-
-**问题描述**:
-
-- 供应商预设硬编码在代码中
-- 更新预设需要重新发布应用
-- 缺乏动态配置机制
-
-**建议**:
-
-- 远程配置中心
-- 支持从URL加载预设
-- 用户自定义预设存储在数据库
-
-#### 2.2.7 代理服务器职责过重
-
-**文件**: `src-tauri/src/proxy/*.rs`
-
-**问题描述**:
-
-- 代理模块包含32个文件
-- 路由、熔断、转发、转换逻辑混杂
-- 难以理解和维护
-
-**建议**:
-
-- 使用中间件模式重构
-- 分离关注点：路由、转换、熔断
-- 考虑使用成熟的反向代理库
-
-#### 2.2.8 缺乏清晰的错误处理策略
-
-**问题描述**:
-
-- 错误类型定义分散
-- 错误转换逻辑复杂
-- 用户友好的错误消息不一致
-
-**建议**:
-
-- 统一的错误处理中间件
-- 定义错误码体系
-- 本地化错误消息管理
-
----
-
-## 3. 代码质量问题
-
-### 3.1 严重问题
-
-#### 3.1.1 大量使用unwrap()/expect() ⚠️ CRITICAL
-
-**统计**: 829处
-
-**文件**: 所有Rust文件
-
-**问题描述**:
-
-- 829处unwrap()/expect()调用
-- 可能导致运行时panic
-- 缺乏优雅的错误处理
-
-**代码片段**:
-
-```rust
-// src-tauri/src/services/provider/mod.rs:78
-let dir = TempDir::new().expect("failed to create temp home");
-
-// src-tauri/src/lib.rs:293
-let _ = std::fs::remove_file(&log_file_path);
-```
-
-**建议**:
-
-```rust
-// 使用?运算符传播错误
-let dir = TempDir::new().map_err(|e| AppError::Io(e.to_string()))?;
-
-// 提供默认值
-let _ = std::fs::remove_file(&log_file_path).ok();
-```
-
-#### 3.1.2 过度使用clone()
-
-**统计**: 718处
-
-**问题描述**:
-
-- 不必要的内存分配
-- 性能开销
-- 可能掩盖所有权设计问题
-
-**代码片段**:
-
-```rust
-// 频繁的模式
-let config = config.clone();
-let provider = provider.clone();
-```
-
-**建议**:
-
-- 使用引用代替克隆
-- 使用Arc<Rc>共享所有权
-- 重构数据流避免克隆
-
-#### 3.1.3 复杂函数缺乏单元测试
-
-**统计**: 多个大型函数无测试
-
-**问题描述**:
-
-- ProviderService主要函数缺乏测试
-- Proxy逻辑复杂但测试覆盖低
-- 集成测试多于单元测试
-
-**建议**:
-
-- 为复杂函数添加单元测试
-- 使用mock隔离依赖
-- 提高测试覆盖率目标(>80%)
-
-### 3.2 中等问题
-
-#### 3.2.1 魔术字符串和数字
-
-**文件**: 多处
-
-**代码片段**:
-
-```rust
-// src-tauri/src/lib.rs
-const DRAG_BAR_HEIGHT = if isWindows() || isLinux() { 0 } else { 28 };
-const HEADER_HEIGHT = 64;
-
-// 到处硬编码的字符串
-"claude", "codex", "gemini", "opencode"
-```
-
-**建议**:
-
-```rust
-enum AppType {
-    Claude = "claude",
-    Codex = "codex",
-    // ...
-}
-
-const DIMENSIONS = Dimensions {
-    drag_bar: PlatformDependent { windows: 0, macos: 28, linux: 0 },
-    header: 64,
-};
-```
-
-#### 3.2.2 注释不足或过时
-
-**问题描述**:
-
-- 复杂算法缺乏注释
-- 部分TODO未解决
-- 文档注释不完整
-
-**代码片段**:
-
-```rust
-// TODO: implement remote fetching in next phase
-// src-tauri/src/deeplink/provider.rs
-```
-
-**建议**:
-
-- 为所有pub函数添加文档注释
-- 复杂逻辑添加行内注释
-- 定期清理TODO
-
-#### 3.2.3 命名不一致
-
-**问题描述**:
-
-- 缩写风格不一致：MCP vs Mcp, API vs Api
-- 函数命名风格混合
-- 文件命名不统一
-
-**代码片段**:
-
-```typescript
-// 混合命名
-useMcp.ts; // camelCase
-McpFormModal.tsx; // PascalCase
-UnifiedMcpPanel.tsx;
-```
-
-**建议**:
-
-- 遵循项目命名规范
-- 使用 ESLint/Clippy 规则强制
-
-#### 3.2.4 导入排序混乱
-
-**文件**: 多处
-
-**问题描述**:
-
-- 外部库和内部模块混合
-- 缺乏统一的import顺序
-
-**建议**:
-
-```typescript
-// 1. React/框架核心
-import React from "react";
-
-// 2. 第三方库
-import { useQuery } from "@tanstack/react-query";
-
-// 3. 内部绝对路径
-import { Button } from "@/components/ui/button";
-
-// 4. 内部相对路径
-import { useProviderActions } from "./hooks";
-```
-
-#### 3.2.5 类型断言过度使用
-
-**文件**: `src/**/*.ts`, `src/**/*.tsx`
-
-**问题描述**:
-
-- 使用`as`强制类型转换
-- 掩盖类型安全问题
-
-**代码片段**:
-
-```typescript
-const payload = event.payload as ProviderSwitchEvent;
-```
-
-**建议**:
-
-- 使用类型守卫
-- 运行时验证类型
-- 使用zod等验证库
-
-#### 3.2.6 前端组件过大
-
-**统计**:
-
-- `App.tsx`: 1354行
-- `ProviderForm.tsx`: 1815行
-- `OmoFormFields.tsx`: 1277行
-
-**建议**:
-
-- 拆分为更小的组件
-- 使用复合组件模式
-- 提取通用逻辑
-
-#### 3.2.7 重复的条件判断
-
-**文件**: `src-tauri/src/proxy/*.rs`
-
-**问题描述**:
-
-- 多处重复检查AppType
-- 相似的match模式重复
-
-**建议**:
-
-- 提取通用函数
-- 使用策略模式
-- 宏生成重复代码
-
-#### 3.2.8 缺乏输入验证
-
-**问题描述**:
-
-- 部分API端点缺乏输入验证
-- 文件路径未充分验证
-- 外部配置解析可能panic
-
-**建议**:
-
-- 使用validator crate
-- 路径遍历防护
-- 配置验证在启动时
-
----
-
-## 4. 性能问题
-
-### 4.1 严重问题
-
-#### 4.1.1 频繁的文件IO操作 ⚠️ CRITICAL
-
-**文件**: `src-tauri/src/services/provider/live.rs`
-
-**问题描述**:
-
-- 每次切换供应商都写入文件
-- 缺乏批量操作支持
-- 同步IO阻塞主线程
-
-**建议**:
-
-- 使用异步文件操作
-- 实现批量写入
-- 添加写入缓冲
-
-#### 4.1.2 数据库连接管理
-
-**问题描述**:
-
-- 单连接设计(`Mutex<Connection>`)
-- 并发访问可能成为瓶颈
-
-**代码片段**:
-
-```rust
-pub struct Database {
-    conn: Mutex<Connection>,  // 单连接
-}
-```
-
-**建议**:
-
-- 使用连接池(r2d2/deadpool)
-- 异步数据库访问(sqlx)
-
-### 4.2 中等问题
-
-#### 4.2.1 内存中的大量克隆
-
-**统计**: 718处clone()
-
-**影响**:
-
-- 增加GC压力(Rust为内存分配)
-- 响应延迟
-
-**建议**:
-
-- 使用引用计数
-- 优化数据结构
-- 零拷贝设计
-
-#### 4.2.2 JSON序列化开销
-
-**文件**: `src-tauri/src/database/*.rs`
-
-**问题描述**:
-
-- 大量数据存储为JSON字符串
-- 频繁序列化/反序列化
-
-**建议**:
-
-- 规范化数据库schema
-- 使用二进制序列化
-- 缓存解析结果
-
-#### 4.2.3 前端重复渲染
-
-**问题描述**:
-
-- 大型组件缺乏memo优化
-- 不必要的重新渲染
-
-**建议**:
-
-- 使用React.memo
-- 优化useMemo/useCallback
-- 使用React DevTools分析
-
-#### 4.2.4 代理服务器同步处理
-
-**文件**: `src-tauri/src/proxy/`
-
-**问题描述**:
-
-- 部分请求处理是同步的
-- 可能阻塞其他请求
-
-**建议**:
-
-- 全异步处理
-- 使用Tokio任务池
-- 超时控制
-
-### 4.3 轻微问题
-
-#### 4.3.1 图标和静态资源未优化
-
-**建议**:
-
-- 使用SVG sprites
-- 懒加载大资源
-- 压缩图片
-
-#### 4.3.2 开发模式构建慢
-
-**建议**:
-
-- 使用SWC替代Babel
-- 优化Vite配置
-- 模块联邦加速
-
----
-
-## 5. 可维护性问题
-
-### 5.1 严重问题
-
-#### 5.1.1 缺乏架构文档 ⚠️ CRITICAL
-
-**问题描述**:
-
-- 无ADRs(Architecture Decision Records)
-- 模块间依赖关系不清晰
-- 新成员上手困难
-
-**建议**:
-
-- 创建架构图
-- 编写开发指南
-- 记录关键决策
-
-#### 5.1.2 代码重复
-
-**统计**: 多处重复模式
-
-**问题描述**:
-
-- 5个应用配置适配器逻辑相似
-- MCP同步代码重复
-- 错误处理模式重复
-
-**建议**:
-
-- 提取通用抽象
-- 使用宏生成代码
-- 代码审查防止重复
-
-#### 5.1.3 配置分散
-
-**文件**: 20+个配置文件
-
-**问题描述**:
-
-- 配置分散在多个文件
-- 缺乏统一配置中心
-- 环境配置管理混乱
-
-**建议**:
-
-- 集中配置管理
-- 使用配置验证
-- 环境分离清晰
-
-### 5.2 中等问题
-
-#### 5.2.1 缺乏代码审查清单
-
-**建议**:
-
-- 制定审查标准
-- 自动化检查工具
-- 强制审查流程
-
-#### 5.2.2 版本号管理分散
-
-**问题描述**:
-
-- package.json、Cargo.toml、tauri.conf.json三个地方
-- 容易忘记同步
-
-**建议**:
-
-- 使用release脚本自动更新
-- CI/CD中统一版本
-
-#### 5.2.3 日志格式不统一
-
-**问题描述**:
-
-- 中英文混合
-- 日志级别使用不一致
-- 缺乏结构化日志
-
-**建议**:
-
-```rust
-// 统一使用结构化日志
-log::info!(target: "provider", action = "switch", provider_id = %id, app = ?app_type);
-```
-
-#### 5.2.4 缺乏性能监控
-
-**建议**:
-
-- 添加性能指标
-- 使用tracing进行性能分析
-- 定期性能基准测试
-
-#### 5.2.5 依赖管理
-
-**问题描述**:
-
-- 依赖版本未锁定
-- 存在重复依赖
-
-**建议**:
-
-- 使用pnpm workspaces
-- 定期依赖审查
-- 更新策略
-
----
-
-## 6. 安全问题
-
-### 6.1 严重问题
-
-#### 6.1.1 Token明文存储 ⚠️ CRITICAL
-
-**文件**: `src-tauri/src/services/provider/live.rs`
-
-**问题描述**:
-
-- API Key存储在明文JSON中
-- 虽然使用文件权限保护，但仍存在风险
-- 备份文件可能泄露
-
-**建议**:
-
-- 使用系统密钥库(keychain/keyring)
-- 加密敏感字段
-- 定期轮换密钥
-
-#### 6.1.2 路径遍历风险
-
-**文件**: 文件操作相关代码
-
-**问题描述**:
-
-- 部分文件路径未充分验证
-- 可能存在路径遍历漏洞
-
-**建议**:
-
-- 路径规范化
-- 白名单验证
-- 沙箱机制
-
-### 6.2 中等问题
-
-#### 6.2.1 深链接验证不足
-
-**文件**: `src-tauri/src/deeplink/`
-
-**问题描述**:
-
-- 深链接参数缺乏验证
-- 可能导入恶意配置
-
-**建议**:
-
-- 数字签名验证
-- 来源白名单
-- 用户确认机制
-
-#### 6.2.2 CSP策略宽松
-
-**文件**: `tauri.conf.json`
-
-**代码片段**:
-
-```json
-"csp": "default-src 'self'; img-src 'self' data: https: http:; ..."
-```
-
-**建议**:
-
-- 收紧CSP策略
-- 移除不必要的http:来源
-- 使用nonce
-
-#### 6.2.3 错误信息泄露
-
-**问题描述**:
-
-- 部分错误信息包含敏感路径
-- 调试信息可能泄露内部结构
-
-**建议**:
-
-- 生产环境脱敏
-- 分级错误信息
-- 统一错误处理
-
----
-
-## 7. 测试问题
-
-### 7.1 严重问题
-
-#### 7.1.1 测试覆盖率不足 ⚠️ CRITICAL
-
-**统计**:
-
-- 业务逻辑覆盖率<50%
-- 代理服务器几乎无测试
-- 前端组件测试少
-
-**建议**:
-
-- 设定覆盖率目标(>80%)
-- 测试驱动开发
-- 集成测试覆盖主要流程
-
-### 7.2 中等问题
-
-#### 7.2.1 测试环境配置复杂
-
-**问题描述**:
-
-- 需要复杂的测试环境设置
-- 测试数据准备困难
-
-**建议**:
-
-- 使用测试容器
-- 工厂模式创建测试数据
-- 文档化测试设置
-
-#### 7.2.2 缺乏E2E测试
-
-**建议**:
-
-- 使用Playwright/Cypress
-- 覆盖关键用户流程
-- CI中运行E2E测试
-
----
-
-## 8. 重构建议
-
-### 8.1 优先级1 (立即执行)
-
-1. **拆分巨型文件**
-   - ProviderService → 5个服务
-   - ProxyService → 4个服务
-   - ProviderForm → 按应用拆分
-
-2. **移除unwrap()/expect()**
-   - 目标：<100处
-   - 使用?运算符
-   - 添加错误处理
-
-3. **安全加固**
-   - Token加密存储
-   - CSP策略收紧
-   - 路径验证
-
-### 8.2 优先级2 (短期)
-
-1. **架构文档**
-   - 架构图
-   - ADRs
-   - 开发指南
-
-2. **统一错误处理**
-   - 错误码体系
-   - 用户友好消息
-   - 日志规范
-
-3. **测试覆盖**
-   - 单元测试
-   - 集成测试
-   - E2E测试
-
-### 8.3 优先级3 (中期)
-
-1. **配置管理**
-   - 远程配置
-   - 动态更新
-   - 验证机制
-
-2. **性能优化**
-   - 异步IO
-   - 连接池
-   - 缓存优化
-
-3. **类型安全**
-   - ts-rs集成
-   - Schema验证
-   - 类型守卫
-
-### 8.4 优先级4 (长期)
-
-1. **数据库迁移**
-   - 连接池
-   - 异步访问
-   - Schema优化
-
-2. **代理重构**
-   - 中间件模式
-   - 可插拔架构
-   - 性能监控
-
----
-
-## 附录：问题验证清单
-
-### 验证方法
-
-1. **代码行数统计**
-
-   ```bash
-   find src-tauri/src -name "*.rs" -exec wc -l {} + | sort -n | tail -20
-   find src -name "*.ts" -o -name "*.tsx" | xargs wc -l | sort -n | tail -20
-   ```
-
-2. **unwrap/expect统计**
-
-   ```bash
-   grep -rn "unwrap()\|expect(" src-tauri/src --include="*.rs" | wc -l
-   ```
-
-3. **clone统计**
-
-   ```bash
-   grep -rn "clone()" src-tauri/src --include="*.rs" | wc -l
-   ```
-
-4. **TODO/FIXME统计**
-   ```bash
-   grep -rn "TODO\|FIXME\|XXX\|HACK" src-tauri/src --include="*.rs"
-   grep -rn "TODO\|FIXME\|XXX\|HACK" src --include="*.ts" --include="*.tsx"
-   ```
-
-### 验证结果
-
-| 检查项        | 实际数值                   | 严重程度    |
-| ------------- | -------------------------- | ----------- |
-| 最大Rust文件  | 2790行 (services/proxy.rs) | 🔴 Critical |
-| 最大TSX文件   | 1815行 (ProviderForm.tsx)  | 🔴 Critical |
-| unwrap/expect | 829处                      | 🔴 Critical |
-| clone()使用   | 718处                      | 🟡 Medium   |
-| TODO/FIXME    | 1处                        | 🟢 Low      |
-| Mutex/RwLock  | 31处                       | 🟡 Medium   |
-
----
-
-**文档生成日期**: 2026-04-08  
-**代码版本**: 3.12.3  
-**验证状态**: ✅ 已通过代码层面验证
+1. 如需进一步验证外部终端恢复，只做手工 smoke 或引入可注入 launcher adapter；不要在 E2E 中真实启动 Terminal.app/Ghostty/Kitty。
+2. 继续评估跨来源 session message 的 metadata、tool call/tool result 配对和特殊内容块是否需要更细的 parser 级校验。
+3. 后续新增测试继续保持集中目录结构：Vitest 放在 `tests/`，Electron/浏览器级流程放在 `e2e/`，避免重新散落回业务源码目录。

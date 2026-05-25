@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Settings, Sparkles, Monitor } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
@@ -15,6 +16,7 @@ import { type AppType } from '@/types';
 import { APP_ORDER, APP_LABELS, APP_COLORS, isAppSupported } from '@/config/apps';
 import { getAppIcon } from '@/components/AppIcons';
 import { useToast } from '@/hooks/useToast';
+import type { AccentColor } from '@/lib/theme/colors';
 import {
   Select,
   SelectContent,
@@ -36,7 +38,10 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-hidden p-0">
+      <DialogContent
+        data-testid="settings-dialog"
+        className="sm:max-w-xl max-h-[85vh] overflow-hidden p-0"
+      >
         <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle>{t('settings.title')}</DialogTitle>
         </DialogHeader>
@@ -47,52 +52,53 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
             <TabsList className="w-full justify-start rounded-none bg-transparent p-0 h-10 gap-6">
               <TabsTrigger
                 value="general"
+                data-testid="settings-tab-general"
                 className="relative rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-0 py-2 h-10 gap-2"
               >
                 <Settings className="h-4 w-4" />
                 <span className="hidden sm:inline">{t('settings.generalTitle')}</span>
-                <span className="sm:hidden">
-                  {t('settings.generalTitle')?.slice(0, 2) || '通用'}
-                </span>
+                <span className="sm:hidden">{t('settings.generalTitle').slice(0, 2)}</span>
               </TabsTrigger>
               <TabsTrigger
                 value="experience"
+                data-testid="settings-tab-experience"
                 className="relative rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-0 py-2 h-10 gap-2"
               >
                 <Sparkles className="h-4 w-4" />
-                <span className="hidden sm:inline">
-                  {t('settings.experienceTitle') || 'Experience'}
-                </span>
-                <span className="sm:hidden">
-                  {t('settings.experienceTitle')?.slice(0, 2) || '体验'}
-                </span>
+                <span className="hidden sm:inline">{t('settings.experienceTitle')}</span>
+                <span className="sm:hidden">{t('settings.experienceTitle').slice(0, 2)}</span>
               </TabsTrigger>
               <TabsTrigger
                 value="terminal"
+                data-testid="settings-tab-terminal"
                 className="relative rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none px-0 py-2 h-10 gap-2"
               >
                 <Monitor className="h-4 w-4" />
-                <span className="hidden sm:inline">
-                  {t('settings.terminalTitle') || 'Terminal'}
-                </span>
-                <span className="sm:hidden">
-                  {t('settings.terminalTitle')?.slice(0, 2) || '终端'}
-                </span>
+                <span className="hidden sm:inline">{t('settings.terminalTitle')}</span>
+                <span className="sm:hidden">{t('settings.terminalTitle').slice(0, 2)}</span>
               </TabsTrigger>
             </TabsList>
           </div>
 
           {/* Tab Content */}
           <div className="px-6 py-4 overflow-y-auto max-h-[60vh]">
-            <TabsContent value="general" className="mt-0 space-y-6">
+            <TabsContent
+              value="general"
+              data-testid="settings-panel-general"
+              className="mt-0 space-y-6"
+            >
               <GeneralSettings accentColor={accentColor} onAccentColorChange={setAccentColor} />
             </TabsContent>
 
-            <TabsContent value="experience" className="mt-0">
+            <TabsContent
+              value="experience"
+              data-testid="settings-panel-experience"
+              className="mt-0"
+            >
               <ExperienceSettings />
             </TabsContent>
 
-            <TabsContent value="terminal" className="mt-0">
+            <TabsContent value="terminal" data-testid="settings-panel-terminal" className="mt-0">
               <TerminalSettings />
             </TabsContent>
           </div>
@@ -108,9 +114,6 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     </Dialog>
   );
 }
-
-// 通用设置
-import type { AccentColor } from '@/lib/theme/colors';
 
 interface GeneralSettingsProps {
   accentColor: AccentColor;
@@ -156,10 +159,8 @@ function GeneralSettings({ accentColor, onAccentColorChange }: GeneralSettingsPr
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-medium">{t('settings.accentColor') || 'Accent Color'}</h3>
-            <p className="text-xs text-muted-foreground">
-              {t('settings.selectAccentColor') || 'Select your preferred accent color'}
-            </p>
+            <h3 className="text-sm font-medium">{t('settings.accentColor')}</h3>
+            <p className="text-xs text-muted-foreground">{t('settings.selectAccentColor')}</p>
           </div>
           <ColorPicker value={accentColor} onChange={onAccentColorChange} />
         </div>
@@ -172,13 +173,8 @@ function GeneralSettings({ accentColor, onAccentColorChange }: GeneralSettingsPr
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-medium">
-              {t('settings.defaultApp') || 'Default Application'}
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              {t('settings.defaultAppDescription') ||
-                'Select the default application to display on startup'}
-            </p>
+            <h3 className="text-sm font-medium">{t('settings.defaultApp')}</h3>
+            <p className="text-xs text-muted-foreground">{t('settings.defaultAppDescription')}</p>
           </div>
           <Select
             value={defaultApp || APP_ORDER[0]}
@@ -186,13 +182,13 @@ function GeneralSettings({ accentColor, onAccentColorChange }: GeneralSettingsPr
               const newApp = value as AppType;
               setDefaultApp(newApp);
               toast({
-                title: t('settings.defaultAppChanged', 'Default application changed'),
+                title: t('settings.defaultAppChanged'),
                 description: APP_LABELS[newApp],
               });
             }}
           >
             <SelectTrigger className="w-[220px] h-8 text-sm">
-              <SelectValue placeholder={t('settings.selectDefaultApp') || 'Select app'} />
+              <SelectValue placeholder={t('settings.selectDefaultApp')} />
             </SelectTrigger>
             <SelectContent>
               {APP_ORDER.map((app) => {
@@ -224,6 +220,60 @@ function GeneralSettings({ accentColor, onAccentColorChange }: GeneralSettingsPr
   );
 }
 
+interface ToggleSettingItemProps {
+  enabled: boolean;
+  icon: ReactNode;
+  title: string;
+  description: string;
+  onToggle: () => void;
+}
+
+function ToggleSettingItem({
+  enabled,
+  icon,
+  title,
+  description,
+  onToggle,
+}: ToggleSettingItemProps) {
+  return (
+    <button
+      onClick={onToggle}
+      className={cn(
+        'w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left',
+        enabled
+          ? 'border-primary border-opacity-50 bg-primary-muted'
+          : 'border-border hover:border-primary-border hover:bg-accent/50'
+      )}
+    >
+      <div
+        className={cn(
+          'flex items-center justify-center w-9 h-9 rounded-md transition-colors shrink-0',
+          enabled ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+        )}
+      >
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="font-medium text-sm">{title}</div>
+        <div className="text-xs text-muted-foreground">{description}</div>
+      </div>
+      <div
+        className={cn(
+          'w-10 h-5 rounded-full transition-colors relative shrink-0',
+          enabled ? 'bg-primary' : 'bg-muted'
+        )}
+      >
+        <div
+          className={cn(
+            'absolute top-1 w-3 h-3 rounded-full bg-white transition-transform',
+            enabled ? 'translate-x-6' : 'translate-x-1'
+          )}
+        />
+      </div>
+    </button>
+  );
+}
+
 // 体验特性设置
 function ExperienceSettings() {
   const { t } = useTranslation();
@@ -243,10 +293,8 @@ function ExperienceSettings() {
     const newValue = !enableTitleMarquee;
     toggleTitleMarquee();
     toast({
-      title: newValue
-        ? t('settings.featureEnabled', 'Feature enabled')
-        : t('settings.featureDisabled', 'Feature disabled'),
-      description: t('settings.titleMarquee', 'Title Marquee Effect'),
+      title: newValue ? t('settings.featureEnabled') : t('settings.featureDisabled'),
+      description: t('settings.titleMarquee'),
     });
   };
 
@@ -254,10 +302,8 @@ function ExperienceSettings() {
     const newValue = !collapseBashBlocks;
     toggleCollapseBashBlocks();
     toast({
-      title: newValue
-        ? t('settings.featureEnabled', 'Feature enabled')
-        : t('settings.featureDisabled', 'Feature disabled'),
-      description: t('settings.collapseBashBlocks', 'Collapse Bash Output by Default'),
+      title: newValue ? t('settings.featureEnabled') : t('settings.featureDisabled'),
+      description: t('settings.collapseBashBlocks'),
     });
   };
 
@@ -265,10 +311,8 @@ function ExperienceSettings() {
     const newValue = !showThinkingContent;
     toggleShowThinkingContent();
     toast({
-      title: newValue
-        ? t('settings.featureEnabled', 'Feature enabled')
-        : t('settings.featureDisabled', 'Feature disabled'),
-      description: t('settings.showThinkingContent', 'Show Thinking Content'),
+      title: newValue ? t('settings.featureEnabled') : t('settings.featureDisabled'),
+      description: t('settings.showThinkingContent'),
     });
   };
 
@@ -276,195 +320,46 @@ function ExperienceSettings() {
     const newValue = chatLayout === 'left' ? 'bubble' : 'left';
     toggleChatLayout();
     toast({
-      title: t('settings.layoutChanged', 'Layout changed'),
-      description: newValue === 'bubble'
-        ? t('settings.bubbleLayout', 'Bubble layout - messages on the right')
-        : t('settings.leftLayout', 'Left layout - messages on the left'),
+      title: t('settings.layoutChanged'),
+      description: newValue === 'bubble' ? t('settings.bubbleLayout') : t('settings.leftLayout'),
     });
   };
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        {t('settings.experienceDescription') ||
-          'Optional features to enhance your browsing experience'}
-      </p>
+      <p className="text-sm text-muted-foreground">{t('settings.experienceDescription')}</p>
 
-      {/* Title Marquee Toggle */}
-      <button
-        onClick={handleToggleTitleMarquee}
-        className={cn(
-          'w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left',
-          enableTitleMarquee
-            ? 'border-primary border-opacity-50 bg-primary-muted'
-            : 'border-border hover:border-primary-border hover:bg-accent/50'
-        )}
-      >
-        <div
-          className={cn(
-            'flex items-center justify-center w-9 h-9 rounded-md transition-colors shrink-0',
-            enableTitleMarquee
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-muted text-muted-foreground'
-          )}
-        >
-          <span className="text-sm font-bold">T</span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="font-medium text-sm">
-            {t('settings.titleMarquee') || 'Title Marquee Effect'}
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {t('settings.titleMarqueeDesc') ||
-              'Hover over long session titles to auto-scroll and see full text'}
-          </div>
-        </div>
-        <div
-          className={cn(
-            'w-10 h-5 rounded-full transition-colors relative shrink-0',
-            enableTitleMarquee ? 'bg-primary' : 'bg-muted'
-          )}
-        >
-          <div
-            className={cn(
-              'absolute top-1 w-3 h-3 rounded-full bg-white transition-transform',
-              enableTitleMarquee ? 'translate-x-6' : 'translate-x-1'
-            )}
-          />
-        </div>
-      </button>
+      <ToggleSettingItem
+        enabled={enableTitleMarquee}
+        icon={<span className="text-sm font-bold">T</span>}
+        title={t('settings.titleMarquee')}
+        description={t('settings.titleMarqueeDesc')}
+        onToggle={handleToggleTitleMarquee}
+      />
 
-      {/* Collapse Bash Blocks Toggle */}
-      <button
-        onClick={handleToggleCollapseBashBlocks}
-        className={cn(
-          'w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left',
-          collapseBashBlocks
-            ? 'border-primary border-opacity-50 bg-primary-muted'
-            : 'border-border hover:border-primary-border hover:bg-accent/50'
-        )}
-      >
-        <div
-          className={cn(
-            'flex items-center justify-center w-9 h-9 rounded-md transition-colors shrink-0',
-            collapseBashBlocks
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-muted text-muted-foreground'
-          )}
-        >
-          <span className="text-sm font-mono">$_</span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="font-medium text-sm">
-            {t('settings.collapseBashBlocks') || 'Collapse Bash Output by Default'}
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {t('settings.collapseBashBlocksDesc') ||
-              'Automatically collapse bash command output blocks to save space'}
-          </div>
-        </div>
-        <div
-          className={cn(
-            'w-10 h-5 rounded-full transition-colors relative shrink-0',
-            collapseBashBlocks ? 'bg-primary' : 'bg-muted'
-          )}
-        >
-          <div
-            className={cn(
-              'absolute top-1 w-3 h-3 rounded-full bg-white transition-transform',
-              collapseBashBlocks ? 'translate-x-6' : 'translate-x-1'
-            )}
-          />
-        </div>
-      </button>
+      <ToggleSettingItem
+        enabled={collapseBashBlocks}
+        icon={<span className="text-sm font-mono">$_</span>}
+        title={t('settings.collapseBashBlocks')}
+        description={t('settings.collapseBashBlocksDesc')}
+        onToggle={handleToggleCollapseBashBlocks}
+      />
 
-      {/* Show Thinking Content Toggle */}
-      <button
-        onClick={handleToggleShowThinkingContent}
-        className={cn(
-          'w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left',
-          showThinkingContent
-            ? 'border-primary border-opacity-50 bg-primary-muted'
-            : 'border-border hover:border-primary-border hover:bg-accent/50'
-        )}
-      >
-        <div
-          className={cn(
-            'flex items-center justify-center w-9 h-9 rounded-md transition-colors shrink-0',
-            showThinkingContent
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-muted text-muted-foreground'
-          )}
-        >
-          <span className="text-sm">💭</span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="font-medium text-sm">
-            {t('settings.showThinkingContent') || 'Show Thinking Content'}
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {t('settings.showThinkingContentDesc') ||
-              'Display AI reasoning and thinking process in conversation details'}
-          </div>
-        </div>
-        <div
-          className={cn(
-            'w-10 h-5 rounded-full transition-colors relative shrink-0',
-            showThinkingContent ? 'bg-primary' : 'bg-muted'
-          )}
-        >
-          <div
-            className={cn(
-              'absolute top-1 w-3 h-3 rounded-full bg-white transition-transform',
-              showThinkingContent ? 'translate-x-6' : 'translate-x-1'
-            )}
-          />
-        </div>
-      </button>
+      <ToggleSettingItem
+        enabled={showThinkingContent}
+        icon={<span className="text-sm">💭</span>}
+        title={t('settings.showThinkingContent')}
+        description={t('settings.showThinkingContentDesc')}
+        onToggle={handleToggleShowThinkingContent}
+      />
 
-      {/* Chat Layout Toggle */}
-      <button
-        onClick={handleToggleChatLayout}
-        className={cn(
-          'w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left',
-          chatLayout === 'bubble'
-            ? 'border-primary border-opacity-50 bg-primary-muted'
-            : 'border-border hover:border-primary-border hover:bg-accent/50'
-        )}
-      >
-        <div
-          className={cn(
-            'flex items-center justify-center w-9 h-9 rounded-md transition-colors shrink-0',
-            chatLayout === 'bubble'
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-muted text-muted-foreground'
-          )}
-        >
-          <span className="text-sm">💬</span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="font-medium text-sm">
-            {t('settings.chatLayout') || 'Bubble Chat Layout'}
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {t('settings.chatLayoutDesc') ||
-              'Show your messages on the right side in bubble style'}
-          </div>
-        </div>
-        <div
-          className={cn(
-            'w-10 h-5 rounded-full transition-colors relative shrink-0',
-            chatLayout === 'bubble' ? 'bg-primary' : 'bg-muted'
-          )}
-        >
-          <div
-            className={cn(
-              'absolute top-1 w-3 h-3 rounded-full bg-white transition-transform',
-              chatLayout === 'bubble' ? 'translate-x-6' : 'translate-x-1'
-            )}
-          />
-        </div>
-      </button>
+      <ToggleSettingItem
+        enabled={chatLayout === 'bubble'}
+        icon={<span className="text-sm">💬</span>}
+        title={t('settings.chatLayout')}
+        description={t('settings.chatLayoutDesc')}
+        onToggle={handleToggleChatLayout}
+      />
     </div>
   );
 }
@@ -476,10 +371,8 @@ function TerminalSettings() {
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-sm font-medium">{t('settings.terminalTitle') || 'Terminal'}</h3>
-        <p className="text-xs text-muted-foreground">
-          {t('settings.terminalDescription') || 'Choose your preferred terminal application'}
-        </p>
+        <h3 className="text-sm font-medium">{t('settings.terminalTitle')}</h3>
+        <p className="text-xs text-muted-foreground">{t('settings.terminalDescription')}</p>
       </div>
       <TerminalSelector />
     </div>

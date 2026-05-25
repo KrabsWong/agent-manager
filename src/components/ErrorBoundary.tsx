@@ -7,6 +7,7 @@
 import { Component, type ReactNode } from 'react';
 import { AlertCircle, RefreshCw, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import i18n from '@/lib/i18n';
 
 interface Props {
   children: ReactNode;
@@ -57,36 +58,25 @@ export class ErrorBoundary extends Component<Props, State> {
 
             <div className="space-y-2">
               <h1 className="text-2xl font-bold text-foreground">
-                Something went wrong
+                {i18n.t('errorBoundary.title')}
               </h1>
-              <p className="text-muted-foreground">
-                An unexpected error occurred. We've logged this issue and will look into it.
-              </p>
+              <p className="text-muted-foreground">{i18n.t('errorBoundary.description')}</p>
             </div>
 
             {this.state.error && (
               <div className="bg-muted rounded-lg p-4 text-left overflow-auto">
-                <p className="text-xs font-mono text-destructive">
-                  {this.state.error.toString()}
-                </p>
+                <p className="text-xs font-mono text-destructive">{this.state.error.toString()}</p>
               </div>
             )}
 
             <div className="flex gap-3 justify-center">
-              <Button
-                variant="outline"
-                onClick={this.handleGoHome}
-                className="gap-2"
-              >
+              <Button variant="outline" onClick={this.handleGoHome} className="gap-2">
                 <Home className="w-4 h-4" />
-                Go Home
+                {i18n.t('errorBoundary.goHome')}
               </Button>
-              <Button
-                onClick={this.handleReload}
-                className="gap-2"
-              >
+              <Button onClick={this.handleReload} className="gap-2">
                 <RefreshCw className="w-4 h-4" />
-                Reload Page
+                {i18n.t('errorBoundary.reloadPage')}
               </Button>
             </div>
           </div>
@@ -113,16 +103,14 @@ export function RouteError() {
 
         <div className="space-y-2">
           <h1 className="text-2xl font-bold text-foreground">
-            Page Not Found
+            {i18n.t('errorBoundary.pageNotFoundTitle')}
           </h1>
-          <p className="text-muted-foreground">
-            The page you're looking for doesn't exist or an error occurred.
-          </p>
+          <p className="text-muted-foreground">{i18n.t('errorBoundary.pageNotFoundDescription')}</p>
         </div>
 
-        <Button onClick={() => window.location.href = '/'} className="gap-2">
+        <Button onClick={() => (window.location.href = '/')} className="gap-2">
           <Home className="w-4 h-4" />
-          Go Home
+          {i18n.t('errorBoundary.goHome')}
         </Button>
       </div>
     </div>

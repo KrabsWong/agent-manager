@@ -5,14 +5,19 @@
  * Only watches the currently active session directory
  */
 
-import { BrowserWindow } from 'electron';
+import electron from 'electron';
+import type { BrowserWindow as BrowserWindowType } from 'electron';
 import fs from 'fs';
 import path from 'path';
+import log from 'electron-log';
 import { ipcRegistry } from '../ipc/registry';
+import { stringArg, validateArgs } from '../ipc/validation';
+
+const { BrowserWindow } = electron;
 
 interface WatchTarget {
   dirPath: string;
-  window: BrowserWindow;
+  window: BrowserWindowType;
 }
 
 class GitWatcherService {
@@ -27,14 +32,18 @@ class GitWatcherService {
 
   private registerIpcHandlers(): void {
     // Start watching a session directory
-    ipcRegistry.register('git:watch:start', async (event, ...args: unknown[]) => {
-      const [dirPath] = args as [string];
-      const window = BrowserWindow.fromWebContents(event.sender);
-      if (!window) throw new Error('No window found');
+    ipcRegistry.register(
+      'git:watch:start',
+      async (event, ...args: unknown[]) => {
+        const [dirPath] = args as [string];
+        const window = BrowserWindow.fromWebContents(event.sender);
+        if (!window) throw new Error('No window found');
 
-      this.startWatching(dirPath, window);
-      return { success: true };
-    });
+        this.startWatching(dirPath, window);
+        return { success: true };
+      },
+      { validateArgs: validateArgs(stringArg('dirPath')) }
+    );
 
     // Stop watching
     ipcRegistry.register('git:watch:stop', async () => {
@@ -43,7 +52,7 @@ class GitWatcherService {
     });
   }
 
-  public startWatching(dirPath: string, window: BrowserWindow): void {
+  public startWatching(dirPath: string, window: BrowserWindowType): void {
     // Stop any existing watcher first
     this.stopWatching();
 
@@ -51,11 +60,11 @@ class GitWatcherService {
 
     // Check if it's a git repo
     if (!fs.existsSync(gitIndexPath)) {
-      console.log(`[GitWatcher] Not a git repo: ${dirPath}`);
+      log.debug(`[GitWatcher] Not a git repo: ${dirPath}`);
       return;
     }
 
-    console.log(`[GitWatcher] Starting watch on: ${dirPath}`);
+    log.debug(`[GitWatcher] Starting watch on: ${dirPath}`);
 
     this.currentTarget = { dirPath, window };
 
@@ -76,7 +85,7 @@ class GitWatcherService {
         this.debounceNotify();
       });
     } catch (err) {
-      console.error(`[GitWatcher] Failed to watch ${dirPath}:`, err);
+      log.error(`[GitWatcher] Failed to watch ${dirPath}:`, err);
       this.currentWatcher = null;
       this.indexWatcher = null;
       this.currentTarget = null;
@@ -85,7 +94,7 @@ class GitWatcherService {
 
   public stopWatching(): void {
     if (this.currentWatcher || this.indexWatcher) {
-      console.log(`[GitWatcher] Stopping watch on: ${this.currentTarget?.dirPath}`);
+      log.debug(`[GitWatcher] Stopping watch on: ${this.currentTarget?.dirPath}`);
 
       if (this.currentWatcher) {
         this.currentWatcher.close();
@@ -128,7 +137,7 @@ class GitWatcherService {
       timestamp: Date.now(),
     });
 
-    console.log(`[GitWatcher] Notified change for: ${this.currentTarget.dirPath}`);
+    log.debug(`[GitWatcher] Notified change for: ${this.currentTarget.dirPath}`);
   }
 
   public destroy(): void {
@@ -143,9 +152,5 @@ export function initializeGitWatcher(): GitWatcherService {
   if (!serviceInstance) {
     serviceInstance = new GitWatcherService();
   }
-  return serviceInstance;
-}
-
-export function getGitWatcher(): GitWatcherService | null {
   return serviceInstance;
 }

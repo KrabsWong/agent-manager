@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import '@/lib/i18n';
 import { Header } from './Header';
 import { SessionsPage } from '@/pages/Sessions';
 import { useSettingsStore } from '@/stores/settings';

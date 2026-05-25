@@ -74,7 +74,7 @@
     -webkit-app-region: drag;
     app-region: drag;
   }
-  
+
   /* Non-draggable elements within draggable region */
   .app-no-drag {
     -webkit-app-region: no-drag;

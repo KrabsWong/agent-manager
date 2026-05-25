@@ -3,39 +3,25 @@
  * 这些类型在前后端共享，确保类型一致性
  */
 
+import type { AccentColor } from '@/lib/theme/colors';
+export type { AccentColor } from '@/lib/theme/colors';
+
 // ============ App Types ============
-export type AppType = 'claude' | 'claude-internal' | 'codex' | 'gemini' | 'opencode' | 'codebuddy' | 'vscode-extension';
+export type AppType =
+  | 'claude'
+  | 'claude-internal'
+  | 'codex'
+  | 'gemini'
+  | 'opencode'
+  | 'codebuddy'
+  | 'vscode-extension';
 
 // 注意：应用顺序和配置请从 @/config/apps 导入
 // import { APP_ORDER } from '@/config/apps'
 
-// ============ Settings Types ============
-export type AccentColor =
-  | 'default'
-  | 'pink'
-  | 'rose'
-  | 'red'
-  | 'orange'
-  | 'amber'
-  | 'yellow'
-  | 'lime'
-  | 'green'
-  | 'emerald'
-  | 'teal'
-  | 'cyan'
-  | 'sky'
-  | 'blue'
-  | 'indigo'
-  | 'violet'
-  | 'purple'
-  | 'fuchsia'
-  | 'slate'
-  | 'zinc'
-  | 'neutral';
-
 export interface AppSettings {
   // General
-  language: 'en' | 'zh' | 'ja';
+  language: 'en' | 'zh';
   theme: 'light' | 'dark' | 'system';
   accentColor: AccentColor;
   autoStart: boolean;
@@ -46,10 +32,11 @@ export interface AppSettings {
   collapseBashBlocks: boolean;
   enableTitleMarquee: boolean;
   showThinkingContent: boolean;
+  chatLayout: 'left' | 'bubble';
   sidebarCollapsed: boolean;
 
   // Terminal
-  preferredTerminal: 'auto' | 'ghostty' | 'kitty' | 'terminal' | 'builtin';
+  preferredTerminal: 'auto' | 'ghostty' | 'kitty' | 'terminal';
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -62,9 +49,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
   collapseBashBlocks: true,
   enableTitleMarquee: false,
   showThinkingContent: true,
+  chatLayout: 'left',
   sidebarCollapsed: false,
   preferredTerminal: 'auto',
 };
+
+export type InitialSettings = Partial<AppSettings>;
 
 // ============ IPC Channel Types ============
 export type IpcChannel =
@@ -81,22 +71,12 @@ export type IpcChannel =
   | 'settings:reset'
   // App
   | 'app:getVersion'
-  | 'app:checkForUpdates'
-  | 'app:quit'
-  | 'app:minimize'
-  // Config Import/Export
-  | 'config:export'
-  | 'config:import'
-  | 'config:backup'
   // Git
   | 'git:status'
   | 'git:diff'
   | 'git:fileDiff'
   | 'git:watch:start'
   | 'git:watch:stop'
-  // Shell
-  | 'shell:openExternal'
-  | 'shell:openPath'
   // File Preview
   | 'file-preview:open'
   // File
@@ -104,6 +84,14 @@ export type IpcChannel =
   | 'file:readImage'
   // Tree
   | 'tree:get';
+
+export type IpcEventChannel = 'git:changed' | 'theme:changed';
+
+export interface IElectronAPI {
+  invoke: (channel: IpcChannel, ...args: unknown[]) => Promise<unknown>;
+  on: (channel: IpcEventChannel, callback: (...args: unknown[]) => void) => void;
+  removeAllListeners: (channel: IpcEventChannel) => void;
+}
 
 // ============ API Response Types ============
 export interface ApiResponse<T> {
@@ -116,21 +104,8 @@ export interface ApiResponse<T> {
   };
 }
 
-export type Result<T, E = Error> = { success: true; data: T } | { success: false; error: E };
-
 // ============ Error Types ============
-export type ErrorCode =
-  | 'UNKNOWN_ERROR'
-  | 'VALIDATION_ERROR'
-  | 'NOT_FOUND'
-  | 'ALREADY_EXISTS'
-  | 'DATABASE_ERROR'
-  | 'FILE_SYSTEM_ERROR'
-  | 'CONFIG_ERROR'
-  | 'NETWORK_ERROR'
-  | 'PERMISSION_DENIED'
-  | 'INVALID_INPUT'
-  | 'OPERATION_FAILED';
+export type ErrorCode = 'UNKNOWN_ERROR' | 'VALIDATION_ERROR' | 'INVALID_INPUT';
 
 export interface AppError {
   code: ErrorCode;
@@ -138,6 +113,17 @@ export interface AppError {
   details?: unknown;
   stack?: string;
 }
+
+// ============ IPC Payload Types ============
+export type {
+  AppSupportSummary,
+  GitFileChange,
+  GitFileDiffResult,
+  GitStatusResult,
+  SessionStatsSummary,
+  TerminalInfo,
+  TreeNode,
+} from './ipc';
 
 // ============ Session Types ============
 export type {

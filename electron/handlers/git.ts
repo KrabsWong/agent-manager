@@ -4,14 +4,64 @@
  * Provides git status and diff functionality for the context panel
  */
 
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs';
 import log from 'electron-log';
-import type { GitStatusResult, GitFileChange } from '../../src/lib/api';
+import type { GitFileChange, GitFileDiffResult, GitStatusResult } from '../../src/types';
+import { ipcRegistry } from '../ipc/registry';
+import {
+  gitFileDiffResult,
+  gitStatusResult,
+  optionalStringArg,
+  stringArg,
+  validateArgs,
+} from '../ipc/validation';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
+
+function validateGitFilePath(filePath: string): void {
+  if (!filePath || typeof filePath !== 'string') {
+    throw new Error('Invalid git file path');
+  }
+
+  if (filePath.includes('\0') || path.isAbsolute(filePath)) {
+    throw new Error('Invalid git file path');
+  }
+
+  const normalized = path.normalize(filePath);
+  if (normalized === '..' || normalized.startsWith(`..${path.sep}`)) {
+    throw new Error('Invalid git file path');
+  }
+}
+
+function resolveRepoFilePath(dirPath: string, filePath: string): string {
+  validateGitFilePath(filePath);
+  const fullPath = path.resolve(dirPath, filePath);
+  const repoRoot = path.resolve(dirPath);
+  if (fullPath !== repoRoot && !fullPath.startsWith(`${repoRoot}${path.sep}`)) {
+    throw new Error('Invalid git file path');
+  }
+  return fullPath;
+}
+
+async function git(args: string[], dirPath: string): Promise<string> {
+  const { stdout } = await execFileAsync('git', args, { cwd: dirPath });
+  return stdout;
+}
+
+async function gitBuffer(args: string[], dirPath: string): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    execFile('git', args, { cwd: dirPath, encoding: 'buffer' }, (error, stdout) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve(stdout);
+    });
+  });
+}
 
 /**
  * Check if a directory is a git repository
@@ -23,7 +73,7 @@ async function isGitRepo(dirPath: string): Promise<boolean> {
     if (!exists) return false;
 
     // Also verify it's a valid git repo by running git status
-    await execAsync('git rev-parse --git-dir', { cwd: dirPath });
+    await git(['rev-parse', '--git-dir'], dirPath);
     return true;
   } catch {
     return false;
@@ -35,9 +85,7 @@ async function isGitRepo(dirPath: string): Promise<boolean> {
  */
 async function getBranch(dirPath: string): Promise<string> {
   try {
-    const { stdout } = await execAsync('git rev-parse --abbrev-ref HEAD', {
-      cwd: dirPath,
-    });
+    const stdout = await git(['rev-parse', '--abbrev-ref', 'HEAD'], dirPath);
     return stdout.trim();
   } catch (error) {
     log.error('Failed to get git branch:', error);
@@ -50,10 +98,7 @@ async function getBranch(dirPath: string): Promise<string> {
  */
 async function getAheadBehind(dirPath: string): Promise<{ ahead: number; behind: number }> {
   try {
-    const { stdout } = await execAsync(
-      'git rev-list --left-right --count HEAD...@{u} 2>/dev/null || echo "0\t0"',
-      { cwd: dirPath }
-    );
+    const stdout = await git(['rev-list', '--left-right', '--count', 'HEAD...@{u}'], dirPath);
     const [ahead, behind] = stdout.trim().split('\t').map(Number);
     return { ahead: ahead || 0, behind: behind || 0 };
   } catch {
@@ -116,10 +161,11 @@ async function getFileDiffStats(
   staged: boolean
 ): Promise<{ additions: number; deletions: number }> {
   try {
-    const stagedFlag = staged ? '--staged' : '';
-    const { stdout } = await execAsync(`git diff ${stagedFlag} --numstat -- "${filePath}"`, {
-      cwd: dirPath,
-    });
+    validateGitFilePath(filePath);
+    const args = staged
+      ? ['diff', '--staged', '--numstat', '--', filePath]
+      : ['diff', '--numstat', '--', filePath];
+    const stdout = await git(args, dirPath);
 
     const line = stdout.trim().split('\n')[0];
     if (!line) return { additions: 0, deletions: 0 };
@@ -145,11 +191,11 @@ async function getFileDiffStats(
  */
 async function getUntrackedFileLineCount(dirPath: string, filePath: string): Promise<number> {
   try {
-    const fullPath = path.join(dirPath, filePath);
+    const fullPath = resolveRepoFilePath(dirPath, filePath);
 
     // Check if it's a binary file first
     try {
-      const { stdout: fileType } = await execAsync(`file -b --mime-type "${fullPath}"`);
+      const { stdout: fileType } = await execFileAsync('file', ['-b', '--mime-type', fullPath]);
       if (!fileType.includes('text') && !fileType.includes('json') && !fileType.includes('xml')) {
         return 0; // Binary file
       }
@@ -158,7 +204,7 @@ async function getUntrackedFileLineCount(dirPath: string, filePath: string): Pro
     }
 
     // Count lines using wc -l
-    const { stdout } = await execAsync(`wc -l < "${fullPath}"`);
+    const { stdout } = await execFileAsync('wc', ['-l', fullPath]);
     const lineCount = parseInt(stdout.trim(), 10);
     return isNaN(lineCount) ? 0 : lineCount;
   } catch (error) {
@@ -170,7 +216,7 @@ async function getUntrackedFileLineCount(dirPath: string, filePath: string): Pro
 /**
  * Get git status for a directory
  */
-export async function getGitStatus(dirPath: string): Promise<GitStatusResult> {
+async function getGitStatus(dirPath: string): Promise<GitStatusResult> {
   try {
     // Check if it's a git repo
     const isRepo = await isGitRepo(dirPath);
@@ -190,9 +236,7 @@ export async function getGitStatus(dirPath: string): Promise<GitStatusResult> {
     const [branch, aheadBehind] = await Promise.all([getBranch(dirPath), getAheadBehind(dirPath)]);
 
     // Get status with all untracked files (not just directories)
-    const { stdout: statusOutput } = await execAsync('git status --porcelain -uall', {
-      cwd: dirPath,
-    });
+    const statusOutput = await git(['status', '--porcelain', '-uall'], dirPath);
 
     const allChanges = parsePorcelainStatus(statusOutput);
 
@@ -254,27 +298,25 @@ export async function getGitStatus(dirPath: string): Promise<GitStatusResult> {
 /**
  * Get git diff for a file or entire repository
  */
-export async function getGitDiff(dirPath: string, filePath?: string): Promise<string> {
+async function getGitDiff(dirPath: string, filePath?: string): Promise<string> {
   try {
     const isRepo = await isGitRepo(dirPath);
     if (!isRepo) {
       throw new Error('Not a git repository');
     }
 
-    const fileArg = filePath ? `-- "${filePath}"` : '';
-    const { stdout } = await execAsync(`git diff ${fileArg}`, { cwd: dirPath });
+    const args = ['diff'];
+    if (filePath) {
+      validateGitFilePath(filePath);
+      args.push('--', filePath);
+    }
+    const stdout = await git(args, dirPath);
 
     return stdout;
   } catch (error) {
     log.error('Failed to get git diff:', error);
     throw new Error(`Failed to get git diff: ${error}`);
   }
-}
-
-export interface FileDiffResult {
-  original: string;
-  modified: string;
-  hasChanges: boolean;
 }
 
 /**
@@ -290,17 +332,14 @@ function isImageFile(filePath: string): boolean {
  * Get original (HEAD) and modified (working tree) versions of a file
  * For image files, returns base64 encoded content
  */
-export async function getFileDiffContent(
-  dirPath: string,
-  filePath: string
-): Promise<FileDiffResult> {
+async function getFileDiffContent(dirPath: string, filePath: string): Promise<GitFileDiffResult> {
   try {
     const isRepo = await isGitRepo(dirPath);
     if (!isRepo) {
       throw new Error('Not a git repository');
     }
 
-    const fullPath = path.join(dirPath, filePath);
+    const fullPath = resolveRepoFilePath(dirPath, filePath);
     const isImage = isImageFile(filePath);
 
     let modified = '';
@@ -318,11 +357,8 @@ export async function getFileDiffContent(
 
       // Get the HEAD version as base64
       try {
-        const { stdout } = await execAsync(
-          `git show HEAD:"${filePath}" | base64`,
-          { cwd: dirPath }
-        );
-        original = stdout.trim();
+        const stdout = await gitBuffer(['show', `HEAD:${filePath}`], dirPath);
+        original = stdout.toString('base64');
       } catch (err) {
         // File might be new (not in HEAD)
         original = '';
@@ -338,8 +374,7 @@ export async function getFileDiffContent(
 
       // Get the HEAD version
       try {
-        const { stdout } = await execAsync(`git show HEAD:"${filePath}"`, { cwd: dirPath });
-        original = stdout;
+        original = await git(['show', `HEAD:${filePath}`], dirPath);
       } catch (err) {
         // File might be new (not in HEAD)
         original = '';
@@ -347,9 +382,7 @@ export async function getFileDiffContent(
     }
 
     // Check if there are actual changes
-    const { stdout: diffOutput } = await execAsync(`git diff HEAD -- "${filePath}"`, {
-      cwd: dirPath,
-    });
+    const diffOutput = await git(['diff', 'HEAD', '--', filePath], dirPath);
 
     return {
       original,
@@ -360,4 +393,39 @@ export async function getFileDiffContent(
     log.error('Failed to get file diff content:', error);
     throw new Error(`Failed to get file diff content: ${error}`);
   }
+}
+
+export function registerGitHandlers(): void {
+  ipcRegistry.register(
+    'git:status',
+    async (_event, ...args: unknown[]) => {
+      const [dirPath] = args as [string];
+      return getGitStatus(dirPath);
+    },
+    {
+      validateArgs: validateArgs(stringArg('dirPath')),
+      validateResult: gitStatusResult(),
+    }
+  );
+
+  ipcRegistry.register(
+    'git:diff',
+    async (_event, ...args: unknown[]) => {
+      const [dirPath, filePath] = args as [string, string | undefined];
+      return getGitDiff(dirPath, filePath);
+    },
+    { validateArgs: validateArgs(stringArg('dirPath'), optionalStringArg('filePath')) }
+  );
+
+  ipcRegistry.register(
+    'git:fileDiff',
+    async (_event, ...args: unknown[]) => {
+      const [dirPath, filePath] = args as [string, string];
+      return getFileDiffContent(dirPath, filePath);
+    },
+    {
+      validateArgs: validateArgs(stringArg('dirPath'), stringArg('filePath')),
+      validateResult: gitFileDiffResult(),
+    }
+  );
 }

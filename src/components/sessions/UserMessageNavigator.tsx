@@ -44,10 +44,7 @@ function getPreview(text: string, maxChars: number = 28): string {
   return cleanText.substring(0, maxChars).trim() + '...';
 }
 
-export function UserMessageNavigator({
-  messages,
-  className,
-}: UserMessageNavigatorProps) {
+export function UserMessageNavigator({ messages, className }: UserMessageNavigatorProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [activeIndex, setActiveIndex] = useState<number>(0);
 
@@ -104,7 +101,12 @@ export function UserMessageNavigator({
       const elementCenter = elementRect.height / 2;
 
       // Scroll so the element is centered in the viewport
-      const scrollTop = elementRect.top - containerRect.top + scrollContainer.scrollTop - containerCenter + elementCenter;
+      const scrollTop =
+        elementRect.top -
+        containerRect.top +
+        scrollContainer.scrollTop -
+        containerCenter +
+        elementCenter;
 
       scrollContainer.scrollTo({
         top: Math.max(0, scrollTop),
@@ -139,10 +141,7 @@ export function UserMessageNavigator({
 
   return (
     <div
-      className={cn(
-        'fixed right-3 z-40 flex flex-col items-center',
-        className
-      )}
+      className={cn('fixed right-3 z-40 flex flex-col items-center', className)}
       style={{
         top: '50%',
         transform: 'translateY(-50%)',
@@ -216,9 +215,7 @@ export function UserMessageNavigator({
                   )}
                   title={preview}
                 >
-                  <span className="truncate block">
-                    {preview}
-                  </span>
+                  <span className="truncate block">{preview}</span>
                 </button>
               );
             })}
@@ -233,5 +230,3 @@ export function UserMessageNavigator({
     </div>
   );
 }
-
-export default UserMessageNavigator;

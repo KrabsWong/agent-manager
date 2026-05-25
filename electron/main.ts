@@ -1,21 +1,19 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import electron from 'electron';
+import type { BrowserWindow as BrowserWindowType } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
-import { readFile } from 'fs/promises';
 import log from 'electron-log';
-import { dbManager } from './database';
 import { configStore } from './utils/config-store';
 import { ipcRegistry } from './ipc/registry';
 import { performanceMonitor } from './services/performance/monitor';
 import { registerSessionsHandlers } from './handlers/sessions';
-import { registerPTYHandlers } from './services/terminal/pty-manager';
-import { buildDirectoryTree } from './handlers/tree';
 import { initializeGitWatcher } from './services/git-watcher';
-import { getGitStatus, getGitDiff, getFileDiffContent } from './handlers/git.js';
+import { registerAppHandlers } from './handlers/app';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const { app, BrowserWindow, shell } = electron;
 
 log.initialize();
 
@@ -42,9 +40,8 @@ const getPackageJson = (): { version: string } => {
 };
 
 // Keep a global reference of the window object
-let mainWindow: BrowserWindow | null = null;
-let splashWindow: BrowserWindow | null = null;
-const filePreviewWindows = new Map<string, BrowserWindow>();
+let mainWindow: BrowserWindowType | null = null;
+let splashWindow: BrowserWindowType | null = null;
 
 // Create splash screen
 const createSplashWindow = () => {
@@ -122,7 +119,9 @@ const createWindow = () => {
     if (isRefreshShortcut) {
       if (process.env.VITE_DEV_SERVER_URL) {
         // In dev mode, allow but log a warning
-        log.warn('Page refresh detected in dev mode. Note: Main process changes require app restart.');
+        log.warn(
+          'Page refresh detected in dev mode. Note: Main process changes require app restart.'
+        );
       } else {
         // In production, prevent refresh
         event.preventDefault();
@@ -203,19 +202,14 @@ const initializeApp = () => {
     // Create splash window first
     createSplashWindow();
 
-    // Initialize database first (critical path)
-    dbManager.initialize();
-    log.info('Database initialized');
-
-    // Log startup time after database initialization
+    // Log startup time after splash and config initialization
     performanceMonitor.logStartupTime();
 
-    // Log database stats
-    const stats = dbManager.getStats();
-    log.info('Database stats:', stats);
-
     // Register core IPC handlers first
-    registerAppHandlers();
+    registerAppHandlers({
+      dirname: __dirname,
+      getPackageVersion: () => getPackageJson().version,
+    });
 
     // Initialize git watcher service
     initializeGitWatcher();
@@ -224,7 +218,6 @@ const initializeApp = () => {
     // Register remaining handlers asynchronously to speed up startup
     setImmediate(() => {
       registerSessionsHandlers();
-      registerPTYHandlers();
       log.info('All IPC handlers registered');
     });
 
@@ -236,228 +229,10 @@ const initializeApp = () => {
   }
 };
 
-// Register application-level IPC handlers
-const registerAppHandlers = () => {
-  // App version - use already loaded package.json
-  ipcRegistry.register('app:getVersion', () => {
-    return getPackageJson().version;
-  });
-
-  // Get settings (async)
-  ipcRegistry.register('settings:get', () => {
-    return configStore.getSettings();
-  });
-
-  // Get settings synchronously for preload script
-  ipcMain.on('settings:getSync', (event) => {
-    event.returnValue = configStore.getSettings();
-  });
-
-  // Update settings
-  ipcRegistry.register('settings:update', async (_event, ...args: unknown[]) => {
-    const [settings] = args as [Record<string, unknown>];
-    const oldSettings = configStore.getSettings();
-    configStore.updateSettings(settings);
-
-    if (settings.theme !== undefined || settings.accentColor !== undefined) {
-      const theme = (settings.theme as 'light' | 'dark' | 'system') || oldSettings.theme;
-      const accentColor = (settings.accentColor as string) || oldSettings.accentColor || 'default';
-
-      BrowserWindow.getAllWindows().forEach((win) => {
-        win.webContents.send('theme:changed', { theme, accentColor });
-      });
-    }
-  });
-
-  // Reset settings
-  ipcRegistry.register('settings:reset', () => {
-    configStore.resetSettings();
-  });
-
-  // Export config
-  ipcRegistry.register('config:export', () => {
-    return configStore.exportConfig();
-  });
-
-  // Import config
-  ipcRegistry.register('config:import', async (_event, ...args: unknown[]) => {
-    const [data] = args as [Record<string, unknown>];
-    configStore.importConfig(data);
-  });
-
-  // Shell handlers
-  ipcRegistry.register('shell:openExternal', async (_event, ...args: unknown[]) => {
-    const [url] = args as [string];
-    await shell.openExternal(url);
-  });
-
-  ipcRegistry.register('shell:openPath', async (_event, ...args: unknown[]) => {
-    const [filePath] = args as [string];
-    const result = await shell.openPath(filePath);
-    if (result) {
-      log.warn(`Failed to open path: ${filePath}, error: ${result}`);
-    }
-  });
-
-  // File preview window handler
-  ipcRegistry.register('file-preview:open', async (_event, ...args: unknown[]) => {
-    const [dirPath, sessionTitle, appType] = args as [string, string | undefined, string | undefined];
-    const existing = filePreviewWindows.get(dirPath);
-    if (existing && !existing.isDestroyed()) {
-      existing.focus();
-      return { success: true };
-    }
-
-    const win = new BrowserWindow({
-      width: 1400,
-      height: 800,
-      minWidth: 900,
-      minHeight: 600,
-      webPreferences: {
-        preload: path.join(__dirname, 'preload.js'),
-        contextIsolation: true,
-        nodeIntegration: false,
-      },
-      titleBarStyle: 'hiddenInset',
-      show: false,
-    });
-
-    win.on('closed', () => {
-      filePreviewWindows.delete(dirPath);
-    });
-
-    const settings = configStore.getSettings();
-    const theme = settings.theme || 'system';
-    const accentColor = settings.accentColor || 'default';
-
-    if (process.env.VITE_DEV_SERVER_URL) {
-      const url = new URL(process.env.VITE_DEV_SERVER_URL);
-      url.pathname = '/file-preview.html';
-      url.searchParams.set('dir', dirPath);
-      url.searchParams.set('theme', theme);
-      url.searchParams.set('accentColor', accentColor);
-      if (sessionTitle) url.searchParams.set('session', sessionTitle);
-      if (appType) url.searchParams.set('app', appType);
-      win.loadURL(url.toString());
-      win.webContents.openDevTools();
-    } else {
-      const filePath = path.join(app.getAppPath(), 'dist', 'file-preview.html');
-      const fileUrl = new URL(`file://${filePath}`);
-      fileUrl.searchParams.set('dir', dirPath);
-      fileUrl.searchParams.set('theme', theme);
-      fileUrl.searchParams.set('accentColor', accentColor);
-      if (sessionTitle) fileUrl.searchParams.set('session', sessionTitle);
-      if (appType) fileUrl.searchParams.set('app', appType);
-      win.loadURL(fileUrl.toString());
-    }
-
-    win.once('ready-to-show', () => {
-      win.show();
-    });
-
-    if (!process.env.VITE_DEV_SERVER_URL) {
-      win.webContents.on('devtools-opened', () => {
-        win.webContents.closeDevTools();
-      });
-    }
-
-    filePreviewWindows.set(dirPath, win);
-
-    return { success: true };
-  });
-
-  // Tree handler for directory listing
-  ipcRegistry.register('tree:get', async (_event, ...args: unknown[]) => {
-    const [dirPath] = args as [string];
-    const nodes = await buildDirectoryTree(dirPath);
-    return nodes;
-  });
-
-  // File read handlers (return raw content via ApiResponse.data)
-  ipcRegistry.register('file:read', async (_event, ...args: unknown[]) => {
-    const [filePath] = args as [string];
-    // Validate file path (basic security)
-    if (!filePath || typeof filePath !== 'string') {
-      throw new Error('Invalid file path');
-    }
-    // Prevent reading directories
-    const stats = await fs.promises.stat(filePath);
-    if (stats.isDirectory()) {
-      throw new Error('Cannot read directory as file');
-    }
-    // Limit file size (50MB for text files)
-    if (stats.size > 50 * 1024 * 1024) {
-      throw new Error('File too large (>50MB)');
-    }
-    const content = await readFile(filePath, 'utf-8');
-    return content;
-  });
-
-  ipcRegistry.register('file:readImage', async (_event, ...args: unknown[]) => {
-    const [filePath] = args as [string];
-    // Validate file path (basic security)
-    if (!filePath || typeof filePath !== 'string') {
-      throw new Error('Invalid file path');
-    }
-    // Prevent reading directories
-    const stats = await fs.promises.stat(filePath);
-    if (stats.isDirectory()) {
-      throw new Error('Cannot read directory as image');
-    }
-    // Limit file size (10MB)
-    if (stats.size > 10 * 1024 * 1024) {
-      throw new Error('Image too large (>10MB)');
-    }
-    // Read as base64
-    const buffer = await readFile(filePath);
-    const ext = filePath.split('.').pop()?.toLowerCase() || '';
-    const mimeTypes: Record<string, string> = {
-      jpg: 'image/jpeg',
-      jpeg: 'image/jpeg',
-      png: 'image/png',
-      gif: 'image/gif',
-      webp: 'image/webp',
-      svg: 'image/svg+xml',
-      bmp: 'image/bmp',
-      ico: 'image/x-icon',
-      tiff: 'image/tiff',
-      tif: 'image/tiff',
-      avif: 'image/avif',
-      heic: 'image/heic',
-      heif: 'image/heif',
-    };
-    const mimeType = mimeTypes[ext] || 'image/png';
-    const base64 = buffer.toString('base64');
-    return `data:${mimeType};base64,${base64}`;
-  });
-
-  // Git handlers
-  ipcRegistry.register('git:status', async (_event, ...args: unknown[]) => {
-    const [dirPath] = args as [string];
-    const result = await getGitStatus(dirPath);
-    return result;
-  });
-
-  ipcRegistry.register('git:diff', async (_event, ...args: unknown[]) => {
-    const [dirPath, filePath] = args as [string, string | undefined];
-    const result = await getGitDiff(dirPath, filePath);
-    return result;
-  });
-
-  ipcRegistry.register('git:fileDiff', async (_event, ...args: unknown[]) => {
-    const [dirPath, filePath] = args as [string, string];
-    const result = await getFileDiffContent(dirPath, filePath);
-    return result;
-  });
-};
-
 // App event handlers
 app.whenReady().then(initializeApp);
 
 app.on('window-all-closed', () => {
-  // Close database connection
-  dbManager.close();
-
   if (process.platform !== 'darwin') {
     app.quit();
   }
@@ -487,6 +262,5 @@ app.on('web-contents-created', (_event, contents) => {
 // Handle app quit
 app.on('before-quit', () => {
   log.info('Application quitting...');
-  dbManager.close();
   ipcRegistry.clear();
 });

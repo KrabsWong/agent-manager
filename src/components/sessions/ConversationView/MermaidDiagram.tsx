@@ -6,6 +6,7 @@
 
 import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import mermaid from 'mermaid';
+import { useTranslation } from 'react-i18next';
 import { CollapsibleCodeBlock } from './CodeBlock';
 
 interface MermaidDiagramProps {
@@ -52,20 +53,22 @@ function isValidMermaidSyntax(content: string): boolean {
 }
 
 export const MermaidDiagram = memo(function MermaidDiagram({ content }: MermaidDiagramProps) {
+  const { t } = useTranslation();
   const [svg, setSvg] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [showRaw, setShowRaw] = useState(false);
-  const renderedRef = useRef(false);
-
-  // 如果不是有效的 Mermaid 语法，直接渲染为普通代码块
-  if (!isValidMermaidSyntax(content)) {
-    return <CollapsibleCodeBlock content={content} language="text" />;
-  }
+  const isValidSyntax = isValidMermaidSyntax(content);
 
   useEffect(() => {
-    if (renderedRef.current) return;
-    renderedRef.current = true;
+    if (!isValidSyntax) {
+      setSvg('');
+      setError('');
+      setIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
 
     const renderDiagram = async () => {
       try {
@@ -88,19 +91,30 @@ export const MermaidDiagram = memo(function MermaidDiagram({ content }: MermaidD
         const { svg: renderedSvg } = (await Promise.race([renderPromise, timeoutPromise])) as {
           svg: string;
         };
-        setSvg(renderedSvg);
+        if (!cancelled) {
+          setSvg(renderedSvg);
+        }
       } catch (err) {
         console.error('Mermaid render error:', err);
-        setError(err instanceof Error ? err.message : 'Failed to render diagram');
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Failed to render diagram');
+        }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) {
+          setIsLoading(false);
+        }
       }
     };
 
     renderDiagram();
-  }, [content]);
+    return () => {
+      cancelled = true;
+    };
+  }, [content, isValidSyntax]);
 
   useEffect(() => {
+    if (!isValidSyntax) return;
+
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
         if (mutation.attributeName === 'class') {
@@ -116,18 +130,23 @@ export const MermaidDiagram = memo(function MermaidDiagram({ content }: MermaidD
 
     observer.observe(document.documentElement, { attributes: true });
     return () => observer.disconnect();
-  }, []);
+  }, [isValidSyntax]);
+
+  // 如果不是有效的 Mermaid 语法，直接渲染为普通代码块
+  if (!isValidSyntax) {
+    return <CollapsibleCodeBlock content={content} language="text" />;
+  }
 
   if (showRaw) {
     return (
       <div className="rounded-md border border-primary-border bg-primary-muted">
         <div className="flex items-center justify-between px-3 py-2 border-b border-primary-border bg-primary-light">
-          <span className="text-xs text-primary">Mermaid (Raw)</span>
+          <span className="text-xs text-primary">{t('sessions.mermaidRaw')}</span>
           <button
             onClick={() => setShowRaw(false)}
             className="text-xs text-primary hover:text-primary-hover underline"
           >
-            Try render
+            {t('sessions.tryRender')}
           </button>
         </div>
         <pre className="p-3 text-xs overflow-auto">{content}</pre>
@@ -141,13 +160,13 @@ export const MermaidDiagram = memo(function MermaidDiagram({ content }: MermaidD
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-primary">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-            <span className="text-sm">Rendering diagram...</span>
+            <span className="text-sm">{t('sessions.renderingDiagram')}</span>
           </div>
           <button
             onClick={() => setShowRaw(true)}
             className="text-xs text-primary hover:text-primary-hover underline"
           >
-            View raw
+            {t('sessions.viewRaw')}
           </button>
         </div>
       </div>
@@ -158,15 +177,16 @@ export const MermaidDiagram = memo(function MermaidDiagram({ content }: MermaidD
     return (
       <div className="rounded-md border border-destructive/30 bg-destructive/10 p-4">
         <div className="flex items-start gap-2">
-          <span className="text-destructive text-sm font-medium">Failed to render Mermaid diagram:</span>
+          <span className="text-destructive text-sm font-medium">
+            {t('sessions.mermaidRenderFailed')}
+          </span>
         </div>
         <pre className="mt-2 text-xs text-destructive/80 overflow-auto">{error}</pre>
         <div className="mt-3 pt-3 border-t border-destructive/20">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-muted-foreground">Original syntax:</span>
+            <span className="text-xs text-muted-foreground">{t('sessions.originalSyntax')}</span>
             <button
               onClick={() => {
-                renderedRef.current = false;
                 setError('');
                 setIsLoading(true);
                 setTimeout(() => {
@@ -174,7 +194,9 @@ export const MermaidDiagram = memo(function MermaidDiagram({ content }: MermaidD
                     try {
                       mermaid.initialize({
                         startOnLoad: false,
-                        theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
+                        theme: document.documentElement.classList.contains('dark')
+                          ? 'dark'
+                          : 'default',
                         securityLevel: 'loose',
                       });
                       const id = `mermaid-retry-${Math.random().toString(36).substr(2, 9)}`;
@@ -192,7 +214,7 @@ export const MermaidDiagram = memo(function MermaidDiagram({ content }: MermaidD
               }}
               className="text-xs text-primary hover:underline"
             >
-              Retry
+              {t('common.buttons.retry')}
             </button>
           </div>
           <pre className="text-xs text-muted-foreground overflow-auto">{content}</pre>
@@ -209,6 +231,7 @@ interface MermaidDiagramWithZoomProps {
 }
 
 function MermaidDiagramWithZoom({ svg }: MermaidDiagramWithZoomProps) {
+  const { t } = useTranslation();
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -227,8 +250,7 @@ function MermaidDiagramWithZoom({ svg }: MermaidDiagramWithZoomProps) {
 
       if (svgElement) {
         let svgWidth =
-          svgElement.viewBox?.baseVal?.width ||
-          parseFloat(svgElement.getAttribute('width') || '0');
+          svgElement.viewBox?.baseVal?.width || parseFloat(svgElement.getAttribute('width') || '0');
         let svgHeight =
           svgElement.viewBox?.baseVal?.height ||
           parseFloat(svgElement.getAttribute('height') || '0');
@@ -317,12 +339,12 @@ function MermaidDiagramWithZoom({ svg }: MermaidDiagramWithZoomProps) {
   return (
     <div className="rounded-md border border-primary-border bg-background">
       <div className="flex items-center justify-between px-3 py-2 border-b border-primary-border bg-primary-muted">
-        <span className="text-xs text-primary">Mermaid Diagram</span>
+        <span className="text-xs text-primary">{t('sessions.mermaidDiagram')}</span>
         <div className="flex items-center gap-1">
           <button
             onClick={handleZoomOut}
             className="p-1 rounded hover:bg-primary-light text-primary transition-colors"
-            title="Zoom out"
+            title={t('sessions.zoomOut')}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
@@ -334,18 +356,23 @@ function MermaidDiagramWithZoom({ svg }: MermaidDiagramWithZoomProps) {
           <button
             onClick={handleZoomIn}
             className="p-1 rounded hover:bg-primary-light text-primary transition-colors"
-            title="Zoom in"
+            title={t('sessions.zoomIn')}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
             </svg>
           </button>
           <button
             onClick={handleReset}
             className="ml-2 px-2 py-1 text-xs rounded hover:bg-primary-light transition-colors text-primary"
-            title="Reset zoom"
+            title={t('sessions.resetZoom')}
           >
-            Reset
+            {t('sessions.reset')}
           </button>
         </div>
       </div>
@@ -371,10 +398,8 @@ function MermaidDiagramWithZoom({ svg }: MermaidDiagramWithZoomProps) {
       </div>
 
       <div className="px-3 py-1.5 border-t border-primary-border bg-primary-muted">
-        <span className="text-[10px] text-primary">Drag to pan • Ctrl/Cmd + scroll to zoom</span>
+        <span className="text-[10px] text-primary">{t('sessions.mermaidZoomHint')}</span>
       </div>
     </div>
   );
 }
-
-export default MermaidDiagram;

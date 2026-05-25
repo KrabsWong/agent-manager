@@ -24,7 +24,7 @@ export type AccentColor =
   | 'zinc'
   | 'neutral';
 
-export interface ColorOption {
+interface ColorOption {
   id: AccentColor;
   name: string;
   base: string;
@@ -422,9 +422,6 @@ export const accentColors: ColorOption[] = [
   },
 ];
 
-// 获取默认颜色
-export const defaultAccentColor: AccentColor = 'default';
-
 // 根据颜色 ID 获取颜色配置
 export function getColorById(id: AccentColor): ColorOption {
   return accentColors.find((color) => color.id === id) || accentColors[0];
@@ -446,11 +443,30 @@ export function applyAccentColor(colorId: AccentColor, isDark: boolean): void {
   root.style.setProperty('--ring', theme.primary);
 
   // 派生色：从 primary 计算出的变体（对 default 也生效）
-  root.style.setProperty('--primary-hover', toHSLString({ h: primaryHSL.h, s: primaryHSL.s, l: isDark ? Math.min(primaryHSL.l + 8, 90) : Math.max(primaryHSL.l - 8, 10) }));
-  root.style.setProperty('--primary-light', toHSLString({ h: primaryHSL.h, s: Math.min(primaryHSL.s, 70), l: isDark ? 20 : 94 }));
-  root.style.setProperty('--primary-muted', toHSLString({ h: primaryHSL.h, s: Math.min(primaryHSL.s, 40), l: isDark ? 15 : 96 }));
-  root.style.setProperty('--primary-border', toHSLString({ h: primaryHSL.h, s: Math.min(primaryHSL.s, 50), l: isDark ? 30 : 88 }));
-  root.style.setProperty('--primary-ring', toHSLString({ h: primaryHSL.h, s: Math.min(primaryHSL.s, 60), l: isDark ? 50 : 70 }));
+  root.style.setProperty(
+    '--primary-hover',
+    toHSLString({
+      h: primaryHSL.h,
+      s: primaryHSL.s,
+      l: isDark ? Math.min(primaryHSL.l + 8, 90) : Math.max(primaryHSL.l - 8, 10),
+    })
+  );
+  root.style.setProperty(
+    '--primary-light',
+    toHSLString({ h: primaryHSL.h, s: Math.min(primaryHSL.s, 70), l: isDark ? 20 : 94 })
+  );
+  root.style.setProperty(
+    '--primary-muted',
+    toHSLString({ h: primaryHSL.h, s: Math.min(primaryHSL.s, 40), l: isDark ? 15 : 96 })
+  );
+  root.style.setProperty(
+    '--primary-border',
+    toHSLString({ h: primaryHSL.h, s: Math.min(primaryHSL.s, 50), l: isDark ? 30 : 88 })
+  );
+  root.style.setProperty(
+    '--primary-ring',
+    toHSLString({ h: primaryHSL.h, s: Math.min(primaryHSL.s, 60), l: isDark ? 50 : 70 })
+  );
 }
 
 // 重置为默认颜色（不清除派生变量，因为 index.css 已有默认值）

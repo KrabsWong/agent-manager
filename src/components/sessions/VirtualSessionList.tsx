@@ -6,6 +6,7 @@
  */
 
 import { useRef, useMemo, useContext, createContext, useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ChevronDown, ChevronRight, ChevronsDown, ChevronsUp, Folder } from 'lucide-react';
 import { MarqueeText } from '@/components/MarqueeText';
@@ -34,8 +35,6 @@ interface VirtualSessionListProps {
   sessions: Session[];
   selectedSession: Session | null;
   onSelect: (session: Session) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  t: (key: string, defaultValue?: string) => any;
   collapsedGroups: Set<string>;
   toggleGroup: (groupKey: string) => void;
   expandAll: () => void;
@@ -45,25 +44,33 @@ interface VirtualSessionListProps {
   viewMode: ViewMode;
 }
 
+export function formatSessionDateGroupKey(timestamp: number): string {
+  const date = new Date(timestamp);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export function getSessionDirectoryGroupKey(session: Session, noDirectoryLabel: string): string {
+  let dir = session.directory || '';
+  if (!dir && session.filePath) {
+    const lastSlashIndex = session.filePath.lastIndexOf('/');
+    dir = lastSlashIndex > 0 ? session.filePath.substring(0, lastSlashIndex) : '/';
+  }
+  return dir || noDirectoryLabel;
+}
+
 /**
  * Group sessions by date and prepare virtual list items
  */
-function useDateGroupedSessions(
-  sessions: Session[],
-  collapsedGroups: Set<string>,
-  t: (key: string, defaultValue?: string) => string
-) {
+function useDateGroupedSessions(sessions: Session[], collapsedGroups: Set<string>) {
   return useMemo(() => {
     // Group sessions by date
     const groups = new Map<string, Session[]>();
 
     for (const session of sessions) {
-      const date = new Date(session.updatedAt);
-      const dateKey = date.toLocaleDateString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      });
+      const dateKey = formatSessionDateGroupKey(session.updatedAt);
 
       if (!groups.has(dateKey)) {
         groups.set(dateKey, []);
@@ -77,11 +84,7 @@ function useDateGroupedSessions(
     }
 
     // Sort date keys descending
-    const sortedDates = Array.from(groups.keys()).sort((a, b) => {
-      const dateA = new Date(a).getTime();
-      const dateB = new Date(b).getTime();
-      return dateB - dateA;
-    });
+    const sortedDates = Array.from(groups.keys()).sort((a, b) => b.localeCompare(a));
 
     // Build virtual list items
     const items: Array<
@@ -111,7 +114,7 @@ function useDateGroupedSessions(
     });
 
     return { items, groups, sortedGroupKeys: sortedDates };
-  }, [sessions, collapsedGroups, t]);
+  }, [sessions, collapsedGroups]);
 }
 
 /**
@@ -121,26 +124,14 @@ function useDateGroupedSessions(
 function useDirectoryGroupedSessions(
   sessions: Session[],
   collapsedGroups: Set<string>,
-  t: (key: string, defaultValue?: string) => string
+  noDirectoryLabel: string
 ) {
   return useMemo(() => {
     // Group sessions by directory
     const groups = new Map<string, Session[]>();
 
     for (const session of sessions) {
-      // Extract directory from filePath or use directory field
-      let dir = session.directory || '';
-      if (!dir && session.filePath) {
-        // Extract directory from file path
-        const lastSlashIndex = session.filePath.lastIndexOf('/');
-        if (lastSlashIndex > 0) {
-          dir = session.filePath.substring(0, lastSlashIndex);
-        } else {
-          dir = '/';
-        }
-      }
-      // Use special marker for sessions without directory info
-      const dirKey = dir || t('sessions.noDirectoryGroup', '— No Directory —');
+      const dirKey = getSessionDirectoryGroupKey(session, noDirectoryLabel);
 
       if (!groups.has(dirKey)) {
         groups.set(dirKey, []);
@@ -190,7 +181,7 @@ function useDirectoryGroupedSessions(
     });
 
     return { items, groups, sortedGroupKeys: sortedDirs };
-  }, [sessions, collapsedGroups, t]);
+  }, [sessions, collapsedGroups, noDirectoryLabel]);
 }
 
 /**
@@ -198,28 +189,26 @@ function useDirectoryGroupedSessions(
  */
 function formatDateGroupLabel(
   dateKey: string,
-  t: (key: string, defaultValue?: string) => string
+  todayLabel: string,
+  yesterdayLabel: string,
+  language: string
 ): string {
-  const today = new Date().toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
-
-  const yesterday = new Date(Date.now() - 86400000).toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
+  const today = formatSessionDateGroupKey(Date.now());
+  const yesterday = formatSessionDateGroupKey(Date.now() - 86400000);
 
   if (dateKey === today) {
-    return t('sessions.today', 'Today');
+    return todayLabel;
   }
   if (dateKey === yesterday) {
-    return t('sessions.yesterday', 'Yesterday');
+    return yesterdayLabel;
   }
 
-  return dateKey;
+  const [year, month, day] = dateKey.split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString(language, {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
 }
 
 /**
@@ -267,6 +256,7 @@ interface ExpandCollapseControlsProps {
 }
 
 function ExpandCollapseControls({ allExpanded, allCollapsed }: ExpandCollapseControlsProps) {
+  const { t } = useTranslation();
   const { expandAll, collapseAll } = useContext(CollapseContext);
 
   return (
@@ -275,7 +265,7 @@ function ExpandCollapseControls({ allExpanded, allCollapsed }: ExpandCollapseCon
         onClick={expandAll}
         disabled={allExpanded}
         className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
-        title="Expand All"
+        title={t('sessions.expandAll')}
       >
         <ChevronsDown className="h-3.5 w-3.5" />
       </button>
@@ -283,7 +273,7 @@ function ExpandCollapseControls({ allExpanded, allCollapsed }: ExpandCollapseCon
         onClick={collapseAll}
         disabled={allCollapsed}
         className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent transition-colors"
-        title="Collapse All"
+        title={t('sessions.collapseAll')}
       >
         <ChevronsUp className="h-3.5 w-3.5" />
       </button>
@@ -301,7 +291,6 @@ interface DateHeaderProps {
   onToggle: () => void;
   allExpanded: boolean;
   allCollapsed: boolean;
-  t: (key: string, defaultValue?: string) => string;
 }
 
 function DateHeader({
@@ -311,8 +300,9 @@ function DateHeader({
   onToggle,
   allExpanded,
   allCollapsed,
-  t,
 }: DateHeaderProps) {
+  const { t, i18n } = useTranslation();
+
   return (
     <div className="w-full sticky top-0 bg-card z-10 py-2 px-2 flex items-center justify-between hover:bg-accent/50 rounded-md transition-colors">
       <button onClick={onToggle} className="flex items-center gap-2 flex-1 text-left">
@@ -322,7 +312,12 @@ function DateHeader({
           <ChevronDown className="h-4 w-4 text-foreground" />
         )}
         <h4 className="text-sm font-semibold text-foreground">
-          {formatDateGroupLabel(dateKey, t)}
+          {formatDateGroupLabel(
+            dateKey,
+            t('sessions.today', 'Today'),
+            t('sessions.yesterday', 'Yesterday'),
+            i18n.language
+          )}
         </h4>
       </button>
       {isFirst && <ExpandCollapseControls allExpanded={allExpanded} allCollapsed={allCollapsed} />}
@@ -389,10 +384,11 @@ interface SessionCardProps {
 }
 
 function SessionCard({ session, isSelected, onClick, viewMode }: SessionCardProps) {
+  const { t, i18n } = useTranslation();
   // Format date + time for directory view (MM/DD HH:MM)
   const formatDateTime = (timestamp: number) => {
     const date = new Date(timestamp);
-    const dateStr = date.toLocaleDateString('zh-CN', {
+    const dateStr = date.toLocaleDateString(i18n.language, {
       month: '2-digit',
       day: '2-digit',
     });
@@ -403,8 +399,12 @@ function SessionCard({ session, isSelected, onClick, viewMode }: SessionCardProp
   return (
     <button
       onClick={onClick}
+      data-testid="session-card"
+      data-session-id={session.id}
       className={`w-full text-left py-1.5 px-2 rounded transition-all duration-150 relative group min-w-0 ${
-        isSelected ? 'bg-primary-light text-primary shadow-sm' : 'hover:bg-accent/30 text-foreground'
+        isSelected
+          ? 'bg-primary-light text-primary shadow-sm'
+          : 'hover:bg-accent/30 text-foreground'
       }`}
     >
       {/* Left indicator bar for selected state - full height */}
@@ -416,7 +416,7 @@ function SessionCard({ session, isSelected, onClick, viewMode }: SessionCardProp
       <div className="flex items-center justify-between gap-2 min-w-0">
         {/* Title: First Message Preview with Marquee */}
         <MarqueeText
-          text={session.firstMessage || session.fileName || 'Untitled Session'}
+          text={session.firstMessage || session.fileName || t('sessions.untitledSession')}
           className={`text-xs flex-1 min-w-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}
         />
 
@@ -447,7 +447,6 @@ export function VirtualSessionList({
   sessions,
   selectedSession,
   onSelect,
-  t,
   collapsedGroups,
   toggleGroup,
   expandAll,
@@ -456,11 +455,13 @@ export function VirtualSessionList({
   allCollapsed,
   viewMode,
 }: VirtualSessionListProps) {
+  const { t } = useTranslation();
   const parentRef = useRef<HTMLDivElement>(null);
+  const noDirectoryLabel = t('sessions.noDirectoryGroup', '— No Directory —');
 
   // Use appropriate grouping based on view mode
-  const dateGrouped = useDateGroupedSessions(sessions, collapsedGroups, t);
-  const dirGrouped = useDirectoryGroupedSessions(sessions, collapsedGroups, t);
+  const dateGrouped = useDateGroupedSessions(sessions, collapsedGroups);
+  const dirGrouped = useDirectoryGroupedSessions(sessions, collapsedGroups, noDirectoryLabel);
 
   const { items } = viewMode === 'date' ? dateGrouped : dirGrouped;
 
@@ -536,7 +537,6 @@ export function VirtualSessionList({
                         onToggle={() => toggleGroup(item.groupKey)}
                         allExpanded={allExpanded}
                         allCollapsed={allCollapsed}
-                        t={t}
                       />
                     ) : (
                       <DirectoryHeader
@@ -565,5 +565,3 @@ export function VirtualSessionList({
     </CollapseContext.Provider>
   );
 }
-
-export default VirtualSessionList;

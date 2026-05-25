@@ -7,7 +7,7 @@
  * 注意：图标请使用 AppIcons.tsx 中的 getAppIcon 函数
  */
 
-import type { AppType } from '@/types';
+import type { AppSupportStatus, AppType } from '@/types';
 
 // ============ 应用显示顺序（第一个是默认） ============
 export const APP_ORDER: AppType[] = [
@@ -54,25 +54,17 @@ export const APP_WEBSITES: Record<AppType, string> = {
 };
 
 // ============ 应用支持状态 ============
-export const APP_SUPPORT_STATUS: Record<AppType, boolean> = {
-  claude: true,
-  'claude-internal': true,
-  opencode: true,
-  codebuddy: true,
-  'vscode-extension': true,
-  codex: false,
-  gemini: false,
-};
-
-// ============ 应用详细描述 ============
-export const APP_DESCRIPTIONS: Record<AppType, string> = {
-  claude: 'Anthropic 推出的 AI 编程助手',
-  'claude-internal': 'Anthropic 内部版 Claude Code',
-  codex: 'OpenAI 的编程助手（没计划推出）',
-  gemini: 'Google 的 Gemini 代码助手（没计划推出）',
-  opencode: '社区驱动的开源 AI 编程工具',
-  codebuddy: 'Codebuddy 智能编程助手',
-  'vscode-extension': 'VSC Codebuddy AI 扩展（VS Code 插件）',
+export const APP_SESSION_SUPPORT: Record<
+  AppType,
+  { supported: boolean; status: AppSupportStatus }
+> = {
+  claude: { supported: true, status: 'full' },
+  'claude-internal': { supported: true, status: 'full' },
+  opencode: { supported: true, status: 'full' },
+  codebuddy: { supported: true, status: 'full' },
+  'vscode-extension': { supported: true, status: 'full' },
+  codex: { supported: false, status: 'coming_soon' },
+  gemini: { supported: false, status: 'coming_soon' },
 };
 
 // ============ 快捷访问 ============
@@ -86,46 +78,5 @@ export const DEFAULT_APP = APP_ORDER[0];
  * 检查应用是否支持
  */
 export function isAppSupported(app: AppType): boolean {
-  return APP_SUPPORT_STATUS[app] ?? false;
+  return APP_SESSION_SUPPORT[app]?.supported ?? false;
 }
-
-/**
- * 获取支持的应用列表
- */
-export function getSupportedApps(): AppType[] {
-  return APP_ORDER.filter(isAppSupported);
-}
-
-/**
- * 获取不支持的应用列表
- */
-export function getUnsupportedApps(): AppType[] {
-  return APP_ORDER.filter((app) => !isAppSupported(app));
-}
-
-/**
- * 获取应用的显示信息（不含图标，图标请使用 getAppIcon）
- */
-export function getAppInfo(app: AppType) {
-  return {
-    label: APP_LABELS[app],
-    color: APP_COLORS[app],
-    website: APP_WEBSITES[app],
-    description: APP_DESCRIPTIONS[app],
-    isSupported: isAppSupported(app),
-  };
-}
-
-/**
- * 获取所有应用的信息（不含图标）
- */
-export function getAllAppsInfo() {
-  return APP_ORDER.map((app) => ({
-    type: app,
-    ...getAppInfo(app),
-  }));
-}
-
-// ============ 向后兼容的别名 ============
-/** @deprecated 请使用 APP_ORDER */
-export const APP_TYPES = APP_ORDER;

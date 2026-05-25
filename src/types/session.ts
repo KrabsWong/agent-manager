@@ -57,10 +57,3 @@ export interface SessionStats {
 }
 
 export type AppSupportStatus = 'full' | 'partial' | 'coming_soon' | 'not_supported';
-
-export interface AppSessionSupport {
-  appType: string;
-  status: AppSupportStatus;
-  description: string;
-  features: string[];
-}

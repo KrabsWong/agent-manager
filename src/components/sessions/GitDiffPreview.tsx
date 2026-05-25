@@ -29,17 +29,48 @@ function isImageFile(fileName: string): boolean {
 function isBinaryFile(fileName: string): boolean {
   const binaryExtensions = [
     // Images
-    '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.ico', '.tif', '.tiff',
+    '.png',
+    '.jpg',
+    '.jpeg',
+    '.gif',
+    '.bmp',
+    '.webp',
+    '.ico',
+    '.tif',
+    '.tiff',
     // Documents
-    '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+    '.pdf',
+    '.doc',
+    '.docx',
+    '.xls',
+    '.xlsx',
+    '.ppt',
+    '.pptx',
     // Archives
-    '.zip', '.rar', '.7z', '.tar', '.gz', '.bz2',
+    '.zip',
+    '.rar',
+    '.7z',
+    '.tar',
+    '.gz',
+    '.bz2',
     // Executables
-    '.exe', '.dll', '.so', '.dylib', '.bin',
+    '.exe',
+    '.dll',
+    '.so',
+    '.dylib',
+    '.bin',
     // Audio/Video
-    '.mp3', '.mp4', '.avi', '.mov', '.wav', '.flac',
+    '.mp3',
+    '.mp4',
+    '.avi',
+    '.mov',
+    '.wav',
+    '.flac',
     // Fonts
-    '.ttf', '.otf', '.woff', '.woff2',
+    '.ttf',
+    '.otf',
+    '.woff',
+    '.woff2',
   ];
   const ext = fileName.toLowerCase().slice(fileName.lastIndexOf('.'));
   return binaryExtensions.includes(ext);
@@ -54,10 +85,10 @@ export function GitDiffPreview({
 }: GitDiffPreviewProps) {
   const { t } = useTranslation();
   const [splitView, setSplitView] = useState(true);
-  
+
   // Track theme changes
-  const [isDark, setIsDark] = useState(() => 
-    typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+  const [isDark, setIsDark] = useState(
+    () => typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
   );
 
   // Listen for theme changes
@@ -66,10 +97,10 @@ export function GitDiffPreview({
       const dark = document.documentElement.classList.contains('dark');
       setIsDark(dark);
     };
-    
+
     // Initial check
     updateTheme();
-    
+
     // Listen for class changes on html element
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
@@ -78,9 +109,9 @@ export function GitDiffPreview({
         }
       });
     });
-    
+
     observer.observe(document.documentElement, { attributes: true });
-    
+
     return () => observer.disconnect();
   }, []);
 
@@ -96,7 +127,7 @@ export function GitDiffPreview({
     if (fileType !== 'text') return null;
     const originalLines = originalContent.split('\n');
     const modifiedLines = modifiedContent.split('\n');
-    
+
     return {
       originalLines: originalLines.length,
       modifiedLines: modifiedLines.length,
@@ -110,40 +141,50 @@ export function GitDiffPreview({
       // Backend returns base64 for diff, check if it needs data URL wrapper
       const getImageSrc = (content: string) => {
         if (!content || content.length === 0) return '';
-        return content.startsWith('data:') ? content : `data:image/${fileName.split('.').pop() || 'png'};base64,${content}`;
+        return content.startsWith('data:')
+          ? content
+          : `data:image/${fileName.split('.').pop() || 'png'};base64,${content}`;
       };
-      
+
       const originalSrc = getImageSrc(originalContent);
       const modifiedSrc = getImageSrc(modifiedContent);
       const hasOriginal = originalSrc.length > 0;
       const hasModified = modifiedSrc.length > 0;
-      
+
       return (
         <div className="flex-1 overflow-auto p-4">
           <div className="flex gap-4 h-full">
             {/* Original Image - red background for deleted, empty placeholder if new file */}
-            <div className={`flex-1 flex items-center justify-center rounded-lg p-4 overflow-auto ${hasOriginal ? 'bg-red-50 dark:bg-red-500/10' : 'bg-muted/30 border-2 border-dashed border-muted'}`}>
+            <div
+              className={`flex-1 flex items-center justify-center rounded-lg p-4 overflow-auto ${hasOriginal ? 'bg-red-50 dark:bg-red-500/10' : 'bg-muted/30 border-2 border-dashed border-muted'}`}
+            >
               {hasOriginal ? (
-                <img 
+                <img
                   src={originalSrc}
-                  alt="Original" 
+                  alt={t('diff.originalImageAlt', 'Original')}
                   className="max-w-full max-h-full object-contain"
                 />
               ) : (
-                <span className="text-muted-foreground text-sm">{t('diff.noOriginal', 'New file')}</span>
+                <span className="text-muted-foreground text-sm">
+                  {t('diff.noOriginal', 'New file')}
+                </span>
               )}
             </div>
-            
+
             {/* Modified Image - green background for added, empty placeholder if deleted */}
-            <div className={`flex-1 flex items-center justify-center rounded-lg p-4 overflow-auto ${hasModified ? 'bg-green-50 dark:bg-green-500/10' : 'bg-muted/30 border-2 border-dashed border-muted'}`}>
+            <div
+              className={`flex-1 flex items-center justify-center rounded-lg p-4 overflow-auto ${hasModified ? 'bg-green-50 dark:bg-green-500/10' : 'bg-muted/30 border-2 border-dashed border-muted'}`}
+            >
               {hasModified ? (
-                <img 
+                <img
                   src={modifiedSrc}
-                  alt="Modified" 
+                  alt={t('diff.modifiedImageAlt', 'Modified')}
                   className="max-w-full max-h-full object-contain"
                 />
               ) : (
-                <span className="text-muted-foreground text-sm">{t('diff.noModified', 'Deleted')}</span>
+                <span className="text-muted-foreground text-sm">
+                  {t('diff.noModified', 'Deleted')}
+                </span>
               )}
             </div>
           </div>
@@ -159,12 +200,19 @@ export function GitDiffPreview({
             {t('diff.binaryFile', 'Binary File')}
           </p>
           <p className="text-sm text-muted-foreground mb-4">
-            {t('diff.binaryDiffNotSupported', 'Binary file diff is not supported. The file has been modified.')}
+            {t(
+              'diff.binaryDiffNotSupported',
+              'Binary file diff is not supported. The file has been modified.'
+            )}
           </p>
           <div className="flex gap-4 text-xs text-muted-foreground">
-            <span>{t('diff.originalSize', 'Original')}: {originalContent.length} bytes</span>
+            <span>
+              {t('diff.originalSize', 'Original')}: {originalContent.length} bytes
+            </span>
             <span>→</span>
-            <span>{t('diff.modifiedSize', 'Modified')}: {modifiedContent.length} bytes</span>
+            <span>
+              {t('diff.modifiedSize', 'Modified')}: {modifiedContent.length} bytes
+            </span>
           </div>
         </div>
       );
@@ -189,7 +237,7 @@ export function GitDiffPreview({
       codeFoldGutterBackground: 'hsl(var(--muted))',
       emptyLineBackground: 'transparent',
     };
-    
+
     const darkStyles = {
       diffViewerBackground: 'transparent',
       addedBackground: 'rgba(34, 197, 94, 0.15)',
@@ -233,7 +281,13 @@ export function GitDiffPreview({
   };
 
   return (
-    <div className={cn('flex flex-col h-full w-full min-w-0 bg-card border-l border-primary-border', className)}>
+    <div
+      data-testid="git-diff-preview"
+      className={cn(
+        'flex flex-col h-full w-full min-w-0 bg-card border-l border-primary-border',
+        className
+      )}
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-primary-border bg-primary-muted shrink-0">
         <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -244,7 +298,9 @@ export function GitDiffPreview({
             </p>
             <p className="text-[10px] text-primary/70 truncate">
               {fileType === 'text' && diffStats ? (
-                <>{diffStats.originalLines} → {diffStats.modifiedLines} lines</>
+                <>
+                  {diffStats.originalLines} → {diffStats.modifiedLines} {t('diff.lines', 'lines')}
+                </>
               ) : fileType === 'image' ? (
                 <>{t('diff.imageFile', 'Image File')}</>
               ) : (
@@ -291,7 +347,7 @@ export function GitDiffPreview({
             <button
               onClick={onClose}
               className="p-1.5 hover:bg-primary-light rounded-md transition-colors"
-              title="Close diff"
+              title={t('diff.closeDiff', 'Close diff')}
             >
               <X className="h-3.5 w-3.5 text-primary" />
             </button>
@@ -303,7 +359,7 @@ export function GitDiffPreview({
           <button
             onClick={onClose}
             className="p-1.5 hover:bg-primary-light rounded-md transition-colors"
-            title="Close diff"
+            title={t('diff.closeDiff', 'Close diff')}
           >
             <X className="h-3.5 w-3.5 text-primary" />
           </button>

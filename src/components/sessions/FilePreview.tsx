@@ -72,7 +72,29 @@ function getFileType(fileName: string): 'image' | 'text' | 'binary' {
   if (imageExts.includes(ext)) return 'image';
 
   // Binary files that we don't support
-  const binaryExts = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', '7z', 'tar', 'gz', 'exe', 'dll', 'so', 'dylib', 'mp3', 'mp4', 'avi', 'mov', 'mkv'];
+  const binaryExts = [
+    'pdf',
+    'doc',
+    'docx',
+    'xls',
+    'xlsx',
+    'ppt',
+    'pptx',
+    'zip',
+    'rar',
+    '7z',
+    'tar',
+    'gz',
+    'exe',
+    'dll',
+    'so',
+    'dylib',
+    'mp3',
+    'mp4',
+    'avi',
+    'mov',
+    'mkv',
+  ];
   if (binaryExts.includes(ext)) return 'binary';
 
   return 'text';
@@ -82,16 +104,16 @@ function getFileType(fileName: string): 'image' | 'text' | 'binary' {
 function getImageMimeType(fileName: string): string {
   const ext = fileName.split('.').pop()?.toLowerCase() || '';
   const mimeTypes: Record<string, string> = {
-    'png': 'image/png',
-    'jpg': 'image/jpeg',
-    'jpeg': 'image/jpeg',
-    'gif': 'image/gif',
-    'bmp': 'image/bmp',
-    'webp': 'image/webp',
-    'svg': 'image/svg+xml',
-    'ico': 'image/x-icon',
-    'tiff': 'image/tiff',
-    'tif': 'image/tiff',
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    gif: 'image/gif',
+    bmp: 'image/bmp',
+    webp: 'image/webp',
+    svg: 'image/svg+xml',
+    ico: 'image/x-icon',
+    tiff: 'image/tiff',
+    tif: 'image/tiff',
   };
   return mimeTypes[ext] || 'image/png';
 }
@@ -99,83 +121,83 @@ function getImageMimeType(fileName: string): string {
 // Language mapping from file extension to Shiki language
 const languageMap: Record<string, string> = {
   // JavaScript/TypeScript
-  'js': 'javascript',
-  'mjs': 'javascript',
-  'cjs': 'javascript',
-  'ts': 'typescript',
-  'tsx': 'tsx',
-  'jsx': 'jsx',
+  js: 'javascript',
+  mjs: 'javascript',
+  cjs: 'javascript',
+  ts: 'typescript',
+  tsx: 'tsx',
+  jsx: 'jsx',
   // Web
-  'html': 'html',
-  'htm': 'html',
-  'css': 'css',
-  'scss': 'css',
-  'sass': 'css',
-  'less': 'css',
-  'vue': 'vue',
-  'svelte': 'svelte',
+  html: 'html',
+  htm: 'html',
+  css: 'css',
+  scss: 'css',
+  sass: 'css',
+  less: 'css',
+  vue: 'vue',
+  svelte: 'svelte',
   // Data
-  'json': 'json',
-  'yaml': 'yaml',
-  'yml': 'yaml',
-  'xml': 'xml',
-  'svg': 'xml',
+  json: 'json',
+  yaml: 'yaml',
+  yml: 'yaml',
+  xml: 'xml',
+  svg: 'xml',
   // Programming
-  'py': 'python',
-  'pyw': 'python',
-  'pyi': 'python',
-  'cpp': 'cpp',
-  'c': 'c',
-  'cc': 'cpp',
-  'cxx': 'cpp',
-  'h': 'c',
-  'hpp': 'cpp',
-  'java': 'java',
-  'rs': 'rust',
-  'go': 'go',
-  'php': 'php',
-  'rb': 'ruby',
-  'pl': 'perl',
-  'lua': 'lua',
-  'swift': 'swift',
-  'kt': 'kotlin',
-  'kts': 'kotlin',
-  'dart': 'dart',
-  'scala': 'scala',
-  'r': 'r',
-  'm': 'matlab',
-  'groovy': 'groovy',
+  py: 'python',
+  pyw: 'python',
+  pyi: 'python',
+  cpp: 'cpp',
+  c: 'c',
+  cc: 'cpp',
+  cxx: 'cpp',
+  h: 'c',
+  hpp: 'cpp',
+  java: 'java',
+  rs: 'rust',
+  go: 'go',
+  php: 'php',
+  rb: 'ruby',
+  pl: 'perl',
+  lua: 'lua',
+  swift: 'swift',
+  kt: 'kotlin',
+  kts: 'kotlin',
+  dart: 'dart',
+  scala: 'scala',
+  r: 'r',
+  m: 'matlab',
+  groovy: 'groovy',
   // Shell
-  'sh': 'bash',
-  'bash': 'bash',
-  'zsh': 'bash',
-  'fish': 'shell',
-  'ps1': 'powershell',
-  'psm1': 'powershell',
+  sh: 'bash',
+  bash: 'bash',
+  zsh: 'bash',
+  fish: 'shell',
+  ps1: 'powershell',
+  psm1: 'powershell',
   // Database
-  'sql': 'sql',
-  'mysql': 'sql',
-  'pgsql': 'sql',
+  sql: 'sql',
+  mysql: 'sql',
+  pgsql: 'sql',
   // Markdown
-  'md': 'markdown',
-  'mdx': 'mdx',
-  'markdown': 'markdown',
+  md: 'markdown',
+  mdx: 'mdx',
+  markdown: 'markdown',
   // Config
-  'dockerfile': 'dockerfile',
-  'vim': 'viml',
-  'vimrc': 'viml',
+  dockerfile: 'dockerfile',
+  vim: 'viml',
+  vimrc: 'viml',
 };
 
 // Special file names to language mapping
 const specialFileMap: Record<string, string> = {
-  'dockerfile': 'dockerfile',
-  'makefile': 'bash',
-  'jenkinsfile': 'groovy',
-  'gemfile': 'ruby',
-  'rakefile': 'ruby',
-  'vagrantfile': 'ruby',
-  'podfile': 'ruby',
-  'brewfile': 'ruby',
+  dockerfile: 'dockerfile',
+  makefile: 'bash',
+  jenkinsfile: 'groovy',
+  gemfile: 'ruby',
+  rakefile: 'ruby',
+  vagrantfile: 'ruby',
+  podfile: 'ruby',
+  brewfile: 'ruby',
 };
 
 // Get Shiki language from file name
@@ -205,7 +227,7 @@ async function getHighlighter(): Promise<HighlighterCore> {
     return globalHighlighter;
   }
 
-      const highlighter = await createHighlighterCore({
+  const highlighter = await createHighlighterCore({
     themes: [tokyoNight, githubLight],
     langs: [
       javascript,
@@ -254,8 +276,9 @@ async function getHighlighter(): Promise<HighlighterCore> {
 
 // Generate line numbers HTML
 function generateLineNumbers(lineCount: number): string {
-  return Array.from({ length: lineCount }, (_, i) =>
-    `<div class="shiki-line-number">${i + 1}</div>`
+  return Array.from(
+    { length: lineCount },
+    (_, i) => `<div class="shiki-line-number">${i + 1}</div>`
   ).join('');
 }
 
@@ -318,12 +341,7 @@ const shikiStyles = `
   }
 `;
 
-export function FilePreview({
-  fileName,
-  content,
-  onClose,
-  className,
-}: FilePreviewProps) {
+export function FilePreview({ fileName, content, onClose, className }: FilePreviewProps) {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const [highlightedCode, setHighlightedCode] = useState<string>('');
@@ -333,8 +351,8 @@ export function FilePreview({
   const fileType = getFileType(fileName);
 
   // Track theme changes
-  const [isDark, setIsDark] = useState(() =>
-    typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+  const [isDark, setIsDark] = useState(
+    () => typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
   );
 
   // Listen for theme changes
@@ -447,9 +465,7 @@ export function FilePreview({
           <p className="text-sm text-muted-foreground">
             {t('preview.cannotPreview', 'This file format cannot be previewed')}
           </p>
-          <p className="text-xs text-muted-foreground mt-2">
-            {fileName}
-          </p>
+          <p className="text-xs text-muted-foreground mt-2">{fileName}</p>
         </div>
       );
     }
@@ -466,6 +482,7 @@ export function FilePreview({
             <style>{shikiStyles}</style>
             <div
               ref={containerRef}
+              data-testid="file-preview-content"
               className="h-full"
               dangerouslySetInnerHTML={{ __html: highlightedCode }}
             />
@@ -476,7 +493,13 @@ export function FilePreview({
   };
 
   return (
-    <div className={cn('flex flex-col h-full w-full min-w-0 bg-card border-l border-primary-border', className)}>
+    <div
+      data-testid="file-preview-panel"
+      className={cn(
+        'flex flex-col h-full w-full min-w-0 bg-card border-l border-primary-border',
+        className
+      )}
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-primary-border bg-primary-muted shrink-0">
         <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -502,7 +525,7 @@ export function FilePreview({
         <button
           onClick={onClose}
           className="p-1.5 hover:bg-primary-light rounded-md transition-colors"
-          title="Close preview"
+          title={t('preview.close')}
         >
           <X className="h-3.5 w-3.5 text-primary" />
         </button>

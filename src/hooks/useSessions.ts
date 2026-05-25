@@ -5,11 +5,11 @@
  */
 
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { sessionsApi } from '@/lib/api';
+import { sessionsApi } from '@/lib/api/sessions';
 import type { AppType } from '@/types';
 
 // Query keys
-export const sessionsKeys = {
+const sessionsKeys = {
   all: ['sessions'] as const,
   lists: () => [...sessionsKeys.all, 'list'] as const,
   list: (appType: AppType) => [...sessionsKeys.lists(), appType] as const,
@@ -19,6 +19,8 @@ export const sessionsKeys = {
   support: (appType: AppType) => [...sessionsKeys.all, 'support', appType] as const,
   terminalInfo: () => [...sessionsKeys.all, 'terminalInfo'] as const,
 };
+
+export const terminalInfoQueryKey = sessionsKeys.terminalInfo;
 
 /**
  * Hook to fetch all sessions for an app

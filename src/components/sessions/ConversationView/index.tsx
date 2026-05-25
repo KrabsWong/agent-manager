@@ -9,22 +9,16 @@
  * - MCP calls and sub-agent calls
  */
 
-import { useMemo, useRef, useEffect, memo } from 'react';
+import { useMemo, useRef, useEffect, memo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { getAppIcon } from '@/components/AppIcons';
 import { APP_LABELS } from '@/config/apps';
 import type { AppType } from '@/types';
 import type { SessionMessage } from '@/types/session';
-import type {
-  ConversationViewProps,
-  ConversationTurnProps,
-  MessageTurnWithCount,
-} from './types';
+import type { ConversationViewProps, ConversationTurnProps, MessageTurnWithCount } from './types';
 
-import {
-  groupMessagesIntoTurnsWithCount,
-  verifyMessageCount,
-} from './utils';
+import { groupMessagesIntoTurnsWithCount, verifyMessageCount } from './utils';
 import { SystemMessage, UserMessage, AssistantMessage } from './MessageTypes';
 import { ToolCallBlock } from './ToolCallBlock';
 import { useSettingsStore } from '@/stores/settings';
@@ -34,9 +28,9 @@ const ConversationTurn = memo(function ConversationTurn({
   turn,
   appType,
   onViewSubAgentSession,
-  searchQuery = '',
   userMessageIndex,
 }: ConversationTurnProps & { userMessageIndex?: number }) {
+  const { t } = useTranslation();
   const { chatLayout } = useSettingsStore();
   const isBubble = chatLayout === 'bubble';
   return (
@@ -51,7 +45,6 @@ const ConversationTurn = memo(function ConversationTurn({
               timestamp={sysMsg.timestamp}
               metadata={sysMsg.metadata}
               model={sysMsg.model}
-              searchQuery={searchQuery}
             />
           ))}
         </div>
@@ -65,7 +58,6 @@ const ConversationTurn = memo(function ConversationTurn({
             timestamp={turn.userMessage.timestamp}
             appType={appType}
             model={turn.userMessage.model}
-            searchQuery={searchQuery}
           />
         </div>
       )}
@@ -76,7 +68,7 @@ const ConversationTurn = memo(function ConversationTurn({
           <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary-muted flex items-center justify-center">
             {getAppIcon(appType as AppType, 18)}
           </div>
-          <div className={cn("min-w-0", isBubble ? "flex-1 max-w-[calc(100%-120px)]" : "flex-1")}>
+          <div className={cn('min-w-0', isBubble ? 'flex-1 max-w-[calc(100%-120px)]' : 'flex-1')}>
             <div className="flex items-center gap-2 mb-1">
               <span className="font-medium text-sm">
                 {APP_LABELS[appType as AppType] || APP_LABELS.claude}
@@ -84,7 +76,7 @@ const ConversationTurn = memo(function ConversationTurn({
               {turn.assistantMessage?.model && (
                 <span
                   className="text-xs px-1.5 py-0.5 rounded bg-primary-muted text-primary"
-                  title="AI Model"
+                  title={t('sessions.model')}
                 >
                   {turn.assistantMessage.model}
                 </span>
@@ -97,7 +89,6 @@ const ConversationTurn = memo(function ConversationTurn({
                   toolUse={toolCall.toolUse}
                   toolResult={toolCall.toolResult}
                   onViewSubAgentSession={onViewSubAgentSession}
-                  searchQuery={searchQuery}
                 />
               ))}
             </div>
@@ -110,20 +101,18 @@ const ConversationTurn = memo(function ConversationTurn({
                   timestamp={turn.assistantMessage.timestamp}
                   appType={appType}
                   model={turn.assistantMessage.model}
-                  searchQuery={searchQuery}
                 />
               </div>
             )}
           </div>
         </div>
-      ) : (turn.assistantMessage?.content || turn.assistantMessage?.reasoning_content) ? (
+      ) : turn.assistantMessage?.content || turn.assistantMessage?.reasoning_content ? (
         <AssistantMessage
           content={turn.assistantMessage.content || ''}
           reasoningContent={turn.assistantMessage.reasoning_content}
           timestamp={turn.assistantMessage.timestamp}
           appType={appType}
           model={turn.assistantMessage.model}
-          searchQuery={searchQuery}
         />
       ) : null}
     </div>
@@ -136,7 +125,6 @@ export function ConversationView({
   className,
   appType = 'claude',
   onViewSubAgentSession,
-  searchQuery = '',
   onNewMessages,
 }: Omit<ConversationViewProps, 'onLoadAll' | 'shouldLoadAll' | 'onLoadAllComplete'>) {
   const turnsWithCount = useMemo(() => {
@@ -166,19 +154,22 @@ export function ConversationView({
     )}`;
   };
 
-  const autoScrollToBottom = (behavior: ScrollBehavior = 'smooth') => {
-    const container = getScrollContainer();
-    if (container) {
-      container.scrollTo({
-        top: container.scrollHeight,
-        behavior,
-      });
-    }
-  };
-
-  const getScrollContainer = () => {
+  const getScrollContainer = useCallback(() => {
     return document.getElementById('conversation-scroll-container');
-  };
+  }, []);
+
+  const autoScrollToBottom = useCallback(
+    (behavior: ScrollBehavior = 'smooth') => {
+      const container = getScrollContainer();
+      if (container) {
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior,
+        });
+      }
+    },
+    [getScrollContainer]
+  );
 
   // Track scroll position
   useEffect(() => {
@@ -195,7 +186,7 @@ export function ConversationView({
     handleScroll();
 
     return () => container.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [getScrollContainer]);
 
   // Detect new messages
   useEffect(() => {
@@ -231,7 +222,7 @@ export function ConversationView({
 
     prevMessagesLengthRef.current = currentMessagesLength;
     prevLastMessageHashRef.current = currentLastMessageHash;
-  }, [messages, onNewMessages]);
+  }, [messages, onNewMessages, autoScrollToBottom]);
 
   // Auto-scroll when turns change
   useEffect(() => {
@@ -253,80 +244,19 @@ export function ConversationView({
     }
 
     prevLastTurnHashRef.current = currentLastTurnHash;
-  }, [turnsWithCount]);
-
-  // Filter turns based on search
-  const filteredTurns = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return turnsWithCount;
-    }
-
-    return turnsWithCount.filter((turn) => {
-      if (
-        turn.userMessage?.content &&
-        turn.userMessage.content.toLowerCase().includes(searchQuery.toLowerCase())
-      ) {
-        return true;
-      }
-
-      if (
-        turn.assistantMessage?.content &&
-        turn.assistantMessage.content.toLowerCase().includes(searchQuery.toLowerCase())
-      ) {
-        return true;
-      }
-
-      if (
-        turn.assistantMessage?.reasoning_content &&
-        turn.assistantMessage.reasoning_content.toLowerCase().includes(searchQuery.toLowerCase())
-      ) {
-        return true;
-      }
-
-      for (const tc of turn.toolCalls) {
-        const toolContent = [
-          tc.toolUse?.tool_name,
-          tc.toolUse?.tool_input ? JSON.stringify(tc.toolUse.tool_input) : '',
-          tc.toolResult?.tool_output ? JSON.stringify(tc.toolResult.tool_output) : '',
-        ].join(' ');
-
-        if (toolContent.toLowerCase().includes(searchQuery.toLowerCase())) {
-          return true;
-        }
-      }
-
-      for (const sysMsg of turn.systemMessages) {
-        if (sysMsg.content?.toLowerCase().includes(searchQuery.toLowerCase())) {
-          return true;
-        }
-      }
-
-      return false;
-    });
-  }, [turnsWithCount, searchQuery]);
+  }, [turnsWithCount, autoScrollToBottom]);
 
   return (
     <div className={cn('space-y-6 relative', className)}>
-      {filteredTurns.map((turn, index) => (
+      {turnsWithCount.map((turn, index) => (
         <ConversationTurn
           key={index}
           turn={turn}
           appType={appType}
           onViewSubAgentSession={onViewSubAgentSession}
-          searchQuery={searchQuery}
           userMessageIndex={turn.userMessageOriginalIndex}
         />
       ))}
     </div>
   );
 }
-
-// Export all components
-export * from './types';
-export * from './utils';
-export { MermaidDiagram } from './MermaidDiagram';
-export { CollapsibleCodeBlock } from './CodeBlock';
-export { SystemMessage, UserMessage, AssistantMessage } from './MessageTypes';
-export { ToolCallBlock } from './ToolCallBlock';
-
-export default ConversationView;

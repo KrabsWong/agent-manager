@@ -6,30 +6,19 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import {
-  useEffect,
-  useState,
-  useCallback,
-} from 'react';
-import {
-  Folder,
-  GitBranch,
-  ChevronRight,
-  ChevronDown,
-  FolderOpen,
-  FileText,
-} from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Folder, GitBranch, ChevronRight, ChevronDown, FolderOpen, FileText } from 'lucide-react';
 import { cn } from './lib/utils';
-import { api, treeApi, gitApi, type TreeNode } from './lib/api';
+import { fileApi, treeApi } from './lib/api/files';
+import { gitApi } from './lib/api/git';
 import { ThemeProvider } from './components/ThemeProvider';
 import { FilePreview } from './components/sessions/FilePreview';
 import { GitDiffView } from './components/sessions/GitDiffView';
 import { GitDiffPreview } from './components/sessions/GitDiffPreview';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
-import {
-  applyAccentColor,
-  type AccentColor,
-} from './lib/theme/colors';
+import { applyAccentColor, type AccentColor } from './lib/theme/colors';
+import type { TreeNode } from './types';
 import './index.css';
 import './lib/i18n';
 
@@ -68,6 +57,8 @@ function TreeItem({
     <div>
       <button
         onClick={handleClick}
+        data-testid={isDirectory ? 'file-tree-directory' : 'file-tree-file'}
+        data-file-path={node.path}
         className={cn(
           'w-full flex items-center gap-1.5 py-1 hover:bg-primary-muted transition-colors text-left group whitespace-nowrap',
           isActive && 'bg-primary-light hover:bg-primary-light'
@@ -122,6 +113,7 @@ function TreeItem({
 }
 
 function FilePreviewApp() {
+  const { t } = useTranslation();
   const [sessionDirectory, setSessionDirectory] = useState<string | null>(null);
   const [tree, setTree] = useState<TreeNode[]>([]);
   const [loading, setLoading] = useState(false);
@@ -231,8 +223,7 @@ function FilePreviewApp() {
     }
     try {
       const status = await gitApi.getStatus(sessionDirectory);
-      const totalChanges =
-        status.staged.length + status.unstaged.length + status.untracked.length;
+      const totalChanges = status.staged.length + status.unstaged.length + status.untracked.length;
       setHasGitChanges(status.isGitRepo && totalChanges > 0);
     } catch (err) {
       console.error('Failed to check git status:', err);
@@ -244,18 +235,16 @@ function FilePreviewApp() {
     if (sessionDirectory) {
       loadTree();
       checkGitStatus();
-      document.title = sessionDirectory.split('/').pop() || 'File Preview';
+      document.title = sessionDirectory.split('/').pop() || t('preview.title');
     }
-  }, [sessionDirectory, loadTree, checkGitStatus]);
+  }, [sessionDirectory, loadTree, checkGitStatus, t]);
 
   const handleFileClick = useCallback(async (path: string, name: string) => {
     try {
       const imageExts = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'svg'];
       const isImage = imageExts.some((ext) => name.toLowerCase().endsWith(ext));
 
-      const content = isImage
-        ? await api.file.readImage(path)
-        : await api.file.read(path);
+      const content = isImage ? await fileApi.readImage(path) : await fileApi.read(path);
 
       setPreviewFile({ path, name, content });
       setDiffPreview(null);
@@ -294,47 +283,37 @@ function FilePreviewApp() {
   if (!sessionDirectory) {
     return (
       <div className="h-screen flex items-center justify-center bg-background">
-        <p className="text-muted-foreground">No directory specified</p>
+        <p className="text-muted-foreground">{t('preview.noDirectory')}</p>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-card">
+    <div className="h-screen flex flex-col bg-card" data-testid="file-preview-window">
       <div
         className="px-4 py-2 border-b border-primary-border bg-primary-muted shrink-0 pl-20"
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       >
-        {sessionTitle && (
-          <p className="text-sm font-bold truncate text-primary">
-            {sessionTitle}
-          </p>
-        )}
+        {sessionTitle && <p className="text-sm font-bold truncate text-primary">{sessionTitle}</p>}
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-xs text-primary/70 truncate">
-            {sessionDirectory.split('/').pop() || 'Workspace'}
+            {sessionDirectory.split('/').pop() || t('preview.workspace')}
           </span>
-          <span className="text-[10px] text-primary/50 truncate">
-            {sessionDirectory}
-          </span>
+          <span className="text-[10px] text-primary/50 truncate">{sessionDirectory}</span>
         </div>
       </div>
 
       <div className="flex-1 flex min-h-0">
         <div className="w-64 border-r border-primary-border bg-card/50 flex flex-col shrink-0">
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="flex flex-col h-full"
-          >
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
             <div className="px-3 py-2 border-b">
               <TabsList className="w-full">
                 <TabsTrigger value="files" className="flex-1 text-xs">
                   <Folder className="h-3 w-3 mr-1" />
-                  Files
+                  {t('preview.files')}
                 </TabsTrigger>
                 {hasGitChanges && (
-                  <TabsTrigger value="git" className="flex-1 text-xs">
+                  <TabsTrigger value="git" className="flex-1 text-xs" data-testid="git-tab">
                     <GitBranch className="h-3 w-3 mr-1" />
                     Git
                   </TabsTrigger>
@@ -345,7 +324,7 @@ function FilePreviewApp() {
             <TabsContent value="files" className="flex-1 overflow-auto m-0 p-0">
               {loading ? (
                 <div className="p-4 text-center text-xs text-muted-foreground">
-                  Loading...
+                  {t('preview.loading')}
                 </div>
               ) : (
                 <div className="py-2">
@@ -391,8 +370,11 @@ function FilePreviewApp() {
               className="h-full"
             />
           ) : (
-            <div className="h-full flex items-center justify-center text-muted-foreground">
-              <p className="text-sm">Select a file to preview</p>
+            <div
+              className="h-full flex items-center justify-center text-muted-foreground"
+              data-testid="file-preview-empty"
+            >
+              <p className="text-sm">{t('preview.selectFile')}</p>
             </div>
           )}
         </div>
