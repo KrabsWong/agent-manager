@@ -13,6 +13,7 @@
 
       :root {
         /* 默认黑白配色 - 亮色模式 */
+        --splash-bg: #fefcf9;
         --bg-gradient-start: #f8fafc;
         --bg-gradient-mid: #f1f5f9;
         --bg-gradient-end: #e2e8f0;
@@ -29,6 +30,7 @@
       @media (prefers-color-scheme: dark) {
         :root {
           /* 默认黑白配色 - 暗色模式 */
+          --splash-bg: #000100;
           --bg-gradient-start: #0f172a;
           --bg-gradient-mid: #1e293b;
           --bg-gradient-end: #334155;
@@ -46,12 +48,7 @@
       body {
         font-family:
           -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-        background: linear-gradient(
-          160deg,
-          var(--bg-gradient-start) 0%,
-          var(--bg-gradient-mid) 50%,
-          var(--bg-gradient-end) 100%
-        );
+        background: var(--splash-bg);
         height: 100vh;
         display: flex;
         flex-direction: column;
@@ -192,7 +189,7 @@
     <div class="splash-container">
       <div class="logo-wrapper">
         <div class="logo-glow"></div>
-        <img src="logo.png" alt="Yes Sessions" class="logo" />
+        <img src="logo-theme-light.png" alt="Yes Sessions" class="logo" id="splash-logo" />
       </div>
       <h1 class="app-title">Yes Sessions</h1>
       <div class="loading-bar">
@@ -800,6 +797,24 @@
         return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
       }
 
+      function shouldUseDarkLogo(theme) {
+        return theme === 'dark' || (theme === 'system' && isDarkMode());
+      }
+
+      function updateLogo(theme) {
+        const logoEl = document.getElementById('splash-logo');
+        if (!logoEl) {
+          return;
+        }
+
+        const darkLogo = shouldUseDarkLogo(theme);
+        document.documentElement.style.setProperty('--splash-bg', darkLogo ? '#000100' : '#fefcf9');
+        logoEl.setAttribute(
+          'src',
+          darkLogo ? 'logo-theme-dark.png' : 'logo-theme-light.png'
+        );
+      }
+
       // 应用颜色方案
       function applyColorScheme(colorId, theme) {
         const root = document.documentElement;
@@ -831,11 +846,13 @@
 
       // 应用配色
       applyColorScheme(colorId, theme);
+      updateLogo(theme);
 
       // 监听系统主题变化
       if (theme === 'system') {
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
           applyColorScheme(colorId, theme);
+          updateLogo(theme);
         });
       }
     </script>
