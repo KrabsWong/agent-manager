@@ -17,7 +17,6 @@ export const APP_ORDER: AppType[] = [
   'opencode',
   'vscode-extension',
   'codex',
-  'gemini',
 ];
 
 // ============ 应用显示名称 ============
@@ -25,7 +24,6 @@ export const APP_LABELS: Record<AppType, string> = {
   claude: 'Claude Code',
   'claude-internal': 'Claude Code Internal',
   codex: 'Codex CLI',
-  gemini: 'Gemini CLI',
   opencode: 'OpenCode',
   codebuddy: 'Codebuddy',
   'vscode-extension': 'VSC Codebuddy Extension',
@@ -36,7 +34,6 @@ export const APP_COLORS: Record<AppType, string> = {
   claude: 'text-amber-600',
   'claude-internal': 'text-amber-600',
   codex: 'text-emerald-600',
-  gemini: 'text-blue-500',
   opencode: 'text-indigo-500',
   codebuddy: 'text-slate-700 dark:text-slate-300',
   'vscode-extension': 'text-blue-600',
@@ -47,7 +44,6 @@ export const APP_WEBSITES: Record<AppType, string> = {
   claude: 'https://claude.ai/code',
   'claude-internal': 'https://claude.ai/code',
   codex: 'https://github.com/openai/codex',
-  gemini: 'https://ai.google.dev/gemini-cli',
   opencode: 'https://opencode.com',
   codebuddy: 'https://codebuddy.ai',
   'vscode-extension': 'https://code.visualstudio.com',
@@ -64,7 +60,6 @@ export const APP_SESSION_SUPPORT: Record<
   codebuddy: { supported: true, status: 'full' },
   'vscode-extension': { supported: true, status: 'full' },
   codex: { supported: true, status: 'full' },
-  gemini: { supported: false, status: 'coming_soon' },
 };
 
 // ============ 快捷访问 ============
