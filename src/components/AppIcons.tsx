@@ -16,7 +16,6 @@ const APP_ICON_URLS: Record<AppType, string> = {
   claude: `${LOBE_ICONS_CDN}/claude.svg`,
   'claude-internal': `${LOBE_ICONS_CDN}/claude.svg`,
   codex: `${LOBE_ICONS_CDN}/openai.svg`,
-  gemini: `${LOBE_ICONS_CDN}/gemini.svg`,
   opencode: `${LOBE_ICONS_CDN}/opencode.svg`,
   codebuddy: '', // Codebuddy uses inline SVG below
   'vscode-extension': vscodeIconUrl, // Imported PNG icon for proper bundling

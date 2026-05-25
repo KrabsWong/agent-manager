@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Settings, Sparkles, Monitor } from 'lucide-react';
+import { Settings, Sparkles, Monitor, Brain, MessageCircle } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { ColorPicker } from '@/components/ColorPicker';
@@ -347,7 +347,7 @@ function ExperienceSettings() {
 
       <ToggleSettingItem
         enabled={showThinkingContent}
-        icon={<span className="text-sm">💭</span>}
+        icon={<Brain className="h-4 w-4" />}
         title={t('settings.showThinkingContent')}
         description={t('settings.showThinkingContentDesc')}
         onToggle={handleToggleShowThinkingContent}
@@ -355,7 +355,7 @@ function ExperienceSettings() {
 
       <ToggleSettingItem
         enabled={chatLayout === 'bubble'}
-        icon={<span className="text-sm">💬</span>}
+        icon={<MessageCircle className="h-4 w-4" />}
         title={t('settings.chatLayout')}
         description={t('settings.chatLayoutDesc')}
         onToggle={handleToggleChatLayout}

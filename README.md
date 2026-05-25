@@ -87,7 +87,6 @@ brew install --cask yes-sessions
 | OpenCode                | 完全支持 | SQLite 数据库    |
 | VSC Codebuddy Extension | 完全支持 | VS Code 插件会话 |
 | Codex CLI               | 暂不支持 | 当前无接入计划   |
-| Gemini CLI              | 暂不支持 | 当前无接入计划   |
 
 ---
 

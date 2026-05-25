@@ -32,7 +32,6 @@
       "claude": "Claude Code",
       "claude-internal": "Claude Code Internal",
       "codex": "Codex CLI",
-      "gemini": "Gemini CLI",
       "opencode": "OpenCode",
       "codebuddy": "Codebuddy",
       "vscode-extension": "VSC Codebuddy 扩展"

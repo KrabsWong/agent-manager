@@ -11,7 +11,6 @@ export type AppType =
   | 'claude'
   | 'claude-internal'
   | 'codex'
-  | 'gemini'
   | 'opencode'
   | 'codebuddy'
   | 'vscode-extension';
