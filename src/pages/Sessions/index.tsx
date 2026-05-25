@@ -30,11 +30,15 @@ import {
 } from '@/hooks/useSessions';
 import { ConversationView } from '@/components/sessions/ConversationView';
 import { UserMessageNavigator } from '@/components/sessions/UserMessageNavigator';
-import { api } from '@/lib/api';
-import { VirtualSessionList, type ViewMode } from '@/components/sessions/VirtualSessionList';
+import { filePreviewApi } from '@/lib/api/files';
+import {
+  VirtualSessionList,
+  formatSessionDateGroupKey,
+  getSessionDirectoryGroupKey,
+  type ViewMode,
+} from '@/components/sessions/VirtualSessionList';
 import { APP_LABELS, APP_WEBSITES, APP_COLORS } from '@/config/apps';
 import { getAppIcon } from '@/components/AppIcons';
-import { BuiltInTerminal, type BuiltInTerminalRef } from '@/components/BuiltInTerminal';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import { APP_ORDER, isAppSupported } from '@/config/apps';
 import type { AppType, Session } from '@/types';
@@ -53,16 +57,18 @@ function truncateText(text: string, maxLength: number): string {
 }
 
 export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
-  const [isTerminalOpen, setIsTerminalOpen] = useState(false);
-  const terminalRef = useRef<BuiltInTerminalRef>(null);
 
   // Sidebar collapse state
   const { sidebarCollapsed } = useSettingsStore();
 
   // 侧边栏拖拽调整宽度
-  const { isResizing, startResizing, style: sidebarStyle } = useSidebarResize({
+  const {
+    isResizing,
+    startResizing,
+    style: sidebarStyle,
+  } = useSidebarResize({
     initialWidth: 320,
     minWidth: 160, // 当前宽度的一半
     collapsed: sidebarCollapsed,
@@ -160,12 +166,8 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
     sessions.forEach((session) => {
       const groupKey =
         viewMode === 'date'
-          ? new Date(session.updatedAt).toLocaleDateString('zh-CN', {
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-            })
-          : session.directory || t('sessions.noDirectoryGroup', '— No Directory —');
+          ? formatSessionDateGroupKey(session.updatedAt)
+          : getSessionDirectoryGroupKey(session, t('sessions.noDirectoryGroup'));
       allGroups.add(groupKey);
     });
     setCollapsedGroups(allGroups);
@@ -178,12 +180,8 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
         new Set(
           sessions.map((s) =>
             viewMode === 'date'
-              ? new Date(s.updatedAt).toLocaleDateString('zh-CN', {
-                  year: 'numeric',
-                  month: '2-digit',
-                  day: '2-digit',
-                })
-              : s.directory || t('sessions.noDirectoryGroup', '— No Directory —')
+              ? formatSessionDateGroupKey(s.updatedAt)
+              : getSessionDirectoryGroupKey(s, t('sessions.noDirectoryGroup'))
           )
         ).size
       : false;
@@ -194,42 +192,18 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
     // VS Code Extension doesn't support resume
     if (selectedApp === 'vscode-extension') return;
 
-    // Check if using built-in terminal
-    const isBuiltInTerminal = terminalInfo?.preferred === 'builtin';
-
-    if (isBuiltInTerminal) {
-      // Open built-in terminal and trigger replay
-      setIsTerminalOpen(true);
-
-      // Get session name for tab title
-      const sessionName = selectedSession.firstMessage
-        ? truncateText(selectedSession.firstMessage, 30)
-        : selectedSession.fileName || selectedSession.id.slice(0, 8);
-
-      // Wait for terminal to be ready then replay
-      setTimeout(async () => {
-        if (terminalRef.current) {
-          // Wait a bit for PTY to be ready then trigger replay (this will also create the tab)
-          await terminalRef.current?.replay(selectedSession.id, selectedApp, sessionName, selectedSession.directory);
-        }
-      }, 100);
-    } else {
-      // Use external terminal
-      await resumeMutation.mutateAsync({
-        sessionId: selectedSession.id,
-        appType: selectedApp,
-        workingDir: selectedSession.directory,
-      });
-    }
+    await resumeMutation.mutateAsync({
+      sessionId: selectedSession.id,
+      appType: selectedApp,
+      workingDir: selectedSession.directory,
+    });
   };
 
-  // Check if terminal supports resume
-  // Built-in terminal is always available, otherwise check external terminals
+  // Check if an external terminal supports resume.
   // VS Code Extension doesn't support resume since it's not a CLI tool
   const canResume =
     selectedApp !== 'vscode-extension' &&
-    (terminalInfo?.preferred === 'builtin' ||
-      terminalInfo?.ghosttyInstalled ||
+    (terminalInfo?.ghosttyInstalled ||
       terminalInfo?.kittyInstalled ||
       terminalInfo?.preferred === 'terminal');
 
@@ -237,8 +211,8 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
     if (!selectedSession?.directory) return;
     const sessionTitle = selectedSession.firstMessage
       ? selectedSession.firstMessage.slice(0, 50)
-      : selectedSession.fileName || 'Untitled';
-    await api.filePreview.open(selectedSession.directory, sessionTitle, selectedApp);
+      : selectedSession.fileName || t('sessions.untitledSession');
+    await filePreviewApi.open(selectedSession.directory, sessionTitle);
   };
 
   return (
@@ -248,193 +222,175 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
         {/* Session List - Sidebar - with animation */}
         <div
           className={cn(
-            "flex flex-col h-full min-h-0 border-r bg-card/50 overflow-hidden shrink-0 transition-[width,opacity] duration-300 ease-in-out",
-            sidebarCollapsed && "border-r-0"
+            'flex flex-col h-full min-h-0 border-r bg-card/50 overflow-hidden shrink-0 transition-[width,opacity] duration-300 ease-in-out',
+            sidebarCollapsed && 'border-r-0'
           )}
           style={sidebarStyle}
         >
           {/* Sidebar Content - with fade animation */}
           <div
             className={cn(
-              "flex flex-col min-h-0 flex-1 transition-opacity duration-200 ease-in-out",
-              sidebarCollapsed ? "opacity-0" : "opacity-100"
+              'flex flex-col min-h-0 flex-1 transition-opacity duration-200 ease-in-out',
+              sidebarCollapsed ? 'opacity-0' : 'opacity-100'
             )}
             style={{
               transitionDelay: sidebarCollapsed ? '0ms' : '150ms',
             }}
           >
             {/* App Selector - First item in sidebar */}
-              <div className="px-3 py-2 border-b border-border/40 bg-card">
-                <Select value={selectedApp} onValueChange={(value) => onAppChange(value as AppType)}>
-                  <SelectTrigger className="w-full h-9">
-                    <div className="flex items-center gap-2">
-                      <span className={APP_COLORS[selectedApp]}>{getAppIcon(selectedApp, 16)}</span>
-                      <span className="truncate font-medium">{APP_LABELS[selectedApp]}</span>
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent className="min-w-[18rem]">
-                    {APP_ORDER.map((app) => {
-                      const supported = isAppSupported(app);
-                      return (
-                        <SelectItem
-                          key={app}
-                          value={app}
-                          disabled={!supported}
-                          className={!supported ? 'opacity-50 cursor-not-allowed' : ''}
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className={APP_COLORS[app]}>{getAppIcon(app, 16)}</span>
-                            <span>{APP_LABELS[app]}</span>
-                            {!supported && (
-                              <span className="text-xs text-muted-foreground ml-2">
-                                ({t('sessions.comingSoon')})
-                              </span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="px-3 py-2 border-b border-border/40 bg-card">
+              <Select value={selectedApp} onValueChange={(value) => onAppChange(value as AppType)}>
+                <SelectTrigger className="w-full h-9">
+                  <div className="flex items-center gap-2">
+                    <span className={APP_COLORS[selectedApp]}>{getAppIcon(selectedApp, 16)}</span>
+                    <span className="truncate font-medium">{APP_LABELS[selectedApp]}</span>
+                  </div>
+                </SelectTrigger>
+                <SelectContent className="min-w-[18rem]">
+                  {APP_ORDER.map((app) => {
+                    const supported = isAppSupported(app);
+                    return (
+                      <SelectItem
+                        key={app}
+                        value={app}
+                        disabled={!supported}
+                        className={!supported ? 'opacity-50 cursor-not-allowed' : ''}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className={APP_COLORS[app]}>{getAppIcon(app, 16)}</span>
+                          <span>{APP_LABELS[app]}</span>
+                          {!supported && (
+                            <span className="text-xs text-muted-foreground ml-2">
+                              ({t('sessions.comingSoon')})
+                            </span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
 
-              {/* List Header */}
-              <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/40 bg-card">
-                {/* Stats */}
-                {isSupported && stats && (
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                    <span>
-                      {stats.totalSessions} {t('sessions.sessionsLabel', 'Sessions')}
-                    </span>
-                    <span className="text-border">·</span>
-                    <span>
-                      {stats.totalMessages} {t('sessions.messagesLabel', 'Messages')}
-                    </span>
-                  </div>
-                )}
-
-                {/* View Mode Toggle - Icon buttons */}
-                <div className="flex items-center bg-primary-muted rounded-md p-0.5">
-                  <button
-                    onClick={() => setViewMode('date')}
-                    className={`px-2 py-1 text-[10px] font-medium rounded-sm transition-all ${
-                      viewMode === 'date'
-                        ? 'bg-card text-primary shadow-sm'
-                        : 'text-muted-foreground hover:text-primary'
-                    }`}
-                    title={t('sessions.viewByDate', 'Group by date')}
-                  >
-                    {t('sessions.date', 'Date')}
-                  </button>
-                  <button
-                    onClick={() => setViewMode('directory')}
-                    className={`px-2 py-1 text-[10px] font-medium rounded-sm transition-all ${
-                      viewMode === 'directory'
-                        ? 'bg-card text-primary shadow-sm'
-                        : 'text-muted-foreground hover:text-primary'
-                    }`}
-                    title={t('sessions.viewByDirectory', 'Group by directory')}
-                  >
-                    {t('sessions.directory', 'Directory')}
-                  </button>
-                </div>
-              </div>
-
-              {isLoading ? (
-                <div className="flex items-center justify-center h-64">
-                  <div className="text-muted-foreground">
-                    {t('sessions.loading') || 'Loading sessions...'}
-                  </div>
-                </div>
-              ) : error ? (
-                <div className="flex items-center justify-center h-64">
-                  <div className="text-destructive flex items-center gap-2">
-                    <AlertCircle className="h-5 w-5" />
-                    {t('sessions.error') || 'Failed to load sessions'}
-                  </div>
-                </div>
-              ) : !isSupported ? (
-                <div className="flex flex-col items-center justify-center h-64 space-y-4 p-4">
-                  <div className="text-muted-foreground text-center">
-                    <p className="text-lg font-medium mb-2">
-                      {t('sessions.comingSoon') || 'Coming Soon'}
-                    </p>
-                    <p className="text-sm">
-                      {t('sessions.unsupportedApp') ||
-                        `Session viewing is not yet supported for ${APP_LABELS[selectedApp]}.`}
-                    </p>
-                  </div>
-                  <Button variant="outline" onClick={() => onAppChange('claude')}>
-                    {t('sessions.switchToClaude') || 'Switch to Claude Code'}
-                  </Button>
-                </div>
-              ) : !supportStatus?.isAvailable ? (
-                <div className="flex flex-col items-center justify-center h-64 space-y-4 p-4">
-                  <div className="text-muted-foreground text-center">
-                    <p className="text-lg font-medium mb-2">
-                      {t('sessions.notInstalled') || 'Not Installed'}
-                    </p>
-                    <p className="text-sm">
-                      {t('sessions.notInstalledDesc', { app: APP_LABELS[selectedApp] }) ||
-                        `Install ${APP_LABELS[selectedApp]} to view your conversation history.`}
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => window.open(APP_WEBSITES[selectedApp], '_blank')}
-                    className="flex items-center gap-2"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    {t('sessions.visitWebsite') || 'Visit Website'}
-                  </Button>
-                </div>
-              ) : sessions?.length === 0 ? (
-                <div className="flex items-center justify-center h-64">
-                  <div className="text-muted-foreground text-center">
-                    <p className="text-lg font-medium mb-2">
-                      {t('sessions.noSessions') || 'No Sessions Found'}
-                    </p>
-                    <p className="text-sm">
-                      {t('sessions.noSessionsDesc') ||
-                        'No conversation history found for this application.'}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex-1 min-h-0 p-2">
-                  <VirtualSessionList
-                    sessions={sessions || []}
-                    selectedSession={selectedSession}
-                    onSelect={handleSessionSelect}
-                    t={t as (key: string, defaultValue?: string) => string}
-                    collapsedGroups={collapsedGroups}
-                    toggleGroup={toggleGroup}
-                    expandAll={expandAll}
-                    collapseAll={collapseAll}
-                    allExpanded={allExpanded}
-                    allCollapsed={allCollapsed}
-                    viewMode={viewMode}
-                  />
+            {/* List Header */}
+            <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/40 bg-card">
+              {/* Stats */}
+              {isSupported && stats && (
+                <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                  <span>
+                    {stats.totalSessions} {t('sessions.sessionsLabel')}
+                  </span>
+                  <span className="text-border">·</span>
+                  <span>
+                    {stats.totalMessages} {t('sessions.messagesLabel')}
+                  </span>
                 </div>
               )}
-            </div> {/* Sidebar Content */}
-          </div> {/* Sidebar Container */}
 
+              {/* View Mode Toggle - Icon buttons */}
+              <div className="flex items-center bg-primary-muted rounded-md p-0.5">
+                <button
+                  onClick={() => setViewMode('date')}
+                  className={`px-2 py-1 text-[10px] font-medium rounded-sm transition-all ${
+                    viewMode === 'date'
+                      ? 'bg-card text-primary shadow-sm'
+                      : 'text-muted-foreground hover:text-primary'
+                  }`}
+                  title={t('sessions.viewByDate')}
+                >
+                  {t('sessions.date')}
+                </button>
+                <button
+                  onClick={() => setViewMode('directory')}
+                  className={`px-2 py-1 text-[10px] font-medium rounded-sm transition-all ${
+                    viewMode === 'directory'
+                      ? 'bg-card text-primary shadow-sm'
+                      : 'text-muted-foreground hover:text-primary'
+                  }`}
+                  title={t('sessions.viewByDirectory')}
+                >
+                  {t('sessions.directory')}
+                </button>
+              </div>
+            </div>
+
+            {isLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-muted-foreground">{t('sessions.loading')}</div>
+              </div>
+            ) : error ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-destructive flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5" />
+                  {t('sessions.error')}
+                </div>
+              </div>
+            ) : !isSupported ? (
+              <div className="flex flex-col items-center justify-center h-64 space-y-4 p-4">
+                <div className="text-muted-foreground text-center">
+                  <p className="text-lg font-medium mb-2">{t('sessions.comingSoon')}</p>
+                  <p className="text-sm">{t('sessions.unsupportedApp')}</p>
+                </div>
+                <Button variant="outline" onClick={() => onAppChange('claude')}>
+                  {t('sessions.switchToClaude')}
+                </Button>
+              </div>
+            ) : !supportStatus?.isAvailable ? (
+              <div className="flex flex-col items-center justify-center h-64 space-y-4 p-4">
+                <div className="text-muted-foreground text-center">
+                  <p className="text-lg font-medium mb-2">{t('sessions.notInstalled')}</p>
+                  <p className="text-sm">
+                    {t('sessions.notInstalledDesc', { app: APP_LABELS[selectedApp] })}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => window.open(APP_WEBSITES[selectedApp], '_blank')}
+                  className="flex items-center gap-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  {t('sessions.visitWebsite')}
+                </Button>
+              </div>
+            ) : sessions?.length === 0 ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="text-muted-foreground text-center">
+                  <p className="text-lg font-medium mb-2">{t('sessions.noSessions')}</p>
+                  <p className="text-sm">{t('sessions.noSessionsDesc')}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 min-h-0 p-2">
+                <VirtualSessionList
+                  sessions={sessions || []}
+                  selectedSession={selectedSession}
+                  onSelect={handleSessionSelect}
+                  collapsedGroups={collapsedGroups}
+                  toggleGroup={toggleGroup}
+                  expandAll={expandAll}
+                  collapseAll={collapseAll}
+                  allExpanded={allExpanded}
+                  allCollapsed={allCollapsed}
+                  viewMode={viewMode}
+                />
+              </div>
+            )}
+          </div>{' '}
+          {/* Sidebar Content */}
+        </div>{' '}
+        {/* Sidebar Container */}
         {/* Resizable Divider - with animation */}
         <div
           onMouseDown={startResizing}
           className={cn(
-            "shrink-0 cursor-col-resize transition-[width,opacity] duration-300 ease-in-out hover:bg-primary/50",
-            isResizing && "bg-primary/50",
-            sidebarCollapsed ? "w-0 opacity-0" : "w-1 opacity-100"
+            'shrink-0 cursor-col-resize transition-[width,opacity] duration-300 ease-in-out hover:bg-primary/50',
+            isResizing && 'bg-primary/50',
+            sidebarCollapsed ? 'w-0 opacity-0' : 'w-1 opacity-100'
           )}
-          title={t('common.resizeSidebar', '拖拽调整宽度')}
+          title={t('common.resizeSidebar')}
         />
-
         {/* Session Detail */}
-        <div
-          className="overflow-hidden flex flex-col h-full min-h-0 relative transition-all duration-300 flex-1"
-        >
+        <div className="overflow-hidden flex flex-col h-full min-h-0 relative transition-all duration-300 flex-1">
           {selectedSession ? (
             <>
               {/* Header */}
@@ -445,7 +401,7 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                     <h3 className="font-semibold truncate">
                       {selectedSession.firstMessage
                         ? truncateText(selectedSession.firstMessage, 100)
-                        : selectedSession.fileName || 'Untitled Session'}
+                        : selectedSession.fileName || t('sessions.untitledSession')}
                     </h3>
                   </div>
 
@@ -455,14 +411,14 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                     {selectedSession.id && (
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] text-muted-foreground uppercase tracking-wider shrink-0">
-                          Session ID:
+                          {t('sessions.sessionId')}
                         </span>
                         <button
                           onClick={() => {
                             navigator.clipboard.writeText(selectedSession.id || '');
                           }}
                           className="text-xs font-mono truncate hover:text-primary transition-colors"
-                          title="Click to copy Session ID"
+                          title={t('sessions.copySessionId')}
                         >
                           {selectedSession.id}
                         </button>
@@ -480,12 +436,12 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                                 {resumeMutation.isPending ? (
                                   <>
                                     <RefreshCw className="h-3 w-3 animate-spin" />
-                                    <span>{t('sessions.opening', 'Opening...')}</span>
+                                    <span>{t('sessions.resuming')}</span>
                                   </>
                                 ) : (
                                   <>
                                     <Play className="h-3 w-3" />
-                                    <span>{t('sessions.resume', 'Resume')}</span>
+                                    <span>{t('sessions.resume')}</span>
                                   </>
                                 )}
                               </Button>
@@ -493,17 +449,15 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                             <TooltipContent side="bottom">
                               <p>
                                 {!canResume
-                                  ? t('sessions.installTerminalTip', 'Install Ghostty or Kitty for best experience')
-                                  : terminalInfo?.preferred === 'builtin'
-                                    ? t('sessions.resumeInBuiltInTerminal', 'Resume in built-in terminal')
-                                    : t('sessions.resumeInTerminal', {
-                                        terminal:
-                                          terminalInfo?.preferred === 'ghostty'
-                                            ? 'Ghostty'
-                                            : terminalInfo?.preferred === 'kitty'
-                                              ? 'Kitty'
-                                              : 'Terminal',
-                                      })}
+                                  ? t('sessions.installTerminalTip')
+                                  : t('sessions.resumeInTerminal', {
+                                      terminal:
+                                        terminalInfo?.preferred === 'ghostty'
+                                          ? 'Ghostty'
+                                          : terminalInfo?.preferred === 'kitty'
+                                            ? 'Kitty'
+                                            : 'Terminal',
+                                    })}
                               </p>
                             </TooltipContent>
                           </Tooltip>
@@ -514,10 +468,10 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                     {/* Last Updated */}
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] text-muted-foreground uppercase tracking-wider shrink-0">
-                        Updated:
+                        {t('sessions.updated')}
                       </span>
                       <span className="text-xs text-muted-foreground font-mono">
-                        {new Date(selectedSession.updatedAt).toLocaleString('zh-CN', {
+                        {new Date(selectedSession.updatedAt).toLocaleString(i18n.language, {
                           year: 'numeric',
                           month: '2-digit',
                           day: '2-digit',
@@ -531,7 +485,7 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                     {selectedSession.directory && (
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
-                          Work:
+                          {t('sessions.work')}
                         </span>
                         <span className="text-xs text-muted-foreground font-mono truncate">
                           {selectedSession.directory}
@@ -540,46 +494,47 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                     )}
                   </div>
                 </div>
-                  {/* File Preview Modal Button */}
-                  <div className="flex items-center">
-                    <TooltipProvider delayDuration={200}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 shrink-0"
-                            onClick={handleOpenFilePreview}
-                          >
-                            <Folder className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom">
-                          <p>{t('sessions.showFiles', 'Show files')}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
+                {/* File preview window button */}
+                <div className="flex items-center">
+                  <TooltipProvider delayDuration={200}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          data-testid="open-file-preview-button"
+                          className="h-8 w-8 shrink-0"
+                          onClick={handleOpenFilePreview}
+                        >
+                          <Folder className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom">
+                        <p>{t('sessions.showFiles')}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
               </div>
 
               {/* Messages */}
               <div
                 ref={scrollContainerRef}
                 id="conversation-scroll-container"
+                data-testid="conversation-detail"
                 className="flex-1 overflow-y-auto p-4 min-h-0 relative"
               >
                 {isLoadingDetail ? (
                   <div className="flex items-center justify-center h-full">
                     <div className="text-muted-foreground flex items-center gap-2">
                       <RefreshCw className="h-5 w-5 animate-spin" />
-                      {t('sessions.loadingConversation') || 'Loading conversation...'}
+                      {t('sessions.loadingConversation')}
                     </div>
                   </div>
                 ) : sessionDetail?.messages && sessionDetail.messages.length > 0 ? (
                   <>
                     <ConversationView
                       messages={sessionDetail.messages}
-                      searchQuery=""
                       appType={selectedApp}
                       onNewMessages={(count, isAtBottom) => {
                         if (!isAtBottom) {
@@ -591,15 +546,13 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                       }}
                     />
                     {/* User Message Navigator - Quick jump to user messages */}
-                <UserMessageNavigator
-                  messages={sessionDetail.messages}
-                />
+                    <UserMessageNavigator messages={sessionDetail.messages} />
                   </>
                 ) : (
                   <div className="flex items-center justify-center h-full text-muted-foreground">
                     <div className="flex flex-col items-center gap-2">
                       <AlertTriangle className="h-8 w-8 opacity-50" />
-                      <p>{t('sessions.noMessages') || 'No messages found'}</p>
+                      <p>{t('sessions.noMessages')}</p>
                     </div>
                   </div>
                 )}
@@ -626,7 +579,9 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-foreground opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-primary-foreground"></span>
                   </span>
-                  <span className="text-xs font-medium">{newMessagesCount} 条新内容</span>
+                  <span className="text-xs font-medium">
+                    {t('sessions.newMessages', { count: newMessagesCount })}
+                  </span>
                 </button>
               )}
             </>
@@ -638,26 +593,14 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                   <ChevronUp className="h-8 w-8 opacity-50" />
                 </div>
                 <div className="text-center">
-                  <p className="text-lg font-medium mb-1">
-                    {t('sessions.emptyStateTitle') || 'No Session Selected'}
-                  </p>
-                  <p className="text-sm max-w-md">
-                    {t('sessions.emptyStateDesc') ||
-                      'Choose a session from the list on the left to view conversation details.'}
-                  </p>
+                  <p className="text-lg font-medium mb-1">{t('sessions.emptyStateTitle')}</p>
+                  <p className="text-sm max-w-md">{t('sessions.emptyStateDesc')}</p>
                 </div>
               </div>
             </div>
           )}
         </div>
       </div>
-
-      {/* Built-in Terminal */}
-      <BuiltInTerminal
-        ref={terminalRef}
-        isOpen={isTerminalOpen}
-        onClose={() => setIsTerminalOpen(false)}
-      />
     </div>
   );
 }

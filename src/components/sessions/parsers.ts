@@ -1,7 +1,6 @@
 /**
  * Message Content Parsers
  *
- * 可扩展的消息内容解析系统，支持按 appType 注册特殊的解析器
  * 用于处理不同应用中消息内容的特殊格式
  */
 
@@ -175,10 +174,10 @@ const vscodeExtensionParser: ContentParser = (content: string) => {
 
   // Check if content contains HTML tags (some extensions return HTML)
   const hasHTMLTags = /<[a-z][\s\S]*?>/i.test(content);
-  
+
   if (hasHTMLTags) {
     // Convert common HTML tags to Markdown
-    let convertedContent = content
+    const convertedContent = content
       // Code blocks
       .replace(/<pre[^>]*><code[^>]*>([\s\S]*?)<\/code><\/pre>/gi, '```\n$1\n```')
       .replace(/<pre[^>]*>([\s\S]*?)<\/pre>/gi, '```\n$1\n```')
@@ -213,33 +212,14 @@ const vscodeExtensionParser: ContentParser = (content: string) => {
 };
 
 /**
- * 解析器注册表
- * key: appType, value: ContentParser
+ * 内置解析器表
  */
-const parserRegistry: Map<string, ContentParser> = new Map([
-  ['opencode', opencodeFileParser],
-  ['claude', claudeCodeParser],
-  ['codebuddy', codebuddyParser],
-  ['vscode-extension', vscodeExtensionParser],
-]);
-
-/**
- * 注册自定义解析器
- * @param appType - 应用类型标识
- * @param parser - 解析器函数
- */
-export function registerContentParser(appType: string, parser: ContentParser): void {
-  parserRegistry.set(appType, parser);
-}
-
-/**
- * 获取指定应用类型的解析器
- * @param appType - 应用类型
- * @returns 对应的解析器，如果没有则返回默认解析器
- */
-export function getContentParser(appType: string): ContentParser {
-  return parserRegistry.get(appType) || defaultParser;
-}
+const parserRegistry: Record<string, ContentParser> = {
+  opencode: opencodeFileParser,
+  claude: claudeCodeParser,
+  codebuddy: codebuddyParser,
+  'vscode-extension': vscodeExtensionParser,
+};
 
 /**
  * 解析消息内容
@@ -248,7 +228,7 @@ export function getContentParser(appType: string): ContentParser {
  * @returns 解析后的内容块数组
  */
 export function parseMessageContent(content: string, appType?: string): ParsedContent[] {
-  const parser = appType ? getContentParser(appType) : defaultParser;
+  const parser = appType ? parserRegistry[appType] || defaultParser : defaultParser;
   return parser(content);
 }
 
@@ -259,13 +239,5 @@ export function parseMessageContent(content: string, appType?: string): ParsedCo
  */
 export function hasSpecialParser(appType?: string): boolean {
   if (!appType) return false;
-  return parserRegistry.has(appType);
-}
-
-/**
- * 注销解析器（用于测试或动态配置）
- * @param appType - 应用类型
- */
-export function unregisterContentParser(appType: string): void {
-  parserRegistry.delete(appType);
+  return appType in parserRegistry;
 }

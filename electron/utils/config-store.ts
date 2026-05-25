@@ -9,9 +9,11 @@ import Store from 'electron-store';
 import log from 'electron-log';
 import type { AppSettings } from '../../src/types';
 import { DEFAULT_SETTINGS } from '../../src/types';
+import { normalizeAppSettings, SETTINGS_SCHEMA_VERSION } from '../../src/lib/settings/migration';
 
 // Schema definition for electron-store
 interface StoreSchema {
+  settingsVersion: number;
   settings: AppSettings;
   windowBounds: {
     width: number;
@@ -24,6 +26,10 @@ interface StoreSchema {
 }
 
 const schema = {
+  settingsVersion: {
+    type: 'number',
+    default: SETTINGS_SCHEMA_VERSION,
+  },
   settings: {
     type: 'object',
     // Only define defaults at the object level to avoid validation conflicts
@@ -63,24 +69,29 @@ class ConfigStore {
       clearInvalidConfig: true, // Clear if config is corrupted
     });
 
+    this.migrateSettings();
     log.info('Config store initialized');
   }
 
   // ============ Settings ============
 
   getSettings(): AppSettings {
-    return this.store.get('settings');
+    const settings = normalizeAppSettings(this.store.get('settings'));
+    this.store.set('settings', settings);
+    return settings;
   }
 
   updateSettings(settings: Partial<AppSettings>): void {
     const current = this.getSettings();
-    const updated = { ...current, ...settings };
+    const updated = normalizeAppSettings({ ...current, ...settings });
     this.store.set('settings', updated);
+    this.store.set('settingsVersion', SETTINGS_SCHEMA_VERSION);
     log.info('Settings updated:', Object.keys(settings).join(', '));
   }
 
   resetSettings(): void {
     this.store.set('settings', DEFAULT_SETTINGS);
+    this.store.set('settingsVersion', SETTINGS_SCHEMA_VERSION);
     log.info('Settings reset to defaults');
   }
 
@@ -106,23 +117,6 @@ class ConfigStore {
     log.info('First run marked as complete');
   }
 
-  // ============ Import/Export ============
-
-  exportConfig(): Record<string, unknown> {
-    return {
-      settings: this.getSettings(),
-      exportedAt: Date.now(),
-      version: '4.0.0',
-    };
-  }
-
-  importConfig(data: Record<string, unknown>): void {
-    if (data.settings) {
-      this.store.set('settings', data.settings);
-      log.info('Settings imported from file');
-    }
-  }
-
   // ============ Store Operations ============
 
   clear(): void {
@@ -133,11 +127,18 @@ class ConfigStore {
   getPath(): string {
     return this.store.path;
   }
+
+  private migrateSettings(): void {
+    const version = this.store.get('settingsVersion') || 0;
+    const settings = normalizeAppSettings(this.store.get('settings'));
+    this.store.set('settings', settings);
+    this.store.set('settingsVersion', SETTINGS_SCHEMA_VERSION);
+
+    if (version !== SETTINGS_SCHEMA_VERSION) {
+      log.info(`Settings migrated from schema version ${version} to ${SETTINGS_SCHEMA_VERSION}`);
+    }
+  }
 }
 
 // Export singleton instance
 export const configStore = new ConfigStore();
-
-// Export for testing
-export { ConfigStore };
-export type { StoreSchema };

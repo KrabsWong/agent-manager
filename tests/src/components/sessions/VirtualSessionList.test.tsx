@@ -1,0 +1,173 @@
+import React, { act, useState } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Session } from '@/types';
+import '@/lib/i18n';
+import {
+  VirtualSessionList,
+  formatSessionDateGroupKey,
+  getSessionDirectoryGroupKey,
+  type ViewMode,
+} from '@/components/sessions/VirtualSessionList';
+
+vi.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: ({ count }: { count: number }) => ({
+    getVirtualItems: () =>
+      Array.from({ length: count }, (_, index) => ({
+        index,
+        key: index,
+        start: index * 40,
+      })),
+    getTotalSize: () => count * 40,
+    measure: vi.fn(),
+  }),
+}));
+
+vi.mock('@/components/MarqueeText', () => ({
+  MarqueeText: ({ text, className }: { text: string; className?: string }) => (
+    <span className={className}>{text}</span>
+  ),
+}));
+
+(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+
+const sessions: Session[] = [
+  {
+    id: 'newer',
+    appType: 'codebuddy',
+    fileName: 'newer.jsonl',
+    filePath: '/repo/app/newer.jsonl',
+    createdAt: Date.UTC(2024, 0, 2, 8, 0),
+    updatedAt: Date.UTC(2024, 0, 2, 10, 0),
+    messageCount: 4,
+    firstMessage: 'Newest request',
+    directory: '/repo/app',
+  },
+  {
+    id: 'older',
+    appType: 'codebuddy',
+    fileName: 'older.jsonl',
+    filePath: '/repo/lib/older.jsonl',
+    createdAt: Date.UTC(2024, 0, 1, 8, 0),
+    updatedAt: Date.UTC(2024, 0, 1, 9, 0),
+    messageCount: 2,
+    firstMessage: 'Older request',
+    directory: '/repo/lib',
+  },
+];
+
+interface HarnessProps {
+  viewMode?: ViewMode;
+  onSelect?: (session: Session) => void;
+}
+
+function Harness({ viewMode = 'date', onSelect = () => undefined }: HarnessProps) {
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+  const groupKeys = new Set(
+    sessions.map((session) =>
+      viewMode === 'date'
+        ? formatSessionDateGroupKey(session.updatedAt)
+        : getSessionDirectoryGroupKey(session, '— No Directory —')
+    )
+  );
+
+  return (
+    <VirtualSessionList
+      sessions={sessions}
+      selectedSession={sessions[0]}
+      onSelect={onSelect}
+      collapsedGroups={collapsedGroups}
+      toggleGroup={(groupKey) =>
+        setCollapsedGroups((previous) => {
+          const next = new Set(previous);
+          if (next.has(groupKey)) {
+            next.delete(groupKey);
+          } else {
+            next.add(groupKey);
+          }
+          return next;
+        })
+      }
+      expandAll={() => setCollapsedGroups(new Set())}
+      collapseAll={() => setCollapsedGroups(groupKeys)}
+      allExpanded={collapsedGroups.size === 0}
+      allCollapsed={collapsedGroups.size === groupKeys.size}
+      viewMode={viewMode}
+    />
+  );
+}
+
+function render(element: React.ReactElement): { container: HTMLDivElement; root: Root } {
+  const container = document.createElement('div');
+  container.style.height = '600px';
+  document.body.appendChild(container);
+  const root = createRoot(container);
+  act(() => {
+    root.render(element);
+  });
+  return { container, root };
+}
+
+function click(element: Element): void {
+  act(() => {
+    element.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  });
+}
+
+function unmount(root: Root): void {
+  act(() => {
+    root.unmount();
+  });
+}
+
+describe('VirtualSessionList', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('renders date-grouped sessions and selects a clicked session', () => {
+    const onSelect = vi.fn();
+    const { container, root } = render(<Harness onSelect={onSelect} />);
+
+    expect(container.textContent).toContain('01/02/2024');
+    expect(container.textContent).toContain('Newest request');
+    expect(container.textContent).toContain('Older request');
+
+    const olderButton = Array.from(container.querySelectorAll('button')).find((button) =>
+      button.textContent?.includes('Older request')
+    );
+    expect(olderButton).toBeTruthy();
+    click(olderButton!);
+
+    expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ id: 'older' }));
+    unmount(root);
+  });
+
+  it('collapses and expands all groups from header controls', () => {
+    const { container, root } = render(<Harness />);
+
+    const collapseAll = container.querySelector('button[title="Collapse All"]');
+    expect(collapseAll).toBeTruthy();
+    click(collapseAll!);
+    expect(container.textContent).not.toContain('Newest request');
+    expect(container.textContent).not.toContain('Older request');
+
+    const expandAll = container.querySelector('button[title="Expand All"]');
+    expect(expandAll).toBeTruthy();
+    click(expandAll!);
+    expect(container.textContent).toContain('Newest request');
+    expect(container.textContent).toContain('Older request');
+    unmount(root);
+  });
+
+  it('renders directory-grouped sessions with directory labels', () => {
+    const { container, root } = render(<Harness viewMode="directory" />);
+
+    expect(container.textContent).toContain('app');
+    expect(container.textContent).toContain('lib');
+    expect(container.textContent).toContain('Newest request');
+    expect(container.textContent).toContain('Older request');
+    unmount(root);
+  });
+});

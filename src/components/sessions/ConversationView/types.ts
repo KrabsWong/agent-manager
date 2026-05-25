@@ -6,14 +6,6 @@
 
 import type { SessionMessage } from '@/types/session';
 
-// Performance constants
-export const MAX_CODE_LINES = 100;
-export const CODE_LINES_INCREMENT = 200;
-export const MAX_SYNTAX_HIGHLIGHT_LINES = 500;
-export const MAX_TEXT_LENGTH = 8000;
-export const MAX_MESSAGES_PER_BATCH = 100;
-export const MAX_TOOL_OUTPUT_LINES = 20;
-
 // Message grouping
 export interface MessageTurn {
   userMessage: SessionMessage | null;
@@ -33,7 +25,6 @@ export interface ConversationViewProps {
   className?: string;
   appType?: string;
   onViewSubAgentSession?: (sessionId: string, appType: string) => void;
-  searchQuery?: string;
   onNewMessages?: (count: number, isAtBottom: boolean) => void;
 }
 
@@ -41,7 +32,6 @@ export interface ConversationTurnProps {
   turn: MessageTurn;
   appType: string;
   onViewSubAgentSession?: (sessionId: string, appType: string) => void;
-  searchQuery?: string;
   userMessageIndex?: number;
 }
 
@@ -50,7 +40,6 @@ export interface SystemMessageProps {
   timestamp: string;
   metadata?: { subtype?: string; command?: string };
   model?: string;
-  searchQuery?: string;
 }
 
 export interface UserMessageProps {
@@ -58,7 +47,6 @@ export interface UserMessageProps {
   timestamp: string;
   appType?: string;
   model?: string;
-  searchQuery?: string;
 }
 
 export interface AssistantMessageProps {
@@ -67,7 +55,6 @@ export interface AssistantMessageProps {
   timestamp: string;
   appType?: string;
   model?: string;
-  searchQuery?: string;
   hideAvatar?: boolean;
 }
 
@@ -75,7 +62,6 @@ export interface ToolCallBlockProps {
   toolUse: SessionMessage | null;
   toolResult: SessionMessage | null;
   onViewSubAgentSession?: (sessionId: string, appType: string) => void;
-  searchQuery?: string;
 }
 
 export interface FileAttachmentProps {
@@ -90,7 +76,6 @@ export interface ParsedContentBlockProps {
     content: string;
     metadata?: Record<string, string>;
   };
-  searchQuery?: string;
 }
 
 export interface MermaidDiagramProps {
@@ -115,12 +100,9 @@ export type ToolType = 'mcp' | 'filesystem' | 'search' | 'code' | 'subagent' | '
 
 export interface ToolInputDisplayProps {
   input?: Record<string, unknown>;
-  searchQuery?: string;
   toolName?: string;
 }
 
 export interface ToolOutputDisplayProps {
   output: SessionMessage['tool_output'];
-  searchQuery?: string;
-  toolName?: string;
 }

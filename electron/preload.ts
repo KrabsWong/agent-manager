@@ -1,30 +1,8 @@
+import type { IElectronAPI, InitialSettings, IpcChannel, IpcEventChannel } from '../src/types';
+
+// Electron preload runs more reliably with CommonJS in the packaged app.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { contextBridge, ipcRenderer } = require('electron');
-
-export interface IElectronAPI {
-  invoke: (channel: string, ...args: unknown[]) => Promise<unknown>;
-  on: (channel: string, callback: (...args: unknown[]) => void) => void;
-  removeAllListeners: (channel: string) => void;
-}
-
-export interface InitialSettings {
-  theme?: 'light' | 'dark' | 'system';
-  accentColor?: string;
-  language?: 'en' | 'zh' | 'ja';
-  defaultApp?: string;
-  enableTitleMarquee?: boolean;
-  collapseBashBlocks?: boolean;
-  showThinkingContent?: boolean;
-  preferredTerminal?: 'auto' | 'ghostty' | 'kitty' | 'terminal' | 'builtin';
-  sidebarCollapsed?: boolean;
-  chatLayout?: 'left' | 'bubble';
-}
-
-declare global {
-  interface Window {
-    electronAPI: IElectronAPI;
-    __INITIAL_SETTINGS__?: InitialSettings;
-  }
-}
 
 // Try to get initial settings synchronously via ipcRenderer.sendSync
 // This allows React to read settings immediately without async loading
@@ -34,16 +12,16 @@ try {
   initialSettings = ipcRenderer.sendSync('settings:getSync') || {};
 } catch (error) {
   // Fallback: settings will be loaded asynchronously
-  console.log('[Preload] Failed to get initial settings synchronously, will load async');
+  console.warn('[Preload] Failed to get initial settings synchronously, will load async');
 }
 
 contextBridge.exposeInMainWorld('__INITIAL_SETTINGS__', initialSettings);
 
-contextBridge.exposeInMainWorld('electronAPI', {
-  invoke: (channel: string, ...args: unknown[]) =>
-    ipcRenderer.invoke(channel, ...args),
-  on: (channel: string, callback: (...args: unknown[]) => void) =>
+const electronAPI: IElectronAPI = {
+  invoke: (channel: IpcChannel, ...args: unknown[]) => ipcRenderer.invoke(channel, ...args),
+  on: (channel: IpcEventChannel, callback: (...args: unknown[]) => void) =>
     ipcRenderer.on(channel, (_event: unknown, ...args: unknown[]) => callback(...args)),
-  removeAllListeners: (channel: string) =>
-    ipcRenderer.removeAllListeners(channel),
-});
+  removeAllListeners: (channel: IpcEventChannel) => ipcRenderer.removeAllListeners(channel),
+};
+
+contextBridge.exposeInMainWorld('electronAPI', electronAPI);

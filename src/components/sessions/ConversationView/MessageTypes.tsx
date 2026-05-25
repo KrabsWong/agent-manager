@@ -4,19 +4,28 @@
  * SystemMessage, UserMessage, AssistantMessage, FileAttachment, ParsedContentBlock
  */
 
-import { useState, useEffect, useMemo, memo } from 'react';
-import { User, Info, FileText, ChevronDown, ChevronRight, Maximize2, Sparkles, Terminal, Folder } from 'lucide-react';
+import { useState, useMemo, memo, type ComponentPropsWithoutRef, type ReactNode } from 'react';
+import {
+  User,
+  Info,
+  FileText,
+  ChevronDown,
+  ChevronRight,
+  Sparkles,
+  Terminal,
+  Folder,
+} from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/settings';
 import { getAppIcon } from '@/components/AppIcons';
 import { APP_LABELS } from '@/config/apps';
 import { parseMessageContent, hasSpecialParser } from '../parsers';
-import { HighlightedText } from '../HighlightedText';
 import { MermaidDiagram } from './MermaidDiagram';
 import { CollapsibleCodeBlock } from './CodeBlock';
-import { parseClaudeCodeXML, formatTimestamp, getLanguageFromPath, MAX_TEXT_LENGTH } from './utils';
+import { parseClaudeCodeXML, formatTimestamp, getLanguageFromPath } from './utils';
 import type { AppType } from '@/types';
 import type {
   SystemMessageProps,
@@ -27,8 +36,14 @@ import type {
 } from './types';
 
 // Markdown components
+type MarkdownCodeProps = ComponentPropsWithoutRef<'code'> & {
+  inline?: boolean;
+  className?: string;
+  children?: ReactNode;
+};
+
 const markdownComponents = {
-  code({ node, inline, className, children, ...props }: any) {
+  code({ inline, className, children, ...props }: MarkdownCodeProps) {
     const match = /language-(\w+)/.exec(className || '');
     const language = match ? match[1] : 'text';
     const content = String(children);
@@ -55,8 +70,9 @@ export const SystemMessage = memo(function SystemMessage({
   timestamp,
   metadata,
   model,
-  searchQuery = '',
 }: SystemMessageProps) {
+  const { t } = useTranslation();
+
   const detectSubtype = (): string | undefined => {
     if (metadata?.subtype) return metadata.subtype;
 
@@ -85,7 +101,7 @@ export const SystemMessage = memo(function SystemMessage({
       case 'caveat':
         return {
           icon: <Info className="h-3.5 w-3.5 text-amber-500" />,
-          label: 'Caveat',
+          label: t('sessions.caveat'),
           bgColor: 'bg-amber-50/50 dark:bg-amber-900/20',
           borderColor: 'border-amber-200 dark:border-amber-800',
           textColor: 'text-amber-700 dark:text-amber-400',
@@ -93,7 +109,7 @@ export const SystemMessage = memo(function SystemMessage({
       case 'pasted':
         return {
           icon: <FileText className="h-3.5 w-3.5 text-green-500" />,
-          label: 'Pasted',
+          label: t('sessions.pasted'),
           bgColor: 'bg-green-50/50 dark:bg-green-900/20',
           borderColor: 'border-green-200 dark:border-green-800',
           textColor: 'text-green-700 dark:text-green-400',
@@ -101,7 +117,7 @@ export const SystemMessage = memo(function SystemMessage({
       case 'command':
         return {
           icon: <Terminal className="h-3.5 w-3.5 text-purple-500" />,
-          label: 'Command',
+          label: t('sessions.command'),
           bgColor: 'bg-purple-50/50 dark:bg-purple-900/20',
           borderColor: 'border-purple-200 dark:border-purple-800',
           textColor: 'text-purple-700 dark:text-purple-400',
@@ -109,7 +125,7 @@ export const SystemMessage = memo(function SystemMessage({
       case 'command_output':
         return {
           icon: <Terminal className="h-3.5 w-3.5 text-gray-500" />,
-          label: 'Command Output',
+          label: t('sessions.commandOutput'),
           bgColor: 'bg-gray-50/50 dark:bg-gray-900/20',
           borderColor: 'border-gray-200 dark:border-gray-800',
           textColor: 'text-gray-700 dark:text-gray-400',
@@ -117,7 +133,7 @@ export const SystemMessage = memo(function SystemMessage({
       default:
         return {
           icon: <Info className="h-3.5 w-3.5 text-muted-foreground" />,
-          label: 'System',
+          label: t('sessions.system'),
           bgColor: 'bg-primary-muted',
           borderColor: 'border-primary-border',
           textColor: 'text-muted-foreground',
@@ -151,16 +167,16 @@ export const SystemMessage = memo(function SystemMessage({
         {model && (
           <span
             className="text-xs px-1.5 py-0.5 rounded bg-primary-muted text-primary"
-            title="AI Model"
+            title={t('sessions.model')}
           >
             {model}
           </span>
         )}
-        <span className="text-xs text-muted-foreground/60 ml-auto">{formatTimestamp(timestamp)}</span>
+        <span className="text-xs text-muted-foreground/60 ml-auto">
+          {formatTimestamp(timestamp)}
+        </span>
       </div>
-      <div className={`px-3 pb-2 text-sm ${config.textColor} opacity-80`}>
-        <HighlightedText text={cleanContent} query={searchQuery} />
-      </div>
+      <div className={`px-3 pb-2 text-sm ${config.textColor} opacity-80`}>{cleanContent}</div>
     </div>
   );
 });
@@ -171,8 +187,8 @@ export const UserMessage = memo(function UserMessage({
   timestamp,
   appType,
   model,
-  searchQuery = '',
 }: UserMessageProps) {
+  const { t } = useTranslation();
   const needsSpecialParsing = hasSpecialParser(appType);
   const parsedContents = needsSpecialParsing
     ? parseMessageContent(content, appType)
@@ -189,11 +205,11 @@ export const UserMessage = memo(function UserMessage({
         </div>
         <div className="flex-1 min-w-0 flex flex-col items-end">
           <div className="flex items-center gap-2 mb-1 flex-row-reverse">
-            <span className="font-medium text-sm">You</span>
+            <span className="font-medium text-sm">{t('sessions.you')}</span>
             {model && (
               <span
                 className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary"
-                title="AI Model"
+                title={t('sessions.model')}
               >
                 {model}
               </span>
@@ -202,7 +218,7 @@ export const UserMessage = memo(function UserMessage({
           </div>
           <div className="bg-primary-muted rounded-2xl rounded-tr-sm p-3 text-sm space-y-2 max-w-[85%] border border-primary/20">
             {parsedContents.map((item, index) => (
-              <ParsedContentBlock key={index} item={item} searchQuery={searchQuery} />
+              <ParsedContentBlock key={index} item={item} />
             ))}
           </div>
         </div>
@@ -218,11 +234,11 @@ export const UserMessage = memo(function UserMessage({
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <span className="font-medium text-sm">You</span>
+          <span className="font-medium text-sm">{t('sessions.you')}</span>
           {model && (
             <span
               className="text-xs px-1.5 py-0.5 rounded bg-primary-muted text-primary"
-              title="AI Model"
+              title={t('sessions.model')}
             >
               {model}
             </span>
@@ -231,7 +247,7 @@ export const UserMessage = memo(function UserMessage({
         </div>
         <div className="bg-primary-muted rounded-lg p-3 text-sm space-y-2">
           {parsedContents.map((item, index) => (
-            <ParsedContentBlock key={index} item={item} searchQuery={searchQuery} />
+            <ParsedContentBlock key={index} item={item} />
           ))}
         </div>
       </div>
@@ -240,7 +256,7 @@ export const UserMessage = memo(function UserMessage({
 });
 
 // Parsed Content Block
-function ParsedContentBlock({ item, searchQuery: _searchQuery = '' }: ParsedContentBlockProps) {
+function ParsedContentBlock({ item }: ParsedContentBlockProps) {
   if (item.type === 'file') {
     return (
       <FileAttachment
@@ -310,6 +326,7 @@ function ClaudeCodeXMLViewer({
     entries?: string[];
   }>;
 }) {
+  const { t } = useTranslation();
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set([0]));
 
   const toggleExpanded = (index: number) => {
@@ -353,14 +370,14 @@ function ClaudeCodeXMLViewer({
             onClick={expandAll}
             className="text-xs text-primary hover:text-primary-hover transition-colors"
           >
-            全部展开
+            {t('sessions.expandAll')}
           </button>
           <span className="text-muted-foreground/30">|</span>
           <button
             onClick={collapseAll}
             className="text-xs text-primary hover:text-primary-hover transition-colors"
           >
-            全部收起
+            {t('sessions.collapseAll')}
           </button>
         </div>
       )}
@@ -386,7 +403,7 @@ function ClaudeCodeXMLViewer({
                 )}
                 <span className="text-sm font-medium truncate">{fileName(item.path || '')}</span>
                 <span className="text-xs text-muted-foreground flex-shrink-0">
-                  {item.type === 'directory' ? '目录' : '文件'}
+                  {item.type === 'directory' ? t('sessions.directory') : t('sessions.file')}
                 </span>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
@@ -409,7 +426,7 @@ function ClaudeCodeXMLViewer({
                 {item.type === 'directory' && item.entries && (
                   <div className="px-3 py-2 text-sm">
                     <div className="text-muted-foreground text-xs mb-2">
-                      ({item.entries.length} 个条目)
+                      ({t('sessions.itemCount', { count: item.entries.length })})
                     </div>
                     <div className="space-y-1">
                       {item.entries.map((entry, i) => (
@@ -450,37 +467,18 @@ export const AssistantMessage = memo(function AssistantMessage({
   timestamp,
   appType = 'claude',
   model,
-  searchQuery = '',
   hideAvatar = false,
 }: AssistantMessageProps) {
+  const { t } = useTranslation();
   const assistantName = APP_LABELS[appType as AppType] || APP_LABELS.claude;
-  const [isExpanded, setIsExpanded] = useState(false);
   const [isReasoningExpanded, setIsReasoningExpanded] = useState(false);
   const { showThinkingContent, chatLayout } = useSettingsStore();
   const isBubble = chatLayout === 'bubble';
 
-  useEffect(() => {
-    if (!searchQuery || !reasoningContent) return;
-    const hasMatch = reasoningContent.toLowerCase().includes(searchQuery.toLowerCase());
-    if (hasMatch) {
-      setIsReasoningExpanded(true);
-    }
-  }, [searchQuery, reasoningContent]);
-
-  useEffect(() => {
-    if (searchQuery && content) {
-      const hasMatch = content.toLowerCase().includes(searchQuery.toLowerCase());
-      if (hasMatch) {
-        setIsExpanded(true);
-      }
-    }
-  }, [searchQuery, content]);
-
-  const parsedXML = useMemo(() => (appType === 'claude' ? parseClaudeCodeXML(content) : null), [content, appType]);
-
-  const shouldTruncate = false; // !parsedXML && content.length > MAX_TEXT_LENGTH;
-  const displayContent =
-    isExpanded || !shouldTruncate ? content : content.slice(0, MAX_TEXT_LENGTH) + '\n\n...';
+  const parsedXML = useMemo(
+    () => (appType === 'claude' ? parseClaudeCodeXML(content) : null),
+    [content, appType]
+  );
 
   const contentSection = (
     <div className={content && reasoningContent && showThinkingContent ? 'space-y-2' : undefined}>
@@ -491,9 +489,11 @@ export const AssistantMessage = memo(function AssistantMessage({
             className="w-full flex items-center gap-2 px-3 py-2 hover:bg-amber-100/50 dark:hover:bg-amber-900/30 transition-colors"
           >
             <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-            <span className="text-xs font-medium text-amber-700 dark:text-amber-400">Thinking</span>
+            <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
+              {t('sessions.thinking')}
+            </span>
             <span className="text-xs text-amber-600/70 dark:text-amber-500/70 ml-auto">
-              {isReasoningExpanded ? '收起' : '展开'}
+              {isReasoningExpanded ? t('sessions.collapse') : t('sessions.expand')}
             </span>
             {isReasoningExpanded ? (
               <ChevronDown className="h-3.5 w-3.5 text-amber-500" />
@@ -503,13 +503,9 @@ export const AssistantMessage = memo(function AssistantMessage({
           </button>
           {isReasoningExpanded && (
             <div className="px-3 pb-3 text-sm text-amber-800/80 dark:text-amber-300/80 leading-relaxed prose prose-sm dark:prose-invert max-w-none [&_p]:break-words [&_pre]:bg-[#1e1e1e] [&_pre]:p-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto border-t border-amber-200/50 dark:border-amber-800/50 pt-2">
-              {searchQuery ? (
-                <HighlightedText text={reasoningContent} query={searchQuery} />
-              ) : (
-                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                  {reasoningContent}
-                </ReactMarkdown>
-              )}
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                {reasoningContent}
+              </ReactMarkdown>
             </div>
           )}
         </div>
@@ -520,22 +516,9 @@ export const AssistantMessage = memo(function AssistantMessage({
           <ClaudeCodeXMLViewer data={parsedXML} />
         ) : (
           <>
-            {searchQuery ? (
-              <HighlightedText text={displayContent} query={searchQuery} />
-            ) : (
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                {displayContent}
-              </ReactMarkdown>
-            )}
-            {shouldTruncate && !isExpanded && !searchQuery && (
-              <button
-                onClick={() => setIsExpanded(true)}
-                className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary-muted hover:bg-primary-light text-xs font-medium text-primary hover:text-primary-hover transition-colors border border-primary-border/50"
-              >
-                <Maximize2 className="h-3.5 w-3.5" />
-                展开全部 ({(content.length / 1000).toFixed(1)}K 字符)
-              </button>
-            )}
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+              {content}
+            </ReactMarkdown>
           </>
         )}
       </div>
@@ -551,13 +534,13 @@ export const AssistantMessage = memo(function AssistantMessage({
       <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary-muted flex items-center justify-center">
         {getAppIcon(appType as AppType, 18)}
       </div>
-      <div className={cn("min-w-0", isBubble ? "flex-1 max-w-[calc(100%-120px)]" : "flex-1")}>
+      <div className={cn('min-w-0', isBubble ? 'flex-1 max-w-[calc(100%-120px)]' : 'flex-1')}>
         <div className="flex items-center gap-2 mb-1">
           <span className="font-medium text-sm">{assistantName}</span>
           {model && (
             <span
               className="text-xs px-1.5 py-0.5 rounded bg-primary-muted text-primary"
-              title="AI Model"
+              title={t('sessions.model')}
             >
               {model}
             </span>
@@ -569,9 +552,3 @@ export const AssistantMessage = memo(function AssistantMessage({
     </div>
   );
 });
-
-export default {
-  SystemMessage,
-  UserMessage,
-  AssistantMessage,
-};

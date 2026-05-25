@@ -31,9 +31,9 @@ git push origin feature/my-new-feature
 
 | 标签    | 版本变化 | 示例          |
 | ------- | -------- | ------------- |
-| `major` | x.0.0    | 5.7.0 → 6.0.0 |
-| `minor` | x.y.0    | 5.7.0 → 5.8.0 |
-| `patch` | x.y.z    | 5.7.0 → 5.7.1 |
+| `major` | x.0.0    | 8.2.1 → 9.0.0 |
+| `minor` | x.y.0    | 8.2.1 → 8.3.0 |
+| `patch` | x.y.z    | 8.2.1 → 8.2.2 |
 
 **默认行为**：如果没有标签，会自动使用 `patch`（小版本升级）
 
@@ -45,7 +45,7 @@ git push origin feature/my-new-feature
 2. ✅ 根据 PR 标签递增版本号
 3. ✅ 更新 package.json 和 package-lock.json
 4. ✅ 提交版本变更到 main
-5. ✅ 自动创建 git tag（如 v5.8.0）
+5. ✅ 自动创建 git tag（如 v8.3.0）
 6. ✅ 触发 Release 构建流程
 
 ### 4. Release 构建
@@ -96,7 +96,7 @@ git push origin fix/login-error
 
 然后创建 PR → 添加 `patch` 标签（或不留标签，默认 patch）→ 合并
 
-结果：5.7.0 → 5.7.1
+结果：8.2.1 → 8.2.2
 
 ### 场景：添加新功能
 
@@ -111,7 +111,7 @@ git push origin feature/dark-mode
 
 然后创建 PR → 添加 `minor` 标签 → 合并
 
-结果：5.7.0 → 5.8.0
+结果：8.2.1 → 8.3.0
 
 ### 场景：重大重构
 
@@ -126,7 +126,7 @@ git push origin refactor/new-architecture
 
 然后创建 PR → 添加 `major` 标签 → 合并
 
-结果：5.7.0 → 6.0.0
+结果：8.2.1 → 9.0.0
 
 ## 注意事项
 
@@ -136,15 +136,15 @@ git push origin refactor/new-architecture
 
    ```bash
    # 错误！不要这样做
-   npm version 5.8.0
+   npm version 8.3.0
    ```
 
 2. **不要手动打 tag**
 
    ```bash
    # 错误！不要这样做
-   git tag v5.8.0
-   git push origin v5.8.0
+   git tag v8.3.0
+   git push origin v8.3.0
    ```
 
 3. **不要直接推送到 main**
@@ -202,16 +202,16 @@ git checkout main
 git pull origin main
 
 # 2. 手动更新版本（仅紧急情况）
-npm version 5.8.0 --no-git-tag-version
+npm version 8.3.0 --no-git-tag-version
 
 # 3. 提交并打 tag
 git add package.json package-lock.json
-git commit -m "chore(release): manually bump version to 5.8.0"
-git tag v5.8.0
+git commit -m "chore(release): manually bump version to 8.3.0"
+git tag v8.3.0
 
 # 4. 推送
 git push origin main
-git push origin v5.8.0
+git push origin v8.3.0
 ```
 
 ⚠️ **警告**：手动操作应该仅在自动化失效时使用！

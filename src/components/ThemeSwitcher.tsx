@@ -35,7 +35,7 @@ export function ThemeSwitcher() {
   const handleThemeChange = (themeKey: Theme) => {
     setTheme(themeKey);
     toast({
-      title: t('settings.themeChanged', 'Theme changed'),
+      title: t('settings.themeChanged'),
       description: t(themeLabelKeys[themeKey]),
     });
   };
@@ -70,22 +70,5 @@ export function ThemeSwitcher() {
         })}
       </DropdownMenuContent>
     </DropdownMenu>
-  );
-}
-
-// Quick toggle button for sidebar/header
-export function ThemeToggleButton() {
-  const { toggleTheme, resolvedTheme } = useTheme();
-
-  return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={toggleTheme}
-      className="h-9 w-9"
-      title={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-    >
-      {resolvedTheme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-    </Button>
   );
 }

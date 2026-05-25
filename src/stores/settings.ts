@@ -8,36 +8,29 @@
  */
 
 import { create } from 'zustand';
-import type { AppType, AppSettings } from '@/types';
-import type { AccentColor } from '@/lib/theme/colors';
-import { defaultAccentColor } from '@/lib/theme/colors';
+import type { AppType, AppSettings, AccentColor } from '@/types';
+import { normalizeAppSettings } from '@/lib/settings/migration';
 
 export type Theme = AppSettings['theme'];
 
-interface SettingsState {
-  // ============ 原 settings.ts ============
-  defaultApp: AppType | null;
+type SettingsStoreFields = Pick<
+  AppSettings,
+  | 'defaultApp'
+  | 'enableTitleMarquee'
+  | 'collapseBashBlocks'
+  | 'showThinkingContent'
+  | 'chatLayout'
+  | 'theme'
+  | 'accentColor'
+  | 'sidebarCollapsed'
+>;
 
-  // ============ 原 experience.ts ============
-  enableTitleMarquee: boolean;
-  collapseBashBlocks: boolean;
-  showThinkingContent: boolean;
-
-  // ============ 对话布局 ============
-  chatLayout: 'left' | 'bubble';
-
-  // ============ 原 ThemeProvider ============
-  theme: Theme;
-  accentColor: AccentColor;
-
-  // ============ Sidebar ============
-  sidebarCollapsed: boolean;
-
+interface SettingsActions {
   // ============ Actions ============
   // 通用更新方法
-  updateSetting: <K extends keyof SettingsState>(
+  updateSetting: <K extends keyof SettingsStoreFields>(
     key: K,
-    value: SettingsState[K]
+    value: SettingsStoreFields[K]
   ) => Promise<void>;
 
   // 原 settings actions
@@ -66,35 +59,28 @@ interface SettingsState {
   setSidebarCollapsed: (collapsed: boolean) => Promise<void>;
 }
 
+type SettingsState = SettingsStoreFields & SettingsActions;
+
 // 从 __INITIAL_SETTINGS__ 获取初始值
-const getInitialSettings = (): Partial<SettingsState> => {
-  if (typeof window !== 'undefined' && window.__INITIAL_SETTINGS__) {
-    const s = window.__INITIAL_SETTINGS__;
-    return {
-      // 原 settings
-      defaultApp: (s.defaultApp as AppType) || null,
-      // 原 experience
-      enableTitleMarquee: s.enableTitleMarquee ?? false,
-      collapseBashBlocks: s.collapseBashBlocks ?? true,
-      showThinkingContent: s.showThinkingContent ?? true,
-      // 对话布局
-      chatLayout: s.chatLayout ?? 'left',
-      // 原 ThemeProvider
-      theme: (s.theme as Theme) || 'system',
-      accentColor: (s.accentColor as AccentColor) || defaultAccentColor,
-      // Sidebar
-      sidebarCollapsed: s.sidebarCollapsed ?? false,
-    };
-  }
+const getInitialSettings = (): SettingsStoreFields => {
+  const s = normalizeAppSettings(
+    typeof window !== 'undefined' && window.__INITIAL_SETTINGS__ ? window.__INITIAL_SETTINGS__ : {}
+  );
+
   return {
-    defaultApp: null,
-    enableTitleMarquee: false,
-    collapseBashBlocks: true,
-    showThinkingContent: true,
-    chatLayout: 'left',
-    theme: 'system',
-    accentColor: defaultAccentColor,
-    sidebarCollapsed: false,
+    // 原 settings
+    defaultApp: s.defaultApp,
+    // 原 experience
+    enableTitleMarquee: s.enableTitleMarquee,
+    collapseBashBlocks: s.collapseBashBlocks,
+    showThinkingContent: s.showThinkingContent,
+    // 对话布局
+    chatLayout: s.chatLayout,
+    // 原 ThemeProvider
+    theme: s.theme,
+    accentColor: s.accentColor,
+    // Sidebar
+    sidebarCollapsed: s.sidebarCollapsed,
   };
 };
 
@@ -102,7 +88,6 @@ const getInitialSettings = (): Partial<SettingsState> => {
 const syncToMain = async (key: string, value: unknown): Promise<void> => {
   try {
     await window.electronAPI.invoke('settings:update', { [key]: value });
-    console.log('[SettingsStore] Saved', key, ':', value);
   } catch (error) {
     console.error('[SettingsStore] Failed to save', key, ':', error);
   }
@@ -118,14 +103,14 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   showThinkingContent: initialSettings.showThinkingContent ?? true,
   chatLayout: initialSettings.chatLayout ?? 'left',
   theme: initialSettings.theme ?? 'system',
-  accentColor: initialSettings.accentColor ?? defaultAccentColor,
+  accentColor: initialSettings.accentColor ?? 'default',
   sidebarCollapsed: initialSettings.sidebarCollapsed ?? false,
 
   // ============ 通用更新方法 ============
-  updateSetting: async <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => {
-    // 排除 actions 自身
-    if (typeof value === 'function') return;
-
+  updateSetting: async <K extends keyof SettingsStoreFields>(
+    key: K,
+    value: SettingsStoreFields[K]
+  ) => {
     set({ [key]: value } as Partial<SettingsState>);
     await syncToMain(key as string, value);
   },
@@ -203,8 +188,8 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
   },
 
   resetAccentColor: async () => {
-    set({ accentColor: defaultAccentColor });
-    await syncToMain('accentColor', defaultAccentColor);
+    set({ accentColor: 'default' });
+    await syncToMain('accentColor', 'default');
   },
 
   // ============ Sidebar Actions ============
@@ -219,6 +204,3 @@ export const useSettingsStore = create<SettingsState>()((set, get) => ({
     await syncToMain('sidebarCollapsed', collapsed);
   },
 }));
-
-// 为保持兼容，导出旧的 hook 名称（已废弃，建议迁移到 useSettingsStore）
-export const useExperienceStore = useSettingsStore;

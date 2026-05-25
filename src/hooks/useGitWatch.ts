@@ -8,7 +8,7 @@
  */
 
 import { useEffect, useRef, useCallback } from 'react';
-import { gitApi } from '@/lib/api';
+import { gitApi } from '@/lib/api/git';
 
 interface UseGitWatchOptions {
   dirPath: string | null;
@@ -29,12 +29,10 @@ export function useGitWatch({ dirPath, enabled, onChange }: UseGitWatchOptions):
       try {
         await gitApi.startWatching(path);
         isWatchingRef.current = true;
-        console.log('[GitWatch] Started watching:', path);
 
         // Register change listener
         const unsubscribe = gitApi.onChange((changedPath) => {
           if (changedPath === path) {
-            console.log('[GitWatch] Git changes detected in:', changedPath);
             onChange();
           }
         });
@@ -43,7 +41,6 @@ export function useGitWatch({ dirPath, enabled, onChange }: UseGitWatchOptions):
           unsubscribe();
           gitApi.stopWatching().catch(console.error);
           isWatchingRef.current = false;
-          console.log('[GitWatch] Stopped watching:', path);
         };
       } catch (err) {
         console.error('[GitWatch] Failed to start watching:', err);

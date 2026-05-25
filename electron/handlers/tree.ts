@@ -6,13 +6,7 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
-
-export interface TreeNode {
-  name: string;
-  path: string;
-  type: 'file' | 'directory';
-  children?: TreeNode[];
-}
+import type { TreeNode } from '../../src/types';
 
 const MAX_DEPTH = 3;
 const MAX_ITEMS_PER_DIR = 100;

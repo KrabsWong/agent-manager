@@ -66,6 +66,8 @@ interface ChatMessage {
   };
 }
 
+type GongfengEvent = NonNullable<NonNullable<ChatMessage['parser']>['events']>[number];
+
 interface ChatSessionFile {
   sessionId: string;
   sessionName: string;
@@ -82,7 +84,7 @@ interface ExtensionData {
   chatDir: string;
 }
 
-export class VSCodeExtensionSessionService {
+class VSCodeExtensionSessionService {
   /**
    * Check if VS Code extension data exists
    */
@@ -95,12 +97,7 @@ export class VSCodeExtensionSessionService {
     const workspaces = this.getWorkspaces();
     for (const workspace of workspaces) {
       for (const ext of SUPPORTED_EXTENSIONS) {
-        const extPath = path.join(
-          VSCODE_STORAGE_PATH,
-          workspace.hash,
-          ext.id,
-          ext.chatDir
-        );
+        const extPath = path.join(VSCODE_STORAGE_PATH, workspace.hash, ext.id, ext.chatDir);
         if (fs.existsSync(extPath)) {
           return true;
         }
@@ -208,10 +205,12 @@ export class VSCodeExtensionSessionService {
 
       const content = fs.readFileSync(sessionFilePath, 'utf-8');
       const data = JSON.parse(content) as ChatSessionFile;
-      
+
       // Debug log
-      log.debug(`Loaded session file: ${sessionFilePath}, messages count: ${data.messages?.length || 0}`);
-      
+      log.debug(
+        `Loaded session file: ${sessionFilePath}, messages count: ${data.messages?.length || 0}`
+      );
+
       return data;
     } catch (error) {
       log.warn(`Failed to load session file ${sessionFilePath}:`, error);
@@ -233,8 +232,8 @@ export class VSCodeExtensionSessionService {
     if (events && Array.isArray(events)) {
       // For user messages, look for TEXT_MESSAGE_CONTENT
       // For assistant messages, look for TEXT_MESSAGE_CONTENT
-      const textEvents = events.filter(e => 
-        e.type === 'TEXT_MESSAGE_CONTENT' && (e.rawEvent?.content || e.content)
+      const textEvents = events.filter(
+        (e) => e.type === 'TEXT_MESSAGE_CONTENT' && (e.rawEvent?.content || e.content)
       );
       if (textEvents.length > 0) {
         const lastEvent = textEvents[textEvents.length - 1];
@@ -261,18 +260,18 @@ export class VSCodeExtensionSessionService {
         const sessionData = this.loadSessionFile(sessionFilePath);
 
         const messageCount = sessionData?.messages?.length || 0;
-        
+
         // Get first user message and last assistant message for preview
         let firstMessage = '';
         let lastMessage = '';
-        
+
         if (sessionData?.messages && sessionData.messages.length > 0) {
           // Find first user message
-          const firstUserMsg = sessionData.messages.find(m => m.role === 'user');
+          const firstUserMsg = sessionData.messages.find((m) => m.role === 'user');
           if (firstUserMsg) {
             firstMessage = this.extractMessagePreview(firstUserMsg);
           }
-          
+
           // Find last assistant message
           for (let i = sessionData.messages.length - 1; i >= 0; i--) {
             if (sessionData.messages[i].role === 'assistant') {
@@ -324,10 +323,13 @@ export class VSCodeExtensionSessionService {
       }
 
       // Debug log the raw messages
-      log.debug(`Parsing session ${sessionId}, raw messages:`, sessionData.messages.map(m => ({ role: m.role, contentLength: m.content?.length })));
+      log.debug(
+        `Parsing session ${sessionId}, raw messages:`,
+        sessionData.messages.map((m) => ({ role: m.role, contentLength: m.content?.length }))
+      );
 
       const messages = this.parseMessages(sessionData.messages, sessionData.model);
-      
+
       log.debug(`Parsed messages count: ${messages.length}`);
 
       return {
@@ -352,7 +354,7 @@ export class VSCodeExtensionSessionService {
    * Parse Gongfeng Copilot events from parser.events array or JSON Lines content
    * Extracts actual text content and tool calls from event stream
    */
-  private parseGongfengEvents(events: any[]): {
+  private parseGongfengEvents(events: GongfengEvent[]): {
     textContent: string;
     reasoningContent: string;
     toolCalls: Array<{ name: string; input: Record<string, unknown>; output?: string }>;
@@ -367,15 +369,21 @@ export class VSCodeExtensionSessionService {
       switch (event.type) {
         case 'TEXT_MESSAGE_CONTENT':
           // Actual AI response text
-          if (event.rawEvent?.content || event.content) {
-            textParts.push(event.rawEvent?.content || event.content);
+          {
+            const content = event.rawEvent?.content || event.content;
+            if (content) {
+              textParts.push(String(content));
+            }
           }
           break;
 
         case 'THINKING_TEXT_MESSAGE_CONTENT':
           // AI reasoning/thinking process
-          if (event.rawEvent?.content || event.content) {
-            reasoningParts.push(event.rawEvent?.content || event.content);
+          {
+            const content = event.rawEvent?.content || event.content;
+            if (content) {
+              reasoningParts.push(String(content));
+            }
           }
           break;
 
@@ -397,8 +405,11 @@ export class VSCodeExtensionSessionService {
           // Tool call started - store for later matching with result
           if (event.rawEvent?.name || event.toolCallName) {
             toolCalls.push({
-              name: event.rawEvent?.name || event.toolCallName,
-              input: event.rawEvent?.arguments || event.rawEvent?.document || {},
+              name: String(event.rawEvent?.name || event.toolCallName),
+              input: (event.rawEvent?.arguments || event.rawEvent?.document || {}) as Record<
+                string,
+                unknown
+              >,
             });
           }
           break;
@@ -423,9 +434,7 @@ export class VSCodeExtensionSessionService {
             const lastTool = toolCalls[toolCalls.length - 1];
             const content = event.rawEvent?.content || event.content;
             if (content && !lastTool.output) {
-              lastTool.output = typeof content === 'string'
-                ? content
-                : JSON.stringify(content);
+              lastTool.output = typeof content === 'string' ? content : JSON.stringify(content);
             }
           }
           break;
@@ -457,12 +466,12 @@ export class VSCodeExtensionSessionService {
     toolCalls: Array<{ name: string; input: Record<string, unknown>; output?: string }>;
   } {
     // Try to parse as JSON Lines first
-    const lines = content.split('\n').filter(line => line.trim());
-    const events: any[] = [];
+    const lines = content.split('\n').filter((line) => line.trim());
+    const events: GongfengEvent[] = [];
 
     for (const line of lines) {
       try {
-        events.push(JSON.parse(line));
+        events.push(JSON.parse(line) as GongfengEvent);
       } catch {
         // Not valid JSON, ignore
       }
@@ -525,9 +534,9 @@ export class VSCodeExtensionSessionService {
           });
           break;
 
-        case 'assistant':
+        case 'assistant': {
           // Check for Gongfeng's parser.events array (new format)
-          const parserEvents = (msg as any).parser?.events;
+          const parserEvents = msg.parser?.events;
           if (parserEvents && Array.isArray(parserEvents)) {
             const parsed = this.parseGongfengEvents(parserEvents);
 
@@ -572,7 +581,12 @@ export class VSCodeExtensionSessionService {
             if (parsed.textContent.trim()) {
               // If we already have an assistant message with reasoning, merge them
               const lastMsg = result[result.length - 1];
-              if (lastMsg && lastMsg.type === 'assistant' && lastMsg.reasoning_content && !lastMsg.content) {
+              if (
+                lastMsg &&
+                lastMsg.type === 'assistant' &&
+                lastMsg.reasoning_content &&
+                !lastMsg.content
+              ) {
                 lastMsg.content = parsed.textContent;
               } else {
                 result.push({
@@ -629,13 +643,15 @@ export class VSCodeExtensionSessionService {
               type: 'tool_use',
               timestamp,
               tool_name: toolCall.name || 'tool',
-              tool_input: toolCall.arguments ? (() => {
-                try {
-                  return JSON.parse(toolCall.arguments);
-                } catch {
-                  return { args: toolCall.arguments };
-                }
-              })() : {},
+              tool_input: toolCall.arguments
+                ? (() => {
+                    try {
+                      return JSON.parse(toolCall.arguments);
+                    } catch {
+                      return { args: toolCall.arguments };
+                    }
+                  })()
+                : {},
               content: msg.content || '',
               model: currentModel,
             });
@@ -649,6 +665,7 @@ export class VSCodeExtensionSessionService {
             });
           }
           break;
+        }
 
         case 'system':
           result.push({

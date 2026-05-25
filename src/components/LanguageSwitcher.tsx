@@ -26,13 +26,12 @@ export function LanguageSwitcher() {
     // Persist to electron-store
     try {
       await window.electronAPI.invoke('settings:update', { language: value });
-      console.log('[LanguageSwitcher] Language saved:', value);
     } catch (error) {
       console.error('[LanguageSwitcher] Failed to save language:', error);
     }
 
     toast({
-      title: t('settings.languageChanged', 'Language changed'),
+      title: t('settings.languageChanged'),
       description: languages.find((l) => l.code === value)?.name,
     });
   };

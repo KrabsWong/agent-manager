@@ -22,7 +22,7 @@
 
    ```bash
    # 使用 homebrew 提供的命令生成模板
-   brew create --cask https://github.com/KrabsWong/agent-manager/releases/download/v5.6.0/Yes-Sessions-5.6.0-arm64.dmg
+   brew create --cask https://github.com/yes-sessions/yes-sessions-electron/releases/download/v8.2.1/Yes-Sessions-8.2.1-arm64.dmg
 
    # 或者手动创建
    mkdir -p Casks
@@ -33,7 +33,7 @@
 
    ```bash
    # 下载文件并计算校验值
-   curl -L -o yes-sessions.dmg https://github.com/KrabsWong/agent-manager/releases/download/v5.6.0/Yes-Sessions-5.6.0-arm64.dmg
+   curl -L -o yes-sessions.dmg https://github.com/yes-sessions/yes-sessions-electron/releases/download/v8.2.1/Yes-Sessions-8.2.1-arm64.dmg
    shasum -a 256 yes-sessions.dmg
 
    # 或者使用 brew 命令
@@ -44,13 +44,13 @@
 
    ```ruby
    cask "yes-sessions" do
-     version "5.6.0"
+     version "8.2.1"
      sha256 "YOUR_SHA256_HERE"  # 替换为实际计算的值
 
-     url "https://github.com/KrabsWong/agent-manager/releases/download/v#{version}/Yes-Sessions-#{version}-arm64.dmg"
+     url "https://github.com/yes-sessions/yes-sessions-electron/releases/download/v#{version}/Yes-Sessions-#{version}-arm64.dmg"
      name "Yes Sessions"
      desc "AI Session Manager - Browse and resume your AI conversations"
-     homepage "https://github.com/KrabsWong/agent-manager"
+     homepage "https://github.com/yes-sessions/yes-sessions-electron"
 
      livecheck do
        url :url
@@ -84,7 +84,7 @@
 7. **提交 PR**
    ```bash
    git add Casks/yes-sessions.rb
-   git commit -m "Add Yes Sessions 5.6.0"
+   git commit -m "Add Yes Sessions 8.2.1"
    git push origin main
    ```
    然后访问 GitHub 创建 Pull Request
@@ -127,8 +127,8 @@
 ```bash
 #!/bin/bash
 
-VERSION="5.6.0"
-REPO="KrabsWong/agent-manager"
+VERSION="8.2.1"
+REPO="yes-sessions/yes-sessions-electron"
 
 # 计算 arm64 版本的 SHA256
 curl -sL "https://github.com/${REPO}/releases/download/v${VERSION}/Yes-Sessions-${VERSION}-arm64.dmg" | shasum -a 256 | cut -d' ' -f1
@@ -160,7 +160,7 @@ chmod +x scripts/update-homebrew.sh
 
 ```bash
 # 修改版本号和 SHA256
-brew bump-cask-pr yes-sessions --version 5.7.0
+brew bump-cask-pr yes-sessions --version 8.2.2
 ```
 
 ### Q: 支持自动更新吗？

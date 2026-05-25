@@ -6,22 +6,18 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useSettingsStore, type Theme } from '@/stores/settings';
-import {
-  type AccentColor,
-  applyAccentColor,
-  resetAccentColor,
-} from '@/lib/theme/colors';
+import { type AccentColor, applyAccentColor, resetAccentColor } from '@/lib/theme/colors';
 
 type ResolvedTheme = 'light' | 'dark';
 
 interface ThemeContextType {
   theme: Theme;
   resolvedTheme: ResolvedTheme;
-  setTheme: (theme: Theme) => void;
-  toggleTheme: () => void;
+  setTheme: (theme: Theme) => Promise<void>;
+  toggleTheme: () => Promise<void>;
   accentColor: AccentColor;
-  setAccentColor: (color: AccentColor) => void;
-  resetAccentColor: () => void;
+  setAccentColor: (color: AccentColor) => Promise<void>;
+  resetAccentColor: () => Promise<void>;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -90,22 +86,9 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, [storeTheme, storeAccentColor]);
 
-  // 包装 actions 以保持 API 兼容性
-  const setTheme = async (theme: Theme) => {
-    await storeSetTheme(theme);
-  };
-
-  const setAccentColor = async (color: AccentColor) => {
-    await storeSetAccentColor(color);
-  };
-
   const handleResetAccentColor = async () => {
     await storeResetAccentColor();
     resetAccentColor();
-  };
-
-  const toggleTheme = () => {
-    storeToggleTheme();
   };
 
   return (
@@ -113,10 +96,10 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       value={{
         theme: storeTheme,
         resolvedTheme,
-        setTheme,
-        toggleTheme,
+        setTheme: storeSetTheme,
+        toggleTheme: storeToggleTheme,
         accentColor: storeAccentColor,
-        setAccentColor,
+        setAccentColor: storeSetAccentColor,
         resetAccentColor: handleResetAccentColor,
       }}
     >

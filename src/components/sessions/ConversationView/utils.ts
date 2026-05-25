@@ -7,17 +7,7 @@
 import * as Diff from 'diff';
 import type { SessionMessage } from '@/types/session';
 import type { MessageTurn, MessageTurnWithCount } from './types';
-import {
-  MAX_CODE_LINES,
-  CODE_LINES_INCREMENT,
-  MAX_SYNTAX_HIGHLIGHT_LINES,
-  MAX_TEXT_LENGTH,
-  MAX_MESSAGES_PER_BATCH,
-  MAX_TOOL_OUTPUT_LINES,
-  type ToolType,
-} from './types';
-
-export { MAX_CODE_LINES, CODE_LINES_INCREMENT, MAX_SYNTAX_HIGHLIGHT_LINES, MAX_TEXT_LENGTH, MAX_MESSAGES_PER_BATCH, MAX_TOOL_OUTPUT_LINES };
+import { type ToolType } from './types';
 
 /**
  * Parse Claude Code XML output format
@@ -117,7 +107,10 @@ export function parseClaudeCodeXML(content: string): Array<{
 /**
  * Group messages into turns
  */
-export function groupMessagesIntoTurns(messages: SessionMessage[], appType?: string): MessageTurn[] {
+export function groupMessagesIntoTurns(
+  messages: SessionMessage[],
+  appType?: string
+): MessageTurn[] {
   const turns: MessageTurn[] = [];
   let currentTurn: MessageTurn | null = null;
   let pendingToolCalls: SessionMessage[] = [];

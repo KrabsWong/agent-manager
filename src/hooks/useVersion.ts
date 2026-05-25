@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { appApi } from '@/lib/api';
+import { appApi } from '@/lib/api/app';
 
 /**
  * Hook to get the application version from package.json

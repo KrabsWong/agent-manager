@@ -12,12 +12,27 @@ import type { Session, SessionDetail, SessionMessage } from '@/types/session';
 
 const OPENCODE_DB_PATH = path.join(os.homedir(), '.local/share/opencode/opencode.db');
 
+interface SqliteStatement {
+  all(...params: unknown[]): unknown[];
+  get(...params: unknown[]): unknown;
+}
+
+interface SqliteDatabase {
+  prepare(sql: string): SqliteStatement;
+  close(): void;
+}
+
+type SqliteDatabaseConstructor = new (
+  filename: string,
+  options?: { readonly?: boolean }
+) => SqliteDatabase;
+
 // Dynamic import for better-sqlite3 (ESM compatible)
-let Database: any = null;
-async function getDatabase() {
+let Database: SqliteDatabaseConstructor | null = null;
+async function getDatabase(): Promise<SqliteDatabaseConstructor> {
   if (!Database) {
     const mod = await import('better-sqlite3');
-    Database = mod.default || mod;
+    Database = (mod.default || mod) as SqliteDatabaseConstructor;
   }
   return Database;
 }
@@ -40,8 +55,8 @@ interface OpenCodeMessageRow {
   data: string;
 }
 
-export class OpenCodeSessionService {
-  private db: any = null;
+class OpenCodeSessionService {
+  private db: SqliteDatabase | null = null;
 
   /**
    * Check if OpenCode database exists
@@ -57,7 +72,7 @@ export class OpenCodeSessionService {
   /**
    * Initialize database connection
    */
-  private async getDb() {
+  private async getDb(): Promise<SqliteDatabase | null> {
     if (this.db) return this.db;
 
     try {
@@ -302,9 +317,7 @@ export class OpenCodeSessionService {
     if (role === 'assistant' && toolCalls.length > 0) {
       const toolCall = toolCalls[0];
       const state = (toolCall.state as Record<string, unknown>) || {};
-      const toolOutput = state.output
-        ? { output: JSON.stringify(state.output) }
-        : undefined;
+      const toolOutput = state.output ? { output: JSON.stringify(state.output) } : undefined;
 
       return {
         type: 'tool_use',

@@ -4,15 +4,23 @@
  * 工具调用显示和交互
  */
 
-import { useState, useEffect, memo } from 'react';
-import { ChevronDown, ChevronRight, Sparkles, Wrench, Terminal, Puzzle, Bot, ListTodo } from 'lucide-react';
+import { useState, memo, type ComponentPropsWithoutRef, type ReactNode } from 'react';
+import {
+  ChevronDown,
+  ChevronRight,
+  Sparkles,
+  Wrench,
+  Terminal,
+  Puzzle,
+  Bot,
+  ListTodo,
+} from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useTranslation } from 'react-i18next';
 import { useSettingsStore } from '@/stores/settings';
 import { cn } from '@/lib/utils';
 import { SubAgentCard } from '../SubAgentCard';
-import { HighlightedText } from '../HighlightedText';
 import { MermaidDiagram } from './MermaidDiagram';
 import { CollapsibleCodeBlock } from './CodeBlock';
 import {
@@ -22,14 +30,19 @@ import {
   formatValue,
   formatTimestamp,
   computeDiff,
-  MAX_TOOL_OUTPUT_LINES,
 } from './utils';
 import type { ToolType } from './types';
 import type { ToolCallBlockProps, ToolInputDisplayProps, ToolOutputDisplayProps } from './types';
 
 // Markdown components for tool content
+type MarkdownCodeProps = ComponentPropsWithoutRef<'code'> & {
+  inline?: boolean;
+  className?: string;
+  children?: ReactNode;
+};
+
 const markdownComponents = {
-  code({ node, inline, className, children, ...props }: any) {
+  code({ inline, className, children, ...props }: MarkdownCodeProps) {
     const match = /language-(\w+)/.exec(className || '');
     const language = match ? match[1] : 'text';
     const content = String(children);
@@ -77,7 +90,6 @@ export const ToolCallBlock = memo(function ToolCallBlock({
   toolUse,
   toolResult,
   onViewSubAgentSession,
-  searchQuery = '',
 }: ToolCallBlockProps) {
   const { t } = useTranslation();
   const { collapseBashBlocks, showThinkingContent } = useSettingsStore();
@@ -88,29 +100,8 @@ export const ToolCallBlock = memo(function ToolCallBlock({
   const [isReasoningExpanded, setIsReasoningExpanded] = useState(false);
   const reasoningContent = toolUse?.reasoning_content || toolResult?.reasoning_content;
 
-  useEffect(() => {
-    if (!searchQuery || !reasoningContent) return;
-    const hasMatch = reasoningContent.toLowerCase().includes(searchQuery.toLowerCase());
-    if (hasMatch) {
-      setIsReasoningExpanded(true);
-    }
-  }, [searchQuery, reasoningContent]);
-
   const shouldDefaultCollapse = collapseBashBlocks;
   const [isExpanded, setIsExpanded] = useState(!shouldDefaultCollapse);
-
-  useEffect(() => {
-    if (!searchQuery) return;
-    const query = searchQuery.toLowerCase();
-    const inputStr = toolUse?.tool_input ? JSON.stringify(toolUse.tool_input).toLowerCase() : '';
-    const outputStr = (toolResult?.tool_output || toolUse?.tool_output)
-      ? JSON.stringify(toolResult?.tool_output || toolUse?.tool_output).toLowerCase()
-      : '';
-    const hasMatch = inputStr.includes(query) || outputStr.includes(query);
-    if (hasMatch) {
-      setIsExpanded(true);
-    }
-  }, [searchQuery, toolUse?.tool_input, toolResult?.tool_output, toolUse?.tool_output]);
 
   if (toolType === 'subagent') {
     return (
@@ -136,7 +127,7 @@ export const ToolCallBlock = memo(function ToolCallBlock({
           {toolResult?.model && (
             <span
               className="text-xs px-1.5 py-0.5 rounded bg-primary-muted text-primary"
-              title="AI Model"
+              title={t('sessions.model')}
             >
               {toolResult.model}
             </span>
@@ -169,8 +160,8 @@ export const ToolCallBlock = memo(function ToolCallBlock({
 
         {isExpanded && toolResult?.tool_output && (
           <div className="px-3 py-2">
-            <div className="text-xs text-muted-foreground mb-1">Output</div>
-            <ToolOutputDisplay output={toolResult.tool_output} searchQuery={searchQuery} />
+            <div className="text-xs text-muted-foreground mb-1">{t('sessions.output')}</div>
+            <ToolOutputDisplay output={toolResult.tool_output} />
           </div>
         )}
       </div>
@@ -188,9 +179,11 @@ export const ToolCallBlock = memo(function ToolCallBlock({
             className="w-full flex items-center gap-2 px-3 py-2 hover:bg-amber-100/50 dark:hover:bg-amber-900/20 transition-colors"
           >
             <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-            <span className="text-xs font-medium text-amber-700 dark:text-amber-400">Thinking</span>
+            <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
+              {t('sessions.thinking')}
+            </span>
             <span className="text-xs text-amber-600/70 dark:text-amber-500/70 ml-auto">
-              {isReasoningExpanded ? '收起' : '展开'}
+              {isReasoningExpanded ? t('sessions.collapse') : t('sessions.expand')}
             </span>
             {isReasoningExpanded ? (
               <ChevronDown className="h-3.5 w-3.5 text-amber-500" />
@@ -200,13 +193,9 @@ export const ToolCallBlock = memo(function ToolCallBlock({
           </button>
           {isReasoningExpanded && (
             <div className="px-3 pb-3 text-sm text-amber-800/80 dark:text-amber-300/80 leading-relaxed border-t border-amber-200/30 dark:border-amber-800/30 pt-2">
-              {searchQuery ? (
-                <HighlightedText text={reasoningContent} query={searchQuery} />
-              ) : (
-                <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
-                  {reasoningContent}
-                </ReactMarkdown>
-              )}
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                {reasoningContent}
+              </ReactMarkdown>
             </div>
           )}
         </div>
@@ -221,7 +210,7 @@ export const ToolCallBlock = memo(function ToolCallBlock({
         {(toolUse?.model || toolResult?.model) && (
           <span
             className="text-xs px-1.5 py-0.5 rounded bg-primary-muted text-primary"
-            title="AI Model"
+            title={t('sessions.model')}
           >
             {toolUse?.model || toolResult?.model}
           </span>
@@ -248,19 +237,15 @@ export const ToolCallBlock = memo(function ToolCallBlock({
 
       {isExpanded && toolUse?.tool_input && (
         <div className="px-3 py-2 border-b border-dashed">
-          <div className="text-xs text-muted-foreground mb-1">Input</div>
-          <ToolInputDisplay input={toolUse.tool_input} searchQuery={searchQuery} toolName={toolName} />
+          <div className="text-xs text-muted-foreground mb-1">{t('sessions.input')}</div>
+          <ToolInputDisplay input={toolUse.tool_input} toolName={toolName} />
         </div>
       )}
 
       {isExpanded && (toolResult?.tool_output || toolUse?.tool_output) && (
         <div className="px-3 py-2">
-          <div className="text-xs text-muted-foreground mb-1">Output</div>
-          <ToolOutputDisplay
-            output={toolResult?.tool_output || toolUse?.tool_output}
-            searchQuery={searchQuery}
-            toolName={toolName}
-          />
+          <div className="text-xs text-muted-foreground mb-1">{t('sessions.output')}</div>
+          <ToolOutputDisplay output={toolResult?.tool_output || toolUse?.tool_output} />
         </div>
       )}
     </div>
@@ -268,13 +253,15 @@ export const ToolCallBlock = memo(function ToolCallBlock({
 });
 
 // Tool Input Display
-function ToolInputDisplay({ input, searchQuery = '', toolName = '' }: ToolInputDisplayProps) {
+function ToolInputDisplay({ input, toolName = '' }: ToolInputDisplayProps) {
+  const { t } = useTranslation();
+
   if (!input || Object.keys(input).length === 0) {
-    return <span className="text-xs text-muted-foreground">No input</span>;
+    return <span className="text-xs text-muted-foreground">{t('sessions.noInput')}</span>;
   }
 
   if (toolName.toLowerCase() === 'edit') {
-    return <EditFileInputDisplay input={input} searchQuery={searchQuery} />;
+    return <EditFileInputDisplay input={input} />;
   }
 
   const entries = Object.entries(input);
@@ -286,13 +273,7 @@ function ToolInputDisplay({ input, searchQuery = '', toolName = '' }: ToolInputD
         return (
           <div key={key} className="flex gap-2">
             <span className="text-muted-foreground font-mono flex-shrink-0">{key}:</span>
-            <span className="font-mono break-all whitespace-pre-wrap">
-              {searchQuery ? (
-                <HighlightedText text={formattedValue} query={searchQuery} />
-              ) : (
-                formattedValue
-              )}
-            </span>
+            <span className="font-mono break-all whitespace-pre-wrap">{formattedValue}</span>
           </div>
         );
       })}
@@ -301,7 +282,7 @@ function ToolInputDisplay({ input, searchQuery = '', toolName = '' }: ToolInputD
 }
 
 // Edit File Input Display with Diff
-function EditFileInputDisplay({ input, searchQuery: _searchQuery }: { input: Record<string, unknown>; searchQuery?: string }) {
+function EditFileInputDisplay({ input }: { input: Record<string, unknown> }) {
   const { t } = useTranslation();
 
   const filePath = String(input.file_path || input.path || '');
@@ -317,9 +298,13 @@ function EditFileInputDisplay({ input, searchQuery: _searchQuery }: { input: Rec
   const addedCount = diff.filter((d) => d.type === 'added').length;
 
   const removedText =
-    removedCount === 1 ? `-1 ${t('sessions.line', 'line')}` : `-${removedCount} ${t('sessions.lines', 'lines')}`;
+    removedCount === 1
+      ? `-1 ${t('sessions.line', 'line')}`
+      : `-${removedCount} ${t('sessions.lines', 'lines')}`;
   const addedText =
-    addedCount === 1 ? `+1 ${t('sessions.line', 'line')}` : `+${addedCount} ${t('sessions.lines', 'lines')}`;
+    addedCount === 1
+      ? `+1 ${t('sessions.line', 'line')}`
+      : `+${addedCount} ${t('sessions.lines', 'lines')}`;
 
   return (
     <div className="space-y-3">
@@ -412,14 +397,11 @@ function EditFileInputDisplay({ input, searchQuery: _searchQuery }: { input: Rec
 }
 
 // Tool Output Display
-function ToolOutputDisplay({ output, searchQuery = '', toolName = '' }: ToolOutputDisplayProps) {
-  const { collapseBashBlocks } = useSettingsStore();
-  const isBashTool = toolName.toLowerCase() === 'bash';
-  const shouldDefaultCollapse = isBashTool && collapseBashBlocks;
-  const [isExpanded, setIsExpanded] = useState(!shouldDefaultCollapse);
+function ToolOutputDisplay({ output }: ToolOutputDisplayProps) {
+  const { t } = useTranslation();
 
   if (!output) {
-    return <span className="text-xs text-muted-foreground">No output</span>;
+    return <span className="text-xs text-muted-foreground">{t('sessions.noOutput')}</span>;
   }
 
   let text = '';
@@ -436,46 +418,16 @@ function ToolOutputDisplay({ output, searchQuery = '', toolName = '' }: ToolOutp
     const jsonStr = JSON.stringify(output, null, 2);
     return (
       <pre className="text-xs font-mono bg-primary-muted rounded p-2 whitespace-pre-wrap break-all">
-        {searchQuery ? <HighlightedText text={jsonStr} query={searchQuery} /> : jsonStr}
+        {jsonStr}
       </pre>
     );
   }
 
-  const lines = text.split('\n');
-  const totalLines = lines.length;
-  const shouldCollapse = false; // totalLines > MAX_TOOL_OUTPUT_LINES;
-  const displayText =
-    shouldCollapse && !isExpanded
-      ? lines.slice(0, MAX_TOOL_OUTPUT_LINES).join('\n') + '\n\n...'
-      : text;
-
   return (
     <div className="relative">
       <pre className="text-xs font-mono bg-primary-muted rounded p-2 whitespace-pre-wrap break-all">
-        {searchQuery ? <HighlightedText text={displayText} query={searchQuery} /> : displayText}
+        {text}
       </pre>
-      {shouldCollapse && !searchQuery && (
-        <div className="flex justify-center mt-2">
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="flex items-center gap-1.5 px-3 py-1 text-xs text-primary hover:text-primary-hover transition-colors border border-primary-border/50 rounded-full bg-primary-muted hover:bg-primary-light"
-          >
-            {isExpanded ? (
-              <>
-                <ChevronDown className="h-3.5 w-3.5" />
-                收起
-              </>
-            ) : (
-              <>
-                <ChevronDown className="h-3.5 w-3.5" />
-                展开全部 ({totalLines} 行)
-              </>
-            )}
-          </button>
-        </div>
-      )}
     </div>
   );
 }
-
-export default ToolCallBlock;

@@ -50,7 +50,7 @@ interface ProjectMessage {
   model?: string; // Model info at message level
 }
 
-export class ClaudeInternalSessionService {
+class ClaudeInternalSessionService {
   /**
    * Check if Claude Code Internal data exists
    */
