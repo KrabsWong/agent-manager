@@ -14,7 +14,8 @@ const sessionsKeys = {
   lists: () => [...sessionsKeys.all, 'list'] as const,
   list: (appType: AppType) => [...sessionsKeys.lists(), appType] as const,
   details: () => [...sessionsKeys.all, 'detail'] as const,
-  detail: (sessionId: string) => [...sessionsKeys.details(), sessionId] as const,
+  detail: (appType: AppType, sessionId: string) =>
+    [...sessionsKeys.details(), appType, sessionId] as const,
   stats: (appType: AppType) => [...sessionsKeys.all, 'stats', appType] as const,
   support: (appType: AppType) => [...sessionsKeys.all, 'support', appType] as const,
   terminalInfo: () => [...sessionsKeys.all, 'terminalInfo'] as const,
@@ -30,21 +31,25 @@ export function useSessions(appType: AppType) {
     queryKey: sessionsKeys.list(appType),
     queryFn: () => sessionsApi.getAll(appType),
     enabled: !!appType,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   });
 }
 
 /**
  * Hook to fetch session detail
- * Auto-refetches every 5 seconds to show real-time updates from CLI
+ * Auto-refetches recent sessions to show real-time updates from CLI
  */
-export function useSessionDetail(sessionId: string, appType: AppType) {
+export function useSessionDetail(sessionId: string, appType: AppType, updatedAt?: number) {
+  const isRecentlyActive = updatedAt ? Date.now() - updatedAt < 30 * 60 * 1000 : false;
+
   return useQuery({
-    queryKey: sessionsKeys.detail(sessionId),
+    queryKey: sessionsKeys.detail(appType, sessionId),
     queryFn: () => sessionsApi.getDetail(sessionId, appType),
     enabled: !!sessionId && !!appType,
-    refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
+    refetchInterval: isRecentlyActive ? 5000 : false,
     refetchIntervalInBackground: false, // Don't refetch when tab is in background
-    refetchOnWindowFocus: true, // Refetch when window regains focus
+    refetchOnWindowFocus: isRecentlyActive,
   });
 }
 
@@ -67,6 +72,8 @@ export function useSessionSupportStatus(appType: AppType) {
     queryKey: sessionsKeys.support(appType),
     queryFn: () => sessionsApi.getSupportStatus(appType),
     enabled: !!appType,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
   });
 }
 
@@ -94,7 +101,7 @@ export function useTerminalInfo() {
   return useQuery({
     queryKey: sessionsKeys.terminalInfo(),
     queryFn: () => sessionsApi.getTerminalInfo(),
-    refetchOnWindowFocus: true, // Refetch when window regains focus
-    staleTime: 0, // Always treat data as stale to ensure freshness
+    refetchOnWindowFocus: false,
+    staleTime: 60_000,
   });
 }

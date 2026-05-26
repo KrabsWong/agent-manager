@@ -4,7 +4,7 @@
  * View and browse local conversation sessions from AI applications
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   AlertCircle,
@@ -23,7 +23,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import {
   useSessions,
   useSessionDetail,
-  useSessionStats,
   useSessionSupportStatus,
   useResumeSession,
   useTerminalInfo,
@@ -118,11 +117,18 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
   }, [selectedSession, showNewMessagesTip]); // Re-bind when session or tip visibility changes
 
   const { data: sessions, isLoading, error } = useSessions(selectedApp);
-  const { data: stats } = useSessionStats(selectedApp);
+  const stats = useMemo(() => {
+    if (!sessions) return null;
+    return {
+      totalSessions: sessions.length,
+      totalMessages: sessions.reduce((sum, session) => sum + session.messageCount, 0),
+    };
+  }, [sessions]);
   const { data: supportStatus } = useSessionSupportStatus(selectedApp);
   const { data: sessionDetail, isLoading: isLoadingDetail } = useSessionDetail(
     selectedSession?.id || '',
-    selectedApp
+    selectedApp,
+    selectedSession?.updatedAt
   );
   const { data: terminalInfo } = useTerminalInfo();
   const resumeMutation = useResumeSession();

@@ -91,6 +91,7 @@ export const ToolCallBlock = memo(function ToolCallBlock({
   toolUse,
   toolResult,
   onViewSubAgentSession,
+  defaultCollapsed = false,
 }: ToolCallBlockProps) {
   const { t } = useTranslation();
   const { collapseBashBlocks, showThinkingContent } = useSettingsStore();
@@ -101,7 +102,7 @@ export const ToolCallBlock = memo(function ToolCallBlock({
   const [isReasoningExpanded, setIsReasoningExpanded] = useState(false);
   const reasoningContent = toolUse?.reasoning_content || toolResult?.reasoning_content;
 
-  const shouldDefaultCollapse = collapseBashBlocks;
+  const shouldDefaultCollapse = collapseBashBlocks || defaultCollapsed;
   const [isExpanded, setIsExpanded] = useState(!shouldDefaultCollapse);
 
   if (toolType === 'subagent') {

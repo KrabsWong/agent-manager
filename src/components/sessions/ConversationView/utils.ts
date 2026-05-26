@@ -115,6 +115,46 @@ export function groupMessagesIntoTurns(
   let currentTurn: MessageTurn | null = null;
   let pendingToolCalls: SessionMessage[] = [];
   const isClaudeCode = appType === 'claude';
+  type ToolCallPair = MessageTurn['toolCalls'][number];
+  const pendingPairs: ToolCallPair[] = [];
+  const pendingByCallId = new Map<string, ToolCallPair>();
+  const pendingByToolName = new Map<string, ToolCallPair[]>();
+
+  const rememberPendingPair = (pair: ToolCallPair): void => {
+    pendingPairs.push(pair);
+    if (pair.toolUse?.callId) {
+      pendingByCallId.set(pair.toolUse.callId, pair);
+    }
+    if (pair.toolUse?.tool_name) {
+      const pairs = pendingByToolName.get(pair.toolUse.tool_name) || [];
+      pairs.push(pair);
+      pendingByToolName.set(pair.toolUse.tool_name, pairs);
+    }
+  };
+
+  const forgetPendingPair = (pair: ToolCallPair): void => {
+    const pendingIndex = pendingPairs.indexOf(pair);
+    if (pendingIndex >= 0) {
+      pendingPairs.splice(pendingIndex, 1);
+    }
+
+    if (pair.toolUse?.callId && pendingByCallId.get(pair.toolUse.callId) === pair) {
+      pendingByCallId.delete(pair.toolUse.callId);
+    }
+
+    if (pair.toolUse?.tool_name) {
+      const pairs = pendingByToolName.get(pair.toolUse.tool_name);
+      if (pairs) {
+        const nameIndex = pairs.indexOf(pair);
+        if (nameIndex >= 0) {
+          pairs.splice(nameIndex, 1);
+        }
+        if (pairs.length === 0) {
+          pendingByToolName.delete(pair.toolUse.tool_name);
+        }
+      }
+    }
+  };
 
   for (let i = 0; i < messages.length; i++) {
     const message = messages[i];
@@ -150,17 +190,21 @@ export function groupMessagesIntoTurns(
       case 'tool_use':
         if (currentTurn) {
           pendingToolCalls.push(message);
-          currentTurn.toolCalls.push({
+          const toolCall = {
             toolUse: message,
             toolResult: null,
-          });
+          };
+          currentTurn.toolCalls.push(toolCall);
+          rememberPendingPair(toolCall);
         } else {
+          const toolCall = { toolUse: message, toolResult: null };
           turns.push({
             userMessage: null,
-            toolCalls: [{ toolUse: message, toolResult: null }],
+            toolCalls: [toolCall],
             assistantMessage: null,
             systemMessages: [],
           });
+          rememberPendingPair(toolCall);
         }
         break;
 
@@ -174,6 +218,7 @@ export function groupMessagesIntoTurns(
           );
           if (pendingIndex >= 0) {
             currentTurn.toolCalls[pendingIndex].toolResult = message;
+            forgetPendingPair(currentTurn.toolCalls[pendingIndex]);
             // Also remove from pendingToolCalls if present
             const pendingToolIndex = pendingToolCalls.findIndex(
               (tc) => tc.callId === message.callId
@@ -192,46 +237,46 @@ export function groupMessagesIntoTurns(
           );
           if (pendingIndex >= 0) {
             currentTurn.toolCalls[pendingIndex].toolResult = message;
+            forgetPendingPair(currentTurn.toolCalls[pendingIndex]);
             pendingToolCalls.splice(pendingIndex, 1);
             matched = true;
           } else {
             const firstPending = currentTurn.toolCalls.find((tc) => !tc.toolResult);
             if (firstPending) {
               firstPending.toolResult = message;
+              forgetPendingPair(firstPending);
               matched = true;
             }
           }
         }
 
-        // Try to match in previous turns if not matched in current turn
+        // Try indexed pending calls if not matched in current turn.
         if (!matched) {
-          for (const turn of turns) {
-            // First try to match by callId
-            if (message.callId) {
-              const orphanedByCallId = turn.toolCalls.find(
-                (tc) => tc.toolUse?.callId === message.callId && !tc.toolResult
-              );
-              if (orphanedByCallId) {
-                orphanedByCallId.toolResult = message;
-                matched = true;
-                break;
-              }
-            }
-            // Fall back to tool_name matching
-            const orphanedToolCall = turn.toolCalls.find(
-              (tc) => tc.toolUse && !tc.toolResult && tc.toolUse.tool_name === message.tool_name
-            );
-            if (orphanedToolCall) {
-              orphanedToolCall.toolResult = message;
-              matched = true;
-              break;
-            }
-            const firstOrphaned = turn.toolCalls.find((tc) => tc.toolUse && !tc.toolResult);
-            if (firstOrphaned) {
-              firstOrphaned.toolResult = message;
-              matched = true;
-              break;
-            }
+          const pendingById = message.callId ? pendingByCallId.get(message.callId) : undefined;
+          if (pendingById && !pendingById.toolResult) {
+            pendingById.toolResult = message;
+            forgetPendingPair(pendingById);
+            matched = true;
+          }
+        }
+
+        if (!matched && message.tool_name) {
+          const pendingByName = pendingByToolName
+            .get(message.tool_name)
+            ?.find((pair) => pair.toolUse && !pair.toolResult);
+          if (pendingByName) {
+            pendingByName.toolResult = message;
+            forgetPendingPair(pendingByName);
+            matched = true;
+          }
+        }
+
+        if (!matched) {
+          const firstPending = pendingPairs.find((pair) => pair.toolUse && !pair.toolResult);
+          if (firstPending) {
+            firstPending.toolResult = message;
+            forgetPendingPair(firstPending);
+            matched = true;
           }
         }
 
@@ -248,31 +293,6 @@ export function groupMessagesIntoTurns(
           }
         }
 
-        if (isClaudeCode && message.tool_output && currentTurn) {
-          const output = message.tool_output;
-          let content = '';
-
-          if (typeof output.output === 'string') {
-            content = output.output;
-          } else if (output.content && Array.isArray(output.content)) {
-            content = output.content
-              .filter((item: { type: string; text?: string }) => item.type === 'text')
-              .map((item: { text?: string }) => item.text || '')
-              .join('\n');
-          }
-
-          if (content) {
-            if (currentTurn.assistantMessage) {
-              currentTurn.assistantMessage.content += '\n\n' + content;
-            } else {
-              currentTurn.assistantMessage = {
-                type: 'assistant',
-                timestamp: message.timestamp,
-                content: content,
-              };
-            }
-          }
-        }
         break;
       }
 

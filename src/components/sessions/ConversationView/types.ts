@@ -62,6 +62,7 @@ export interface ToolCallBlockProps {
   toolUse: SessionMessage | null;
   toolResult: SessionMessage | null;
   onViewSubAgentSession?: (sessionId: string, appType: string) => void;
+  defaultCollapsed?: boolean;
 }
 
 export interface FileAttachmentProps {
