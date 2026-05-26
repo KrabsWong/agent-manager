@@ -403,6 +403,10 @@ export function getToolType(toolName: string): ToolType {
  * Get tool display name
  */
 export function getToolDisplayName(toolName: string): string {
+  if (toolName.startsWith('mcp:')) {
+    return `MCP ${toolName.slice(4)}`;
+  }
+
   const displayNames: Record<string, string> = {
     read: 'Read File',
     write: 'Write File',

@@ -128,4 +128,20 @@ describe('ConversationView', () => {
     expect(container.textContent).toContain('The package is yes-sessions.');
     unmount(root);
   });
+
+  it('keeps embedded local image data URLs in assistant markdown', () => {
+    const imageDataUrl =
+      'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjwvc3ZnPg==';
+    const messages: SessionMessage[] = [
+      message({ type: 'user', content: 'Show image' }),
+      message({ type: 'assistant', content: `![Preview](${imageDataUrl})` }),
+    ];
+
+    const { container, root } = render(<ConversationView messages={messages} appType="codex" />);
+
+    const img = container.querySelector('img[alt="Preview"]') as HTMLImageElement | null;
+    expect(img).toBeTruthy();
+    expect(img?.getAttribute('src')).toBe(imageDataUrl);
+    unmount(root);
+  });
 });

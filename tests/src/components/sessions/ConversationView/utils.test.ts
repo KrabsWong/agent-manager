@@ -5,6 +5,7 @@ import {
   formatTimestamp,
   formatValue,
   getLanguageFromPath,
+  getToolDisplayName,
   getToolSummary,
   getToolType,
   groupMessagesIntoTurns,
@@ -120,6 +121,8 @@ describe('ConversationView utils', () => {
   it('classifies and summarizes common tools', () => {
     expect(getToolType('Read')).toBe('filesystem');
     expect(getToolType('Bash')).toBe('code');
+    expect(getToolType('mcp:node_repl.js')).toBe('mcp');
+    expect(getToolDisplayName('mcp:node_repl.js')).toBe('MCP node_repl.js');
     expect(getToolType('SpawnAgent')).toBe('subagent');
     expect(getToolType('EnterPlanMode')).toBe('plan');
     expect(getToolSummary('read', { file_path: '/tmp/package.json' })).toBe('package.json');
