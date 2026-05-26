@@ -36,6 +36,11 @@ interface CodexSessionMeta {
   model_provider?: string;
 }
 
+interface ParseMessagesOptions {
+  embedLocalImages?: boolean;
+  localImageRoots?: string[];
+}
+
 class CodexSessionService {
   isAvailable(): boolean {
     return fs.existsSync(CODEX_SESSIONS_PATH);
@@ -68,12 +73,17 @@ class CodexSessionService {
       if (!filePath) return null;
 
       const lines = this.readJsonl(filePath);
+      if (this.isInternalReviewSession(lines)) return null;
+
       const meta = this.extractSessionMeta(lines);
       const id = meta.id || this.extractSessionIdFromFilePath(filePath);
       if (!id) return null;
 
       const indexEntry = indexById.get(id);
-      const messages = this.parseMessages(lines);
+      const messages = this.parseMessages(lines, {
+        embedLocalImages: true,
+        localImageRoots: this.getLocalImageRoots(meta.cwd),
+      });
       const stats = fs.statSync(filePath);
       const createdAt = this.toTime(meta.timestamp) || stats.birthtimeMs || stats.mtimeMs;
       const updatedAt =
@@ -184,6 +194,7 @@ class CodexSessionService {
   ): Session | null {
     const lines = this.readJsonl(filePath);
     if (lines.length === 0) return null;
+    if (this.isInternalReviewSession(lines)) return null;
 
     const meta = this.extractSessionMeta(lines);
     const id = meta.id || this.extractSessionIdFromFilePath(filePath);
@@ -234,7 +245,17 @@ class CodexSessionService {
     return (record?.payload || {}) as CodexSessionMeta;
   }
 
-  private parseMessages(records: CodexRecord[]): SessionMessage[] {
+  private isInternalReviewSession(records: CodexRecord[]): boolean {
+    return records.some((record) => {
+      if (record.type !== 'turn_context') return false;
+      return record.payload?.model === 'codex-auto-review';
+    });
+  }
+
+  private parseMessages(
+    records: CodexRecord[],
+    options: ParseMessagesOptions = {}
+  ): SessionMessage[] {
     const messages: SessionMessage[] = [];
     const pendingToolCalls = new Map<string, SessionMessage>();
     let currentModel: string | undefined;
@@ -261,7 +282,10 @@ class CodexSessionService {
         if (role !== 'user' && role !== 'assistant') continue;
 
         const rawContent = this.extractContentText(payload.content);
-        const content = role === 'user' ? this.normalizeUserContent(rawContent) : rawContent;
+        const content =
+          role === 'user'
+            ? this.normalizeUserContent(rawContent)
+            : this.normalizeAssistantContent(rawContent, options);
         if (!content) continue;
 
         messages.push({
@@ -287,7 +311,7 @@ class CodexSessionService {
       }
 
       if (payloadType === 'function_call') {
-        const toolName = typeof payload.name === 'string' ? payload.name : 'tool';
+        const toolName = this.getToolName(payload);
         const callId = typeof payload.call_id === 'string' ? payload.call_id : undefined;
         const toolInput = this.parseToolArguments(payload.arguments);
         const message: SessionMessage = {
@@ -306,10 +330,32 @@ class CodexSessionService {
         continue;
       }
 
+      if (payloadType === 'custom_tool_call') {
+        const toolName = this.getToolName(payload);
+        const callId = typeof payload.call_id === 'string' ? payload.call_id : undefined;
+        const toolInput = this.parseCustomToolInput(toolName, payload.input);
+        const message: SessionMessage = {
+          type: 'tool_use',
+          timestamp,
+          tool_name: toolName,
+          tool_input: toolInput,
+          callId,
+          model: currentModel,
+          metadata: this.getStatusMetadata(payload),
+        };
+
+        messages.push(message);
+        if (callId) {
+          pendingToolCalls.set(callId, message);
+        }
+        continue;
+      }
+
       if (payloadType === 'function_call_output') {
         const callId = typeof payload.call_id === 'string' ? payload.call_id : undefined;
         const toolUse = callId ? pendingToolCalls.get(callId) : undefined;
-        const output = typeof payload.output === 'string' ? payload.output : this.stringify(payload.output);
+        const output =
+          typeof payload.output === 'string' ? payload.output : this.stringify(payload.output);
 
         messages.push({
           type: 'tool_result',
@@ -318,6 +364,23 @@ class CodexSessionService {
           tool_output: { output },
           callId,
           model: currentModel,
+        });
+        continue;
+      }
+
+      if (payloadType === 'custom_tool_call_output') {
+        const callId = typeof payload.call_id === 'string' ? payload.call_id : undefined;
+        const toolUse = callId ? pendingToolCalls.get(callId) : undefined;
+        const output = this.extractCustomToolOutput(payload.output);
+
+        messages.push({
+          type: 'tool_result',
+          timestamp,
+          tool_name: toolUse?.tool_name || this.getToolName(payload),
+          tool_output: { output },
+          callId,
+          model: currentModel,
+          metadata: this.getStatusMetadata(payload),
         });
         continue;
       }
@@ -348,12 +411,114 @@ class CodexSessionService {
       return '';
     }
 
+    if (trimmed.startsWith('<skill>') || trimmed.startsWith('<skill ')) {
+      return '';
+    }
+
+    if (trimmed.startsWith('The following is the Codex agent history')) {
+      return '';
+    }
+
+    if (
+      trimmed.startsWith('<environment_context>') ||
+      trimmed.startsWith('<permissions instructions>') ||
+      trimmed.startsWith('<app-context>') ||
+      trimmed.startsWith('<collaboration_mode>') ||
+      trimmed.startsWith('<skills_instructions>') ||
+      trimmed.startsWith('<plugins_instructions>') ||
+      trimmed.startsWith('<INSTRUCTIONS>')
+    ) {
+      return '';
+    }
+
     if (trimmed.startsWith('<goal_context>')) {
       const objectiveMatch = trimmed.match(/<objective>\n?([\s\S]*?)\n?<\/objective>/);
       return objectiveMatch?.[1]?.trim() || '';
     }
 
     return content;
+  }
+
+  private normalizeAssistantContent(content: string, options: ParseMessagesOptions): string {
+    if (!options.embedLocalImages) {
+      return content;
+    }
+
+    return this.embedLocalMarkdownImages(content, options.localImageRoots || []);
+  }
+
+  private embedLocalMarkdownImages(content: string, roots: string[]): string {
+    if (!content.includes('![') || roots.length === 0) {
+      return content;
+    }
+
+    return content.replace(/(!\[[^\]]*]\()([^)\s]+)(\))/g, (match, prefix, imagePath, suffix) => {
+      if (!path.isAbsolute(imagePath)) {
+        return match;
+      }
+
+      const dataUrl = this.readLocalImageDataUrl(imagePath, roots);
+      return dataUrl ? `${prefix}${dataUrl}${suffix}` : match;
+    });
+  }
+
+  private readLocalImageDataUrl(filePath: string, roots: string[]): string | null {
+    const ext = path.extname(filePath).slice(1).toLowerCase();
+    const mimeType = this.getImageMimeType(ext);
+    if (!mimeType) {
+      return null;
+    }
+
+    try {
+      const resolvedPath = fs.realpathSync(filePath);
+      const resolvedRoots = roots
+        .map((root) => {
+          try {
+            return fs.realpathSync(root);
+          } catch {
+            return null;
+          }
+        })
+        .filter((root): root is string => Boolean(root));
+
+      if (!this.isPathInsideAnyRoot(resolvedPath, resolvedRoots)) {
+        return null;
+      }
+
+      const stats = fs.statSync(resolvedPath);
+      if (!stats.isFile() || stats.size > 10 * 1024 * 1024) {
+        return null;
+      }
+
+      const data = fs.readFileSync(resolvedPath);
+      return `data:${mimeType};base64,${data.toString('base64')}`;
+    } catch {
+      return null;
+    }
+  }
+
+  private getLocalImageRoots(cwd?: string): string[] {
+    return [cwd, CODEX_HOME_PATH].filter((item): item is string => Boolean(item));
+  }
+
+  private getImageMimeType(ext: string): string | null {
+    const mimeTypes: Record<string, string> = {
+      png: 'image/png',
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      gif: 'image/gif',
+      webp: 'image/webp',
+      svg: 'image/svg+xml',
+      bmp: 'image/bmp',
+      ico: 'image/x-icon',
+      avif: 'image/avif',
+    };
+
+    return mimeTypes[ext] || null;
+  }
+
+  private isPathInsideAnyRoot(filePath: string, roots: string[]): boolean {
+    return roots.some((root) => filePath === root || filePath.startsWith(root + path.sep));
   }
 
   private extractReasoningText(payload: Record<string, unknown>): string {
@@ -391,6 +556,47 @@ class CodexSessionService {
     }
 
     return { arguments: argumentsValue };
+  }
+
+  private parseCustomToolInput(toolName: string, inputValue: unknown): Record<string, unknown> {
+    if (toolName === 'apply_patch' && typeof inputValue === 'string') {
+      return { patch: inputValue };
+    }
+
+    return this.parseToolArguments(inputValue);
+  }
+
+  private extractCustomToolOutput(outputValue: unknown): string {
+    if (typeof outputValue !== 'string') {
+      return this.stringify(outputValue);
+    }
+
+    try {
+      const parsed = JSON.parse(outputValue) as { output?: unknown };
+      if (typeof parsed.output === 'string') {
+        return parsed.output;
+      }
+    } catch {
+      // Fall through to the raw output string.
+    }
+
+    return outputValue;
+  }
+
+  private getToolName(payload: Record<string, unknown>): string {
+    const name = typeof payload.name === 'string' ? payload.name : 'tool';
+    const namespace = typeof payload.namespace === 'string' ? payload.namespace : '';
+
+    if (namespace.startsWith('mcp__')) {
+      const serverName = namespace.replace(/^mcp__/, '').replace(/__$/, '');
+      return `mcp:${serverName}.${name}`;
+    }
+
+    return name;
+  }
+
+  private getStatusMetadata(payload: Record<string, unknown>): SessionMessage['metadata'] {
+    return typeof payload.status === 'string' ? { subtype: payload.status } : undefined;
   }
 
   private stringify(value: unknown): string {
@@ -437,9 +643,9 @@ class CodexSessionService {
   }
 
   private extractSessionIdFromFilePath(filePath: string): string | null {
-    const match = path.basename(filePath).match(
-      /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.jsonl$/i
-    );
+    const match = path
+      .basename(filePath)
+      .match(/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.jsonl$/i);
     return match?.[1] || null;
   }
 }

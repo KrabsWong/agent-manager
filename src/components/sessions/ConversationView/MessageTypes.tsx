@@ -25,6 +25,7 @@ import { APP_LABELS } from '@/config/apps';
 import { parseMessageContent, hasSpecialParser } from '../parsers';
 import { MermaidDiagram } from './MermaidDiagram';
 import { CollapsibleCodeBlock } from './CodeBlock';
+import { markdownUrlTransform } from './markdown';
 import { parseClaudeCodeXML, formatTimestamp, getLanguageFromPath } from './utils';
 import type { AppType } from '@/types';
 import type {
@@ -269,7 +270,11 @@ function ParsedContentBlock({ item }: ParsedContentBlockProps) {
 
   return (
     <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:break-words [&_p]:overflow-wrap-anywhere [&_pre]:bg-[#1e1e1e] [&_pre]:p-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto [&_*]:break-words [&_*]:overflow-wrap-anywhere">
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={markdownComponents}
+        urlTransform={markdownUrlTransform}
+      >
         {item.content}
       </ReactMarkdown>
     </div>
@@ -305,7 +310,11 @@ function FileAttachment({ path, type, content }: FileAttachmentProps) {
       {isExpanded && (
         <div className="border-t">
           <div className="px-3 py-2 prose prose-sm dark:prose-invert max-w-none [&_pre]:bg-[#1e1e1e] [&_pre]:p-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto">
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={markdownComponents}
+              urlTransform={markdownUrlTransform}
+            >
               {content}
             </ReactMarkdown>
           </div>
@@ -503,7 +512,11 @@ export const AssistantMessage = memo(function AssistantMessage({
           </button>
           {isReasoningExpanded && (
             <div className="px-3 pb-3 text-sm text-amber-800/80 dark:text-amber-300/80 leading-relaxed prose prose-sm dark:prose-invert max-w-none [&_p]:break-words [&_pre]:bg-[#1e1e1e] [&_pre]:p-0 [&_pre]:whitespace-pre-wrap [&_pre]:break-words [&_pre]:overflow-x-auto border-t border-amber-200/50 dark:border-amber-800/50 pt-2">
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={markdownComponents}
+                urlTransform={markdownUrlTransform}
+              >
                 {reasoningContent}
               </ReactMarkdown>
             </div>
@@ -516,7 +529,11 @@ export const AssistantMessage = memo(function AssistantMessage({
           <ClaudeCodeXMLViewer data={parsedXML} />
         ) : (
           <>
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              components={markdownComponents}
+              urlTransform={markdownUrlTransform}
+            >
               {content}
             </ReactMarkdown>
           </>

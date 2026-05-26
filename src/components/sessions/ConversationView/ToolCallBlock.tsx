@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { SubAgentCard } from '../SubAgentCard';
 import { MermaidDiagram } from './MermaidDiagram';
 import { CollapsibleCodeBlock } from './CodeBlock';
+import { markdownUrlTransform } from './markdown';
 import {
   getToolType,
   getToolDisplayName,
@@ -193,7 +194,11 @@ export const ToolCallBlock = memo(function ToolCallBlock({
           </button>
           {isReasoningExpanded && (
             <div className="px-3 pb-3 text-sm text-amber-800/80 dark:text-amber-300/80 leading-relaxed border-t border-amber-200/30 dark:border-amber-800/30 pt-2">
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={markdownComponents}
+                urlTransform={markdownUrlTransform}
+              >
                 {reasoningContent}
               </ReactMarkdown>
             </div>
