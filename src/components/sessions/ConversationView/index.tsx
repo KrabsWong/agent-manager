@@ -11,6 +11,7 @@
 
 import { useMemo, useRef, useEffect, memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { cn } from '@/lib/utils';
 import { getAppIcon } from '@/components/AppIcons';
 import { APP_LABELS } from '@/config/apps';
@@ -22,6 +23,10 @@ import { groupMessagesIntoTurnsWithCount, verifyMessageCount } from './utils';
 import { SystemMessage, UserMessage, AssistantMessage } from './MessageTypes';
 import { ToolCallBlock } from './ToolCallBlock';
 import { useSettingsStore } from '@/stores/settings';
+
+const VIRTUALIZE_TURN_THRESHOLD = 150;
+const VIRTUALIZE_MESSAGE_THRESHOLD = 800;
+const COLLAPSE_TOOL_CALLS_THRESHOLD = 25;
 
 // Conversation Turn Component
 const ConversationTurn = memo(function ConversationTurn({
@@ -89,6 +94,7 @@ const ConversationTurn = memo(function ConversationTurn({
                   toolUse={toolCall.toolUse}
                   toolResult={toolCall.toolResult}
                   onViewSubAgentSession={onViewSubAgentSession}
+                  defaultCollapsed={turn.toolCalls.length > COLLAPSE_TOOL_CALLS_THRESHOLD}
                 />
               ))}
             </div>
@@ -171,6 +177,31 @@ export function ConversationView({
     [getScrollContainer]
   );
 
+  const shouldVirtualize =
+    turnsWithCount.length > VIRTUALIZE_TURN_THRESHOLD ||
+    messages.length > VIRTUALIZE_MESSAGE_THRESHOLD;
+  const userMessageTurnIndex = useMemo(() => {
+    const indexByMessageIndex = new Map<number, number>();
+    turnsWithCount.forEach((turn, turnIndex) => {
+      if (turn.userMessageOriginalIndex !== undefined) {
+        indexByMessageIndex.set(turn.userMessageOriginalIndex, turnIndex);
+      }
+    });
+    return indexByMessageIndex;
+  }, [turnsWithCount]);
+
+  const turnVirtualizer = useVirtualizer({
+    count: turnsWithCount.length,
+    getScrollElement: getScrollContainer,
+    estimateSize: (index) => {
+      const turn = turnsWithCount[index];
+      if (!turn) return 180;
+      return 120 + turn.toolCalls.length * 96 + turn.systemMessages.length * 56;
+    },
+    overscan: 8,
+    enabled: shouldVirtualize,
+  });
+
   // Track scroll position
   useEffect(() => {
     const container = getScrollContainer();
@@ -245,6 +276,58 @@ export function ConversationView({
 
     prevLastTurnHashRef.current = currentLastTurnHash;
   }, [turnsWithCount, autoScrollToBottom]);
+
+  useEffect(() => {
+    if (!shouldVirtualize) return;
+
+    const handleJumpToUserMessage = (event: Event) => {
+      const messageIndex = (event as CustomEvent<{ messageIndex?: number }>).detail?.messageIndex;
+      if (messageIndex === undefined) return;
+
+      const turnIndex = userMessageTurnIndex.get(messageIndex);
+      if (turnIndex === undefined) return;
+
+      turnVirtualizer.scrollToIndex(turnIndex, { align: 'start' });
+    };
+
+    window.addEventListener('conversation:jump-to-user-message', handleJumpToUserMessage);
+    return () => {
+      window.removeEventListener('conversation:jump-to-user-message', handleJumpToUserMessage);
+    };
+  }, [shouldVirtualize, turnVirtualizer, userMessageTurnIndex]);
+
+  if (shouldVirtualize) {
+    return (
+      <div
+        className={cn('relative', className)}
+        style={{
+          height: `${turnVirtualizer.getTotalSize()}px`,
+        }}
+      >
+        {turnVirtualizer.getVirtualItems().map((virtualItem) => {
+          const turn = turnsWithCount[virtualItem.index];
+          return (
+            <div
+              key={virtualItem.key}
+              data-index={virtualItem.index}
+              ref={turnVirtualizer.measureElement}
+              className="absolute left-0 top-0 w-full py-3"
+              style={{
+                transform: `translateY(${virtualItem.start}px)`,
+              }}
+            >
+              <ConversationTurn
+                turn={turn}
+                appType={appType}
+                onViewSubAgentSession={onViewSubAgentSession}
+                userMessageIndex={turn.userMessageOriginalIndex}
+              />
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div className={cn('space-y-6 relative', className)}>

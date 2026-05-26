@@ -112,6 +112,12 @@ export function UserMessageNavigator({ messages, className }: UserMessageNavigat
         top: Math.max(0, scrollTop),
         behavior: 'smooth',
       });
+    } else {
+      window.dispatchEvent(
+        new CustomEvent('conversation:jump-to-user-message', {
+          detail: { messageIndex: item.originalIndex },
+        })
+      );
     }
   }, []);
 

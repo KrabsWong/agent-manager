@@ -15,6 +15,7 @@ import type { Session, SessionDetail, SessionMessage } from '@/types/session';
 const CODEX_HOME_PATH = path.join(os.homedir(), '.codex');
 const CODEX_SESSIONS_PATH = path.join(CODEX_HOME_PATH, 'sessions');
 const CODEX_SESSION_INDEX_PATH = path.join(CODEX_HOME_PATH, 'session_index.jsonl');
+const SESSION_FILES_CACHE_TTL_MS = 5000;
 
 interface CodexIndexEntry {
   id: string;
@@ -42,6 +43,10 @@ interface ParseMessagesOptions {
 }
 
 class CodexSessionService {
+  private sessionFilesCache: string[] | null = null;
+  private sessionFilesCacheAt = 0;
+  private sessionFileById = new Map<string, string>();
+
   isAvailable(): boolean {
     return fs.existsSync(CODEX_SESSIONS_PATH);
   }
@@ -55,6 +60,7 @@ class CodexSessionService {
       for (const filePath of files) {
         const session = this.parseSessionFileSummary(filePath, indexById);
         if (session) {
+          this.sessionFileById.set(session.id, filePath);
           sessions.push(session);
         }
       }
@@ -155,6 +161,13 @@ class CodexSessionService {
   }
 
   private getSessionFiles(): string[] {
+    if (
+      this.sessionFilesCache &&
+      Date.now() - this.sessionFilesCacheAt < SESSION_FILES_CACHE_TTL_MS
+    ) {
+      return this.sessionFilesCache;
+    }
+
     if (!fs.existsSync(CODEX_SESSIONS_PATH)) {
       return [];
     }
@@ -172,18 +185,32 @@ class CodexSessionService {
     };
 
     walk(CODEX_SESSIONS_PATH);
+    this.sessionFilesCache = files;
+    this.sessionFilesCacheAt = Date.now();
     return files;
   }
 
   private findSessionFile(sessionId: string): string | null {
+    const cachedPath = this.sessionFileById.get(sessionId);
+    if (cachedPath && fs.existsSync(cachedPath)) {
+      return cachedPath;
+    }
+
     return (
       this.getSessionFiles().find((filePath) => {
         const idFromName = this.extractSessionIdFromFilePath(filePath);
-        if (idFromName === sessionId) return true;
+        if (idFromName === sessionId) {
+          this.sessionFileById.set(sessionId, filePath);
+          return true;
+        }
 
         const lines = this.readJsonl(filePath, 1);
         const meta = this.extractSessionMeta(lines);
-        return meta.id === sessionId;
+        if (meta.id === sessionId) {
+          this.sessionFileById.set(sessionId, filePath);
+          return true;
+        }
+        return false;
       }) || null
     );
   }
@@ -200,7 +227,7 @@ class CodexSessionService {
     const id = meta.id || this.extractSessionIdFromFilePath(filePath);
     if (!id) return null;
 
-    const messages = this.parseMessages(lines);
+    const summary = this.parseSessionSummary(lines);
     const indexEntry = indexById.get(id);
     const stats = fs.statSync(filePath);
     const createdAt = this.toTime(meta.timestamp) || stats.birthtimeMs || stats.mtimeMs;
@@ -217,10 +244,67 @@ class CodexSessionService {
       directory: meta.cwd,
       createdAt,
       updatedAt,
-      messageCount: messages.length,
-      firstMessage: indexEntry?.thread_name || this.findFirstMessagePreview(messages),
-      lastMessage: this.findLastMessagePreview(messages),
+      messageCount: summary.messageCount,
+      firstMessage: indexEntry?.thread_name || summary.firstMessage,
+      lastMessage: summary.lastMessage,
     };
+  }
+
+  private parseSessionSummary(records: CodexRecord[]): {
+    messageCount: number;
+    firstMessage: string;
+    lastMessage: string;
+  } {
+    let messageCount = 0;
+    let firstMessage = '';
+    let lastMessage = '';
+
+    for (const record of records) {
+      if (record.type !== 'response_item') continue;
+      const payload = record.payload;
+      if (!payload) continue;
+
+      const preview = this.getSummaryPreview(payload);
+      if (!preview) continue;
+
+      messageCount++;
+      if (!firstMessage) {
+        firstMessage = preview;
+      }
+      lastMessage = preview;
+    }
+
+    return { messageCount, firstMessage, lastMessage };
+  }
+
+  private getSummaryPreview(payload: Record<string, unknown>): string {
+    const payloadType = payload.type;
+
+    if (payloadType === 'message') {
+      const role = payload.role;
+      if (role !== 'user' && role !== 'assistant') return '';
+
+      const rawContent = this.extractContentText(payload.content);
+      const content =
+        role === 'user'
+          ? this.normalizeUserContent(rawContent)
+          : this.normalizeAssistantContent(rawContent, {});
+      return content.substring(0, 100);
+    }
+
+    if (payloadType === 'reasoning') {
+      return this.extractReasoningText(payload).substring(0, 100);
+    }
+
+    if (payloadType === 'function_call' || payloadType === 'custom_tool_call') {
+      return `[Tool: ${this.getToolName(payload)}]`;
+    }
+
+    if (payloadType === 'function_call_output' || payloadType === 'custom_tool_call_output') {
+      return '[Tool result]';
+    }
+
+    return '';
   }
 
   private readJsonl(filePath: string, limit?: number): CodexRecord[] {

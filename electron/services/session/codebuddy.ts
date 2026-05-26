@@ -69,6 +69,8 @@ interface CodebuddyMessageEntry {
 }
 
 class CodebuddySessionService {
+  private sessionFileById = new Map<string, { path: string; projectCwd: string; size: number }>();
+
   /**
    * Check if Codebuddy data exists
    */
@@ -289,12 +291,9 @@ class CodebuddySessionService {
 
       // Count only displayable message types (matching getSessionDetail logic)
       let displayableCount = 0;
-      const typeCounts: Record<string, number> = {};
       for (const line of lines) {
         try {
           const entry = JSON.parse(line) as CodebuddyMessageEntry;
-          const key = `${entry.type}${entry.role ? `:${entry.role}` : ''}`;
-          typeCounts[key] = (typeCounts[key] || 0) + 1;
           // Only count types that are displayed in the UI
           if (
             (entry.type === 'message' && (entry.role === 'user' || entry.role === 'assistant')) ||
@@ -306,14 +305,6 @@ class CodebuddySessionService {
         } catch {
           // Skip invalid lines
         }
-      }
-
-      // Debug log for message count mismatch investigation
-      if (lines.length > 100) {
-        log.debug(
-          `[CodeBuddy] Session file: ${path.basename(filePath)}, Total lines: ${lines.length}, Displayable: ${displayableCount}, Type breakdown:`,
-          typeCounts
-        );
       }
 
       return {
@@ -388,9 +379,6 @@ class CodebuddySessionService {
             // Skip if we already have this session with more content
             const existingSession = sessionMap.get(sessionId);
             if (existingSession && existingSession.contentSize >= stats.size) {
-              log.debug(
-                `[CodeBuddy] Skipping duplicate session ${sessionId} at ${entryPath} (${stats.size} bytes), keeping ${existingSession.filePath} (${existingSession.contentSize} bytes)`
-              );
               continue;
             }
 
@@ -401,9 +389,6 @@ class CodebuddySessionService {
             // This avoids loading entire large files into memory just for listing
             let jsonlData: ReturnType<typeof this.readSessionJsonl>;
             if (stats.size > 100 * 1024) {
-              log.debug(
-                `[CodeBuddy] Large file detected (${stats.size} bytes), using stream read: ${entry}`
-              );
               jsonlData = await this.streamReadSessionInfo(entryPath);
             } else {
               jsonlData = this.readSessionJsonl(entryPath);
@@ -446,9 +431,6 @@ class CodebuddySessionService {
                 // Skip if we already have this session with more content
                 const existingSession = sessionMap.get(sessionId);
                 if (existingSession && existingSession.contentSize >= stats.size) {
-                  log.debug(
-                    `[CodeBuddy] Skipping duplicate subagent session ${sessionId} at ${subEntryPath} (${stats.size} bytes)`
-                  );
                   continue;
                 }
 
@@ -479,6 +461,14 @@ class CodebuddySessionService {
       // Convert map to array and sort by updatedAt desc
       const sessions = Array.from(sessionMap.values());
       sessions.sort((a, b) => b.updatedAt - a.updatedAt);
+      this.sessionFileById.clear();
+      for (const session of sessions) {
+        this.sessionFileById.set(session.id, {
+          path: session.filePath,
+          projectCwd: session.directory || '',
+          size: session.contentSize,
+        });
+      }
 
       // Remove the contentSize field before returning
       return sessions.map(({ contentSize: _, ...session }) => session);
@@ -498,41 +488,46 @@ class CodebuddySessionService {
         return null;
       }
 
-      const projectDirs = fs.readdirSync(PROJECTS_DIR);
-      const foundSessions: { path: string; projectCwd: string; size: number }[] = [];
+      const cachedSession = this.sessionFileById.get(sessionId);
+      const foundSessions: { path: string; projectCwd: string; size: number }[] =
+        cachedSession && fs.existsSync(cachedSession.path) ? [cachedSession] : [];
 
-      for (const projectDirName of projectDirs) {
-        const projectPath = path.join(PROJECTS_DIR, projectDirName);
+      if (foundSessions.length === 0) {
+        const projectDirs = fs.readdirSync(PROJECTS_DIR);
 
-        if (!fs.statSync(projectPath).isDirectory()) {
-          continue;
-        }
+        for (const projectDirName of projectDirs) {
+          const projectPath = path.join(PROJECTS_DIR, projectDirName);
 
-        // Check main directory
-        const entries = fs.readdirSync(projectPath);
-        for (const entry of entries) {
-          if (entry === `${sessionId}.jsonl`) {
-            const filePath = path.join(projectPath, entry);
-            const stats = fs.statSync(filePath);
-            foundSessions.push({
-              path: filePath,
-              projectCwd: this.decodeProjectDir(projectDirName),
-              size: stats.size,
-            });
+          if (!fs.statSync(projectPath).isDirectory()) {
+            continue;
           }
 
-          // Check subdirectories
-          const entryPath = path.join(projectPath, entry);
-          if (fs.statSync(entryPath).isDirectory()) {
-            const subEntries = fs.readdirSync(entryPath);
-            if (subEntries.includes(`${sessionId}.jsonl`)) {
-              const filePath = path.join(entryPath, `${sessionId}.jsonl`);
+          // Check main directory
+          const entries = fs.readdirSync(projectPath);
+          for (const entry of entries) {
+            if (entry === `${sessionId}.jsonl`) {
+              const filePath = path.join(projectPath, entry);
               const stats = fs.statSync(filePath);
               foundSessions.push({
                 path: filePath,
                 projectCwd: this.decodeProjectDir(projectDirName),
                 size: stats.size,
               });
+            }
+
+            // Check subdirectories
+            const entryPath = path.join(projectPath, entry);
+            if (fs.statSync(entryPath).isDirectory()) {
+              const subEntries = fs.readdirSync(entryPath);
+              if (subEntries.includes(`${sessionId}.jsonl`)) {
+                const filePath = path.join(entryPath, `${sessionId}.jsonl`);
+                const stats = fs.statSync(filePath);
+                foundSessions.push({
+                  path: filePath,
+                  projectCwd: this.decodeProjectDir(projectDirName),
+                  size: stats.size,
+                });
+              }
             }
           }
         }
@@ -545,10 +540,6 @@ class CodebuddySessionService {
       // Sort by size desc and pick the largest one (to avoid empty files)
       foundSessions.sort((a, b) => b.size - a.size);
       const foundSession = foundSessions[0];
-
-      log.info(
-        `[CodeBuddy] Found ${foundSessions.length} files for session ${sessionId}, using: ${foundSession.path} (${foundSession.size} bytes)`
-      );
 
       // Read and parse the session file
       const content = fs.readFileSync(foundSession.path, 'utf-8');
@@ -727,11 +718,6 @@ class CodebuddySessionService {
 
       const firstEntry = JSON.parse(lines[0]) as CodebuddyMessageEntry;
       const lastEntry = JSON.parse(lines[lines.length - 1]) as CodebuddyMessageEntry;
-
-      // Debug log for message count in getSessionDetail
-      log.debug(
-        `[CodeBuddy] getSessionDetail: ${sessionId}, Total lines: ${lines.length}, Parsed messages: ${messages.length}`
-      );
 
       return {
         id: sessionId,

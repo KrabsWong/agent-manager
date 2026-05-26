@@ -126,6 +126,155 @@ async function createCodebuddyFixture(options: { withGitChanges?: boolean } = {}
   };
 }
 
+async function createLargeCodebuddyFixture(options: { turns: number }): Promise<{
+  homeDir: string;
+  projectDir: string;
+  sessionId: string;
+}> {
+  const homeDir = await mkdtemp(path.join(os.tmpdir(), 'yes-sessions-e2e-large-home-'));
+  const projectDir = path.join(homeDir, 'large-fixture-project');
+  const codebuddyProjectDir = path.join(homeDir, '.codebuddy', 'projects', 'large-fixture-project');
+  const sessionId = 'large-fixture-session';
+  const start = Date.UTC(2026, 4, 25, 10, 0, 0);
+
+  await mkdir(projectDir, { recursive: true });
+  await mkdir(codebuddyProjectDir, { recursive: true });
+
+  const lines: unknown[] = [];
+  for (let index = 0; index < options.turns; index++) {
+    const timestamp = start + index * 3000;
+    const callId = `call-${index}`;
+    lines.push(
+      {
+        id: `user-${index}`,
+        timestamp,
+        type: 'message',
+        role: 'user',
+        cwd: projectDir,
+        providerData: { model: 'fixture-model' },
+        content: [
+          {
+            type: 'input_text',
+            text: `Large fixture request ${index}: ${'inspect '.repeat(8)}the project state.`,
+          },
+        ],
+      },
+      {
+        id: callId,
+        timestamp: timestamp + 500,
+        type: 'function_call',
+        name: 'Bash',
+        callId,
+        arguments: JSON.stringify({ command: `printf "turn ${index}"` }),
+      },
+      {
+        id: `result-${index}`,
+        timestamp: timestamp + 1000,
+        type: 'function_call_result',
+        name: 'Bash',
+        callId,
+        output: {
+          type: 'text',
+          text: Array.from(
+            { length: 12 },
+            (_, lineIndex) => `turn ${index} output ${lineIndex}`
+          ).join('\n'),
+        },
+      },
+      {
+        id: `assistant-${index}`,
+        timestamp: timestamp + 1500,
+        type: 'message',
+        role: 'assistant',
+        content: [
+          {
+            type: 'output_text',
+            text: `Large fixture response ${index}.\n\n${'- item\n'.repeat(6)}`,
+          },
+        ],
+      }
+    );
+  }
+
+  await writeFile(
+    path.join(codebuddyProjectDir, `${sessionId}.jsonl`),
+    lines.map((line) => JSON.stringify(line)).join('\n')
+  );
+
+  return {
+    homeDir,
+    projectDir: await realpath(projectDir),
+    sessionId,
+  };
+}
+
+async function createLargeOpenCodeFixture(options: { turns: number }): Promise<{
+  homeDir: string;
+  projectDir: string;
+  sessionId: string;
+}> {
+  const homeDir = await mkdtemp(path.join(os.tmpdir(), 'yes-sessions-e2e-opencode-home-'));
+  const projectDir = path.join(homeDir, 'opencode-fixture-project');
+  const dbDir = path.join(homeDir, '.local', 'share', 'opencode');
+  const dbPath = path.join(dbDir, 'opencode.db');
+  const sqlPath = path.join(homeDir, 'opencode-fixture.sql');
+  const sessionId = 'opencode-large-fixture-session';
+  const start = Date.UTC(2026, 4, 25, 11, 0, 0);
+
+  await mkdir(projectDir, { recursive: true });
+  await mkdir(dbDir, { recursive: true });
+
+  const escapeSql = (value: string): string => value.replace(/'/g, "''");
+  const sql: string[] = [
+    'CREATE TABLE session (id TEXT PRIMARY KEY, directory TEXT, title TEXT, time_created INTEGER, time_updated INTEGER, time_archived INTEGER, summary_additions INTEGER, summary_deletions INTEGER, summary_files INTEGER);',
+    'CREATE TABLE message (id TEXT PRIMARY KEY, session_id TEXT, time_created INTEGER, data TEXT);',
+    'CREATE TABLE part (id TEXT PRIMARY KEY, session_id TEXT, message_id TEXT, time_created INTEGER, data TEXT);',
+    `INSERT INTO session (id, directory, title, time_created, time_updated, time_archived, summary_additions, summary_deletions, summary_files) VALUES ('${sessionId}', '${escapeSql(projectDir)}', 'OpenCode large fixture', ${start}, ${
+      start + options.turns * 3000
+    }, NULL, 0, 0, 0);`,
+  ];
+
+  for (let index = 0; index < options.turns; index++) {
+    const userMessageId = `user-${index}`;
+    const assistantMessageId = `assistant-${index}`;
+    const timestamp = start + index * 3000;
+    const userData = JSON.stringify({ role: 'user', model: 'fixture-model' });
+    const assistantData = JSON.stringify({ role: 'assistant', model: 'fixture-model' });
+    const userPart = JSON.stringify({
+      type: 'text',
+      text: `OpenCode fixture request ${index}: ${'inspect '.repeat(8)}the project state.`,
+    });
+    const assistantPart = JSON.stringify({
+      type: 'text',
+      text: `OpenCode fixture response ${index}.\n\n${'- item\n'.repeat(8)}`,
+    });
+
+    sql.push(
+      `INSERT INTO message (id, session_id, time_created, data) VALUES ('${userMessageId}', '${sessionId}', ${timestamp}, '${escapeSql(
+        userData
+      )}');`,
+      `INSERT INTO part (id, session_id, message_id, time_created, data) VALUES ('user-part-${index}', '${sessionId}', '${userMessageId}', ${timestamp}, '${escapeSql(
+        userPart
+      )}');`,
+      `INSERT INTO message (id, session_id, time_created, data) VALUES ('${assistantMessageId}', '${sessionId}', ${
+        timestamp + 1000
+      }, '${escapeSql(assistantData)}');`,
+      `INSERT INTO part (id, session_id, message_id, time_created, data) VALUES ('assistant-part-${index}', '${sessionId}', '${assistantMessageId}', ${
+        timestamp + 1000
+      }, '${escapeSql(assistantPart)}');`
+    );
+  }
+
+  await writeFile(sqlPath, sql.join('\n'));
+  await execFileAsync('sqlite3', [dbPath, `.read ${sqlPath}`]);
+
+  return {
+    homeDir,
+    projectDir: await realpath(projectDir),
+    sessionId,
+  };
+}
+
 async function waitForMainWindow(app: ElectronApplication): Promise<Page> {
   const deadline = Date.now() + 15_000;
 
@@ -151,7 +300,30 @@ function expectSuccessfulResponse<T>(response: ApiResponse<T>, channel: string):
   return response.data as T;
 }
 
+async function selectApp(page: Page, appName: string): Promise<void> {
+  const selector = page.getByRole('combobox');
+  await selector.click();
+  const exactOption = page.getByRole('option', { name: appName, exact: true });
+  if ((await exactOption.count()) === 1) {
+    await exactOption.click();
+    return;
+  }
+
+  const matchingOptions = page.locator('[role="option"]').filter({ hasText: appName });
+  expect(await matchingOptions.count()).toBeGreaterThan(0);
+  await matchingOptions.nth(0).click();
+}
+
+async function selectCodebuddyApp(page: Page): Promise<void> {
+  await selectApp(page, 'Codebuddy');
+}
+
+async function selectOpenCodeApp(page: Page): Promise<void> {
+  await selectApp(page, 'OpenCode');
+}
+
 test('launches the built Electron app and serves core IPC channels', async () => {
+  const launchStartedAt = Date.now();
   const electronApp = await electron.launch({
     args: [appRoot],
     env: testEnv(),
@@ -159,6 +331,9 @@ test('launches the built Electron app and serves core IPC channels', async () =>
 
   try {
     const mainWindow = await waitForMainWindow(electronApp);
+    const mainWindowReadyMs = Date.now() - launchStartedAt;
+    console.log(`[perf] startup mainWindowReady=${mainWindowReadyMs}ms`);
+    expect(mainWindowReadyMs).toBeLessThan(5000);
 
     await expect
       .poll(() =>
@@ -296,6 +471,7 @@ test('renders a fixture Codebuddy session from list to conversation detail', asy
 
   try {
     const mainWindow = await waitForMainWindow(electronApp);
+    await selectCodebuddyApp(mainWindow);
     const sessionCard = mainWindow.locator(
       `[data-testid="session-card"][data-session-id="${fixture.sessionId}"]`
     );
@@ -328,6 +504,7 @@ test('opens file preview window and reads a fixture project file', async () => {
 
   try {
     const mainWindow = await waitForMainWindow(electronApp);
+    await selectCodebuddyApp(mainWindow);
     await expect(
       mainWindow.locator(`[data-testid="session-card"][data-session-id="${fixture.sessionId}"]`)
     ).toBeVisible();
@@ -364,6 +541,7 @@ test('opens git diff in the file preview window for a fixture repository change'
 
   try {
     const mainWindow = await waitForMainWindow(electronApp);
+    await selectCodebuddyApp(mainWindow);
     await expect(
       mainWindow.locator(`[data-testid="session-card"][data-session-id="${fixture.sessionId}"]`)
     ).toBeVisible();
@@ -382,6 +560,190 @@ test('opens git diff in the file preview window for a fixture repository change'
     await expect(previewWindow.getByTestId('git-diff-preview')).toBeVisible();
     await expect(previewWindow.getByTestId('git-diff-preview')).toContainText('"fixture": false');
     await expect(previewWindow.getByTestId('git-diff-preview')).toContainText('"fixture": true');
+  } finally {
+    await electronApp.close();
+    await rm(fixture.homeDir, { recursive: true, force: true });
+  }
+});
+
+test('opens and scrolls a large fixture session without visible jank', async () => {
+  const fixture = await createLargeCodebuddyFixture({ turns: 900 });
+  const electronApp = await electron.launch({
+    args: [appRoot],
+    env: testEnv({
+      HOME: fixture.homeDir,
+      USERPROFILE: fixture.homeDir,
+    }),
+  });
+
+  try {
+    const mainWindow = await waitForMainWindow(electronApp);
+    await selectCodebuddyApp(mainWindow);
+    const sessionCard = mainWindow.locator(
+      `[data-testid="session-card"][data-session-id="${fixture.sessionId}"]`
+    );
+    await expect(sessionCard).toBeVisible();
+
+    const openStartedAt = Date.now();
+    await sessionCard.click();
+
+    const conversation = mainWindow.getByTestId('conversation-detail');
+    await expect(conversation).toContainText('Large fixture request 0');
+    const openDurationMs = Date.now() - openStartedAt;
+
+    const scrollMetrics = await mainWindow.evaluate(async () => {
+      const container = document.querySelector<HTMLElement>('[data-testid="conversation-detail"]');
+      if (!container) {
+        throw new Error('conversation-detail not found');
+      }
+
+      return new Promise<{
+        frames: number;
+        maxFrameMs: number;
+        averageFrameMs: number;
+        longFrames: number;
+        scrollHeight: number;
+      }>((resolve) => {
+        const frameDeltas: number[] = [];
+        const totalFrames = 90;
+        let frame = 0;
+        let previous = performance.now();
+
+        const step = () => {
+          const now = performance.now();
+          frameDeltas.push(now - previous);
+          previous = now;
+          frame++;
+          container.scrollTop =
+            ((container.scrollHeight - container.clientHeight) * frame) / totalFrames;
+
+          if (frame < totalFrames) {
+            requestAnimationFrame(step);
+            return;
+          }
+
+          const maxFrameMs = Math.max(...frameDeltas);
+          const averageFrameMs =
+            frameDeltas.reduce((sum, delta) => sum + delta, 0) / frameDeltas.length;
+
+          resolve({
+            frames: frameDeltas.length,
+            maxFrameMs,
+            averageFrameMs,
+            longFrames: frameDeltas.filter((delta) => delta > 50).length,
+            scrollHeight: container.scrollHeight,
+          });
+        };
+
+        requestAnimationFrame(step);
+      });
+    });
+
+    console.log(
+      `[perf] large-session open=${openDurationMs}ms averageFrame=${scrollMetrics.averageFrameMs.toFixed(
+        1
+      )}ms maxFrame=${scrollMetrics.maxFrameMs.toFixed(1)}ms longFrames=${
+        scrollMetrics.longFrames
+      } scrollHeight=${scrollMetrics.scrollHeight}px`
+    );
+
+    expect(openDurationMs).toBeLessThan(1500);
+    expect(scrollMetrics.scrollHeight).toBeGreaterThan(5000);
+    expect(scrollMetrics.frames).toBe(90);
+    expect(scrollMetrics.averageFrameMs).toBeLessThan(25);
+    expect(scrollMetrics.longFrames).toBeLessThanOrEqual(3);
+  } finally {
+    await electronApp.close();
+    await rm(fixture.homeDir, { recursive: true, force: true });
+  }
+});
+
+test('opens and scrolls a large OpenCode fixture session without visible jank', async () => {
+  const fixture = await createLargeOpenCodeFixture({ turns: 900 });
+  const electronApp = await electron.launch({
+    args: [appRoot],
+    env: testEnv({
+      HOME: fixture.homeDir,
+      USERPROFILE: fixture.homeDir,
+    }),
+  });
+
+  try {
+    const mainWindow = await waitForMainWindow(electronApp);
+    await selectOpenCodeApp(mainWindow);
+    const sessionCard = mainWindow.locator(
+      `[data-testid="session-card"][data-session-id="${fixture.sessionId}"]`
+    );
+    await expect(sessionCard).toBeVisible();
+
+    const openStartedAt = Date.now();
+    await sessionCard.click();
+
+    const conversation = mainWindow.getByTestId('conversation-detail');
+    await expect(conversation).toContainText('OpenCode fixture request 0');
+    const openDurationMs = Date.now() - openStartedAt;
+
+    const scrollMetrics = await mainWindow.evaluate(async () => {
+      const container = document.querySelector<HTMLElement>('[data-testid="conversation-detail"]');
+      if (!container) {
+        throw new Error('conversation-detail not found');
+      }
+
+      return new Promise<{
+        frames: number;
+        maxFrameMs: number;
+        averageFrameMs: number;
+        longFrames: number;
+        scrollHeight: number;
+      }>((resolve) => {
+        const frameDeltas: number[] = [];
+        const totalFrames = 90;
+        let frame = 0;
+        let previous = performance.now();
+
+        const step = () => {
+          const now = performance.now();
+          frameDeltas.push(now - previous);
+          previous = now;
+          frame++;
+          container.scrollTop =
+            ((container.scrollHeight - container.clientHeight) * frame) / totalFrames;
+
+          if (frame < totalFrames) {
+            requestAnimationFrame(step);
+            return;
+          }
+
+          const maxFrameMs = Math.max(...frameDeltas);
+          const averageFrameMs =
+            frameDeltas.reduce((sum, delta) => sum + delta, 0) / frameDeltas.length;
+
+          resolve({
+            frames: frameDeltas.length,
+            maxFrameMs,
+            averageFrameMs,
+            longFrames: frameDeltas.filter((delta) => delta > 50).length,
+            scrollHeight: container.scrollHeight,
+          });
+        };
+
+        requestAnimationFrame(step);
+      });
+    });
+
+    console.log(
+      `[perf] opencode-large-session open=${openDurationMs}ms averageFrame=${scrollMetrics.averageFrameMs.toFixed(
+        1
+      )}ms maxFrame=${scrollMetrics.maxFrameMs.toFixed(1)}ms longFrames=${
+        scrollMetrics.longFrames
+      } scrollHeight=${scrollMetrics.scrollHeight}px`
+    );
+
+    expect(openDurationMs).toBeLessThan(1500);
+    expect(scrollMetrics.scrollHeight).toBeGreaterThan(5000);
+    expect(scrollMetrics.frames).toBe(90);
+    expect(scrollMetrics.averageFrameMs).toBeLessThan(25);
+    expect(scrollMetrics.longFrames).toBeLessThanOrEqual(3);
   } finally {
     await electronApp.close();
     await rm(fixture.homeDir, { recursive: true, force: true });
