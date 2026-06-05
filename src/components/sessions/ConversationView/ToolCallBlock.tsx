@@ -122,7 +122,7 @@ export const ToolCallBlock = memo(function ToolCallBlock({
       <div className="border border-primary-border rounded-lg overflow-hidden bg-primary-muted">
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full flex items-center gap-2 px-3 py-2 bg-primary-light border-b border-primary-border text-left cursor-pointer hover:bg-primary-muted transition-colors"
+          className="w-full flex items-center gap-2 px-3 py-2 bg-primary-light border-b border-primary-border text-left hover:bg-primary-muted transition-colors"
         >
           {getToolIcon(toolType)}
           <span className="font-medium text-sm">{getToolDisplayName(toolName)}</span>
@@ -209,7 +209,7 @@ export const ToolCallBlock = memo(function ToolCallBlock({
 
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center gap-2 px-3 py-2 bg-primary-light border-b border-primary-border text-left cursor-pointer hover:bg-primary-muted transition-colors"
+        className="w-full flex items-center gap-2 px-3 py-2 bg-primary-light border-b border-primary-border text-left hover:bg-primary-muted transition-colors"
       >
         {getToolIcon(toolType)}
         <span className="font-medium text-sm">{getToolDisplayName(toolName)}</span>

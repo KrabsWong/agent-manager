@@ -165,7 +165,7 @@ export function ConversationView({
   }, []);
 
   const autoScrollToBottom = useCallback(
-    (behavior: ScrollBehavior = 'smooth') => {
+    (behavior: ScrollBehavior = 'auto') => {
       const container = getScrollContainer();
       if (container) {
         container.scrollTo({
@@ -232,7 +232,7 @@ export function ConversationView({
       if (isAtBottomRef.current) {
         // Auto-scroll when new messages arrive and user is at bottom
         setTimeout(() => {
-          autoScrollToBottom('smooth');
+          autoScrollToBottom('auto');
         }, 50);
       }
       if (onNewMessages) {
@@ -246,7 +246,7 @@ export function ConversationView({
       // Content update (streaming)
       if (isAtBottomRef.current) {
         setTimeout(() => {
-          autoScrollToBottom('smooth');
+          autoScrollToBottom('auto');
         }, 50);
       }
     }
@@ -270,7 +270,7 @@ export function ConversationView({
 
     if (isAtBottomRef.current && (hasNewTurn || hasContentUpdate)) {
       setTimeout(() => {
-        autoScrollToBottom('smooth');
+        autoScrollToBottom('auto');
       }, 50);
     }
 

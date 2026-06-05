@@ -10,6 +10,11 @@ import { performanceMonitor } from './services/performance/monitor';
 import { registerSessionsHandlers } from './handlers/sessions';
 import { initializeGitWatcher } from './services/git-watcher';
 import { registerAppHandlers } from './handlers/app';
+import {
+  attachNativeContextMenu,
+  getWindowBackgroundColor,
+  restoreAndFocusWindow,
+} from './utils/native-window';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -100,8 +105,11 @@ const createWindow = () => {
       nodeIntegration: false,
     },
     titleBarStyle: 'hiddenInset',
+    backgroundColor: getWindowBackgroundColor(),
     show: false, // Don't show until ready
   });
+
+  attachNativeContextMenu(mainWindow);
 
   // Restore maximized state
   if (bounds.maximized) {
@@ -155,24 +163,20 @@ const createWindow = () => {
 
   // Show window when ready and close splash
   mainWindow.once('ready-to-show', () => {
-    // Ensure splash shows for at least 2.5 seconds
-    setTimeout(() => {
-      // Close splash window if exists
-      if (splashWindow && !splashWindow.isDestroyed()) {
-        splashWindow.close();
-        splashWindow = null;
-        log.info('Splash window closed');
-      }
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.close();
+      splashWindow = null;
+      log.info('Splash window closed');
+    }
 
-      mainWindow?.show();
+    mainWindow?.show();
 
-      // Check if first run
-      if (configStore.isFirstRun()) {
-        log.info('First run detected');
-        // Could show welcome dialog here
-        configStore.setFirstRunComplete();
-      }
-    }, 1500);
+    // Check if first run
+    if (configStore.isFirstRun()) {
+      log.info('First run detected');
+      // Could show welcome dialog here
+      configStore.setFirstRunComplete();
+    }
   });
 
   // Load app
@@ -230,7 +234,19 @@ const initializeApp = () => {
 };
 
 // App event handlers
-app.whenReady().then(initializeApp);
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+
+if (!gotSingleInstanceLock) {
+  app.quit();
+} else {
+  app.whenReady().then(initializeApp);
+
+  app.on('second-instance', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      restoreAndFocusWindow(mainWindow);
+    }
+  });
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
@@ -239,7 +255,9 @@ app.on('window-all-closed', () => {
 });
 
 app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    restoreAndFocusWindow(mainWindow);
+  } else if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
 });

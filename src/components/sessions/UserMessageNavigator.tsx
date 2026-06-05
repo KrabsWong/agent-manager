@@ -110,7 +110,7 @@ export function UserMessageNavigator({ messages, className }: UserMessageNavigat
 
       scrollContainer.scrollTo({
         top: Math.max(0, scrollTop),
-        behavior: 'smooth',
+        behavior: 'auto',
       });
     } else {
       window.dispatchEvent(
@@ -201,7 +201,7 @@ export function UserMessageNavigator({ messages, className }: UserMessageNavigat
 
         {/* Scrollable content - show all messages but limit visible height */}
         <div
-          className="overflow-y-auto scrollbar-thin scrollbar-thumb-border/50 scrollbar-track-transparent py-2 px-1.5"
+          className="overflow-y-auto py-2 px-1.5"
           style={{ maxHeight: `${MAX_VISIBLE_ITEMS * 32}px` }} // Max 8 items visible, scrollable
         >
           <div className="space-y-0.5">

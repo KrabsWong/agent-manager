@@ -19,8 +19,8 @@ export function Header({ selectedApp, sidebarCollapsed, onToggleSidebar }: Heade
 
   return (
     <>
-      {/* 顶部导航栏 - pl-[76px] 为 macOS 红黄绿按钮预留空间，z-50 确保在 drag region 之上 */}
-      <header className="h-10 border-b border-border/50 bg-card flex items-start justify-between pl-[76px] pr-4 pt-1.5 relative z-50">
+      {/* 顶部导航栏 - pl-[76px] 为 macOS 红黄绿按钮预留空间 */}
+      <header className="h-10 border-b border-border/50 bg-card flex items-start justify-between pl-[76px] pr-4 pt-1.5 relative z-50 app-drag-region app-chrome">
         {/* 左侧：[收起/展开按钮] [Yes Sessions] - [App图标+名字]（收起时） */}
         <div className="flex items-center gap-3">
           {/* 收起/展开按钮 */}

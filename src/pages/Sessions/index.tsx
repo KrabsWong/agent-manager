@@ -572,7 +572,7 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
                     if (scrollContainerRef.current) {
                       scrollContainerRef.current.scrollTo({
                         top: scrollContainerRef.current.scrollHeight,
-                        behavior: 'smooth',
+                        behavior: 'auto',
                       });
                     }
                     // Hide the tip

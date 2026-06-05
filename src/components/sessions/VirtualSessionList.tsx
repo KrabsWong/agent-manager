@@ -304,7 +304,7 @@ function DateHeader({
   const { t, i18n } = useTranslation();
 
   return (
-    <div className="w-full sticky top-0 bg-card z-10 py-2 px-2 flex items-center justify-between hover:bg-accent/50 rounded-md transition-colors">
+    <div className="w-full sticky top-0 bg-card z-10 py-2 px-2 flex items-center justify-between hover:bg-accent/50 rounded-md transition-colors app-chrome">
       <button onClick={onToggle} className="flex items-center gap-2 flex-1 text-left">
         {isCollapsed ? (
           <ChevronRight className="h-4 w-4 text-foreground" />
@@ -349,7 +349,7 @@ function DirectoryHeader({
   const parentPath = formatParentPath(dirKey);
 
   return (
-    <div className="w-full sticky top-0 bg-card z-10 py-2 px-2 flex items-center justify-between hover:bg-accent/50 rounded-md transition-colors">
+    <div className="w-full sticky top-0 bg-card z-10 py-2 px-2 flex items-center justify-between hover:bg-accent/50 rounded-md transition-colors app-chrome">
       <button onClick={onToggle} className="flex items-center gap-2 flex-1 text-left min-w-0">
         {isCollapsed ? (
           <ChevronRight className="h-4 w-4 text-foreground shrink-0" />
@@ -401,7 +401,7 @@ function SessionCard({ session, isSelected, onClick, viewMode }: SessionCardProp
       onClick={onClick}
       data-testid="session-card"
       data-session-id={session.id}
-      className={`w-full text-left py-1.5 px-2 rounded transition-all duration-150 relative group min-w-0 ${
+      className={`w-full text-left py-1.5 px-2 rounded transition-all duration-150 relative group min-w-0 app-chrome ${
         isSelected
           ? 'bg-primary-light text-primary shadow-sm'
           : 'hover:bg-accent/30 text-foreground'
@@ -503,7 +503,7 @@ export function VirtualSessionList({
         {/* Virtual List */}
         <div
           ref={parentRef}
-          className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent"
+          className="flex-1 overflow-auto"
           style={{ contain: 'strict' }}
         >
           <div

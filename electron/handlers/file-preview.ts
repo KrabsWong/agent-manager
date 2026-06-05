@@ -4,6 +4,11 @@ import path from 'path';
 import { ipcRegistry } from '../ipc/registry';
 import { optionalStringArg, stringArg, validateArgs } from '../ipc/validation';
 import { configStore } from '../utils/config-store';
+import {
+  attachNativeContextMenu,
+  getWindowBackgroundColor,
+  restoreAndFocusWindow,
+} from '../utils/native-window';
 
 const { app, BrowserWindow } = electron;
 
@@ -20,7 +25,7 @@ export function registerFilePreviewHandlers({ dirname }: RegisterFilePreviewHand
       const [dirPath, sessionTitle] = args as [string, string | undefined];
       const existing = filePreviewWindows.get(dirPath);
       if (existing && !existing.isDestroyed()) {
-        existing.focus();
+        restoreAndFocusWindow(existing);
         return { success: true };
       }
 
@@ -35,8 +40,11 @@ export function registerFilePreviewHandlers({ dirname }: RegisterFilePreviewHand
           nodeIntegration: false,
         },
         titleBarStyle: 'hiddenInset',
+        backgroundColor: getWindowBackgroundColor(),
         show: false,
       });
+
+      attachNativeContextMenu(win);
 
       win.on('closed', () => {
         filePreviewWindows.delete(dirPath);
