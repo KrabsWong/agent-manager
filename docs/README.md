@@ -5,7 +5,6 @@
 - `README.md`：项目定位、功能、开发命令和目录结构。
 - `docs/PROJECT_RESEARCH.md`：当前架构和功能基线。
 - `docs/PROJECT_ISSUES.md`：当前 review 结论、已处理事项和剩余风险。
-- `docs/VERSION_MANAGEMENT.md`：当前发布版本管理流程参考。
 - `docs/INSTALL_SCRIPT.md`：安装脚本行为参考。
 - `docs/HOMEBREW_CASK_GUIDE.md`：Homebrew 发布参考，示例版本需随 release 同步更新。
 

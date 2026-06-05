@@ -191,7 +191,7 @@ e2e/               # Playwright Electron 端到端烟测
    - `patch` - Bug 修复 (x.y.z)
 4. 合并 PR 后自动升级版本并触发 Release 构建
 
-详细文档：[docs/VERSION_MANAGEMENT.md](./docs/VERSION_MANAGEMENT.md)
+发布流程由 `.github/workflows/auto-version-bump.yml` 和 `.github/workflows/release.yml` 执行。
 
 ---
 
