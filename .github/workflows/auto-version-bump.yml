@@ -120,27 +120,38 @@ jobs:
           echo "✅ Version bumped to ${NEW_VERSION}"
 
       - name: Trigger Release workflow
+        uses: actions/github-script@v9
         env:
           WORKFLOW_PAT: ${{ secrets.WORKFLOW_PAT }}
-        run: |
-          NEW_VERSION=${{ steps.new-version.outputs.new_version }}
+        with:
+          github-token: ${{ secrets.WORKFLOW_PAT }}
+          script: |
+            const newVersion = '${{ steps.new-version.outputs.new_version }}';
+            const bumpType = '${{ steps.bump-type.outputs.bump_type }}';
+            const pr = context.payload.pull_request;
 
-          # 通过 GitHub API 直接触发 release workflow
-          # 比依赖 tag push 事件更可靠
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
-            -H "Authorization: token ${WORKFLOW_PAT}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/release.yml/dispatches" \
-            -d "{\"ref\":\"main\",\"inputs\":{\"tag\":\"v${NEW_VERSION}\"}}")
+            if (!process.env.WORKFLOW_PAT) {
+              core.setFailed('WORKFLOW_PAT 未配置，无法可靠触发 release workflow');
+              return;
+            }
 
-          HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-          if [ "$HTTP_CODE" = "204" ]; then
-            echo "✅ Release workflow 已触发 (v${NEW_VERSION})"
-          else
-            echo "❌ 触发失败，HTTP 状态码: $HTTP_CODE"
-            echo "$RESPONSE"
-            exit 1
-          fi
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'release.yml',
+              ref: 'main',
+              inputs: {
+                tag: `v${newVersion}`,
+                source_pr_number: String(pr.number),
+                source_pr_title: pr.title,
+                source_pr_url: pr.html_url,
+                source_pr_author: pr.user?.login || '',
+                source_pr_merge_commit: pr.merge_commit_sha || '',
+                source_bump_type: bumpType,
+              },
+            });
+
+            core.info(`✅ Release workflow 已触发 (v${newVersion})`);
 
       - name: Comment on PR
         uses: actions/github-script@v9
@@ -148,13 +159,14 @@ jobs:
           script: |
             const newVersion = '${{ steps.new-version.outputs.new_version }}';
             const bumpType = '${{ steps.bump-type.outputs.bump_type }}';
+            const prUrl = context.payload.pull_request.html_url;
 
             try {
               await github.rest.issues.createComment({
                 issue_number: context.issue.number,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                body: `🎉 **版本已自动更新**\n\n- 版本类型: **${bumpType}**\n- 新版本: **v${newVersion}**\n- Tag: [v${newVersion}](../../releases/tag/v${newVersion})\n\nRelease 构建将在几分钟后完成。`
+                body: `🎉 **版本已自动更新**\n\n- 版本类型: **${bumpType}**\n- 新版本: **v${newVersion}**\n- 来源 PR: ${prUrl}\n- Tag: [v${newVersion}](../../releases/tag/v${newVersion})\n\nRelease 构建将在几分钟后完成，Release notes 会包含本 PR 的标题、链接和版本对比链接。`
               });
             } catch (error) {
               console.log('⚠️ 添加评论失败:', error.message);
