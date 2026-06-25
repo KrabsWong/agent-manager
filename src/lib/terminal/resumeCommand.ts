@@ -10,9 +10,6 @@ export function buildResumeCommand(appType: AppType, sessionId: string): ResumeC
     case 'claude':
       return { command: 'claude', args: [`--resume=${sessionId}`] };
 
-    case 'claude-internal':
-      return { command: 'claude-internal', args: ['--resume', sessionId] };
-
     case 'opencode':
       return { command: 'opencode', args: ['-s', sessionId] };
 

@@ -34,11 +34,9 @@ const enTranslations = {
     collapse: 'Collapse',
     apps: {
       claude: 'Claude Code',
-      'claude-internal': 'Claude Code Internal',
       codex: 'Codex CLI',
       opencode: 'OpenCode',
       codebuddy: 'Codebuddy',
-      'vscode-extension': 'VSC Codebuddy Extension',
     },
   },
   app: {
@@ -305,11 +303,9 @@ const zhTranslations = {
     collapse: '收起',
     apps: {
       claude: 'Claude Code',
-      'claude-internal': 'Claude Code Internal',
       codex: 'Codex CLI',
       opencode: 'OpenCode',
       codebuddy: 'Codebuddy',
-      'vscode-extension': 'VSC Codebuddy 扩展',
     },
   },
   app: {

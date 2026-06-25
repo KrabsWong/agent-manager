@@ -195,8 +195,6 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
   // Handle resuming session
   const handleResumeSession = async () => {
     if (!selectedSession) return;
-    // VS Code Extension doesn't support resume
-    if (selectedApp === 'vscode-extension') return;
 
     await resumeMutation.mutateAsync({
       sessionId: selectedSession.id,
@@ -206,9 +204,7 @@ export function SessionsPage({ selectedApp, onAppChange }: SessionsPageProps) {
   };
 
   // Check if an external terminal supports resume.
-  // VS Code Extension doesn't support resume since it's not a CLI tool
   const canResume =
-    selectedApp !== 'vscode-extension' &&
     (terminalInfo?.ghosttyInstalled ||
       terminalInfo?.kittyInstalled ||
       terminalInfo?.preferred === 'terminal');

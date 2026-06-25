@@ -7,11 +7,9 @@
 import { ipcRegistry } from '../ipc/registry';
 import { sessionServiceRegistry } from '../services/session/registry';
 import { claudeSessionService } from '../services/session/claude';
-import { claudeInternalSessionService } from '../services/session/claude-internal';
 import { opencodeSessionService } from '../services/session/opencode';
 import { codebuddySessionService } from '../services/session/codebuddy';
 import { codexSessionService } from '../services/session/codex';
-import { vscodeExtensionSessionService } from '../services/session/vscode-extension';
 import { resumeSessionInTerminal, getTerminalInfo } from '../services/terminal/launcher';
 import { APP_SESSION_SUPPORT } from '../../src/config/apps';
 import type { AppSupportSummary, AppType, SessionStatsSummary } from '../../src/types';
@@ -39,16 +37,6 @@ function registerSessionServices(): void {
     isAvailable: () => claudeSessionService.isAvailable(),
   });
 
-  // Claude Internal
-  sessionServiceRegistry.register({
-    appType: 'claude-internal',
-    getAllSessions: () => claudeInternalSessionService.getAllSessions(),
-    getSessionDetail: (sessionId: string) =>
-      claudeInternalSessionService.getSessionDetail(sessionId),
-    getStats: () => claudeInternalSessionService.getStats(),
-    isAvailable: () => claudeInternalSessionService.isAvailable(),
-  });
-
   // OpenCode
   sessionServiceRegistry.register({
     appType: 'opencode',
@@ -74,16 +62,6 @@ function registerSessionServices(): void {
     getSessionDetail: (sessionId: string) => codexSessionService.getSessionDetail(sessionId),
     getStats: () => codexSessionService.getStats(),
     isAvailable: () => codexSessionService.isAvailable(),
-  });
-
-  // VSCode Extension
-  sessionServiceRegistry.register({
-    appType: 'vscode-extension',
-    getAllSessions: () => vscodeExtensionSessionService.getAllSessions(),
-    getSessionDetail: (sessionId: string) =>
-      vscodeExtensionSessionService.getSessionDetail(sessionId),
-    getStats: () => vscodeExtensionSessionService.getStats(),
-    isAvailable: () => vscodeExtensionSessionService.isAvailable(),
   });
 
   log.info('Session services registered:', sessionServiceRegistry.getSupportedAppTypes());
@@ -138,14 +116,6 @@ export function registerSessionsHandlers(): void {
         const claudeSession = claudeSessionService.getSessionDetail(sessionId);
         if (claudeSession) {
           return claudeSession;
-        }
-        const claudeInternalSession = claudeInternalSessionService.getSessionDetail(sessionId);
-        if (claudeInternalSession) {
-          return claudeInternalSession;
-        }
-        const vscodeSession = vscodeExtensionSessionService.getSessionDetail(sessionId);
-        if (vscodeSession) {
-          return vscodeSession;
         }
         const opencodeSession = await opencodeSessionService.getSessionDetail(sessionId);
         if (opencodeSession) {

@@ -6,7 +6,6 @@
 
 import type { AppType } from '@/types';
 import { APP_LABELS } from '@/config/apps';
-import vscodeIconUrl from '/icons/vscode.png';
 
 // CDN base URL for lobe-icons (mono version)
 const LOBE_ICONS_CDN = 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons';
@@ -14,11 +13,9 @@ const LOBE_ICONS_CDN = 'https://unpkg.com/@lobehub/icons-static-svg@latest/icons
 // Map of app types to their icon URLs
 const APP_ICON_URLS: Record<AppType, string> = {
   claude: `${LOBE_ICONS_CDN}/claude.svg`,
-  'claude-internal': `${LOBE_ICONS_CDN}/claude.svg`,
   codex: `${LOBE_ICONS_CDN}/openai.svg`,
   opencode: `${LOBE_ICONS_CDN}/opencode.svg`,
   codebuddy: '', // Codebuddy uses inline SVG below
-  'vscode-extension': vscodeIconUrl, // Imported PNG icon for proper bundling
 };
 
 // Codebuddy Logo SVG Component (monochrome version for consistency)
@@ -92,28 +89,6 @@ const IconFromCDN = ({
   );
 };
 
-// VS Code Extension Icon Component
-const VSCodeIcon = ({ size = 16, className = '' }: { size?: number; className?: string }) => (
-  <div
-    className={`inline-flex items-center justify-center rounded bg-white dark:bg-black border border-slate-200 dark:border-slate-800 ${className}`}
-    style={{
-      width: size,
-      height: size,
-      display: 'inline-flex',
-      verticalAlign: 'middle',
-    }}
-  >
-    <img
-      src={vscodeIconUrl}
-      alt="VS Code Extension"
-      width={size * 0.75}
-      height={size * 0.75}
-      style={{ display: 'block' }}
-      className="invert dark:invert-0"
-    />
-  </div>
-);
-
 // Helper function to get icon component
 export function getAppIcon(
   appType: AppType,
@@ -125,11 +100,6 @@ export function getAppIcon(
   // Use inline SVG for Codebuddy
   if (appType === 'codebuddy') {
     return <CodebuddyIconSVG size={sizeNum} className={className} />;
-  }
-
-  // Use local PNG for VS Code Extension
-  if (appType === 'vscode-extension') {
-    return <VSCodeIcon size={sizeNum} className={className} />;
   }
 
   return <IconFromCDN appType={appType} size={size} className={className} />;

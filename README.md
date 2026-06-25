@@ -47,7 +47,7 @@ brew install --cask yes-sessions
 
 ### 会话管理
 
-- **多应用支持**：Codebuddy、Claude Code、OpenCode、VS Code Codebuddy Extension
+- **多应用支持**：Codebuddy、Claude Code、OpenCode、Codex CLI
 - **会话列表**：按时间分组展示历史会话
 - **详情查看**：完整的对话历史，包括用户消息、AI 回复、工具调用
 - **模型追踪**：显示每条消息使用的 AI 模型
@@ -82,11 +82,9 @@ brew install --cask yes-sessions
 | 工具                    | 状态     | 说明             |
 | ----------------------- | -------- | ---------------- |
 | Codebuddy               | 完全支持 | JSONL 文件解析   |
-| Claude Code Internal    | 完全支持 | Anthropic 内部版 |
 | Claude Code             | 完全支持 | 新旧格式都支持   |
 | OpenCode                | 完全支持 | SQLite 数据库    |
-| VSC Codebuddy Extension | 完全支持 | VS Code 插件会话 |
-| Codex CLI               | 暂不支持 | 当前无接入计划   |
+| Codex CLI               | 完全支持 | JSONL 文件解析   |
 
 ---
 
