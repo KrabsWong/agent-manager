@@ -15,7 +15,7 @@
 - `electron/main.ts` 已把应用级 IPC 注册、文件预览窗口、文件读取、tree/git handler 注册拆到 `electron/handlers/app.ts`。
 - `electron/handlers/app.ts` 已继续收敛为聚合注册入口，settings/file-preview/file/git handler 已拆成独立模块。
 - 已补最小 Vitest 覆盖：API response helper、应用配置一致性、默认设置形状。`npx vitest run` 现在可作为有效质量门。
-- 已补 session message parser 测试，覆盖 OpenCode 文件块、Claude 清理、Codebuddy 清理和 VS Code HTML 转换。
+- 已补 session message parser 测试，覆盖 OpenCode 文件块、Claude 清理和 Codebuddy 清理。
 - 已补 ConversationView 纯逻辑测试，覆盖 Claude XML 解析、消息 turn 分组、延迟 tool result 匹配、工具分类/摘要、语言识别、时间/值格式化和 diff 计算。
 - 已补 file/git API wrapper 测试，覆盖 IPC channel、参数透传、成功/失败响应处理、Git watch 监听和清理。
 - 已补 settings store mutation 测试，覆盖默认值补齐、局部初始设置合并、通用更新、布局/侧栏/theme toggle 和主进程同步失败时的本地状态行为。
@@ -50,7 +50,7 @@
 - `SessionDetail` IPC 返回值校验已从基础字段类型推进到按消息类型校验语义必需字段：普通消息需要内容/推理/脱敏内容，`tool_use` 需要工具名和输入，`tool_result` 需要工具名和输出。
 - `AppSupportSummary.status` 已从裸 `string` 收紧为共享 `AppSupportStatus` 枚举，并在 IPC result 校验中拒绝未知支持状态。
 - 已移除 settings store 中无引用的旧 `useExperienceStore` 兼容导出，避免后续代码继续依赖已合并的旧 store 名称。
-- 已删除无入口的手工调试脚本，避免未纳入 package 脚本/文档的 VS Code session 探查和 Mermaid smoke 代码继续作为维护负担。
+- 已删除无入口的手工调试脚本，避免未纳入 package 脚本/文档的会话探查和 Mermaid smoke 代码继续作为维护负担。
 - preload 中重复的 `Window.electronAPI` / `__INITIAL_SETTINGS__` 全局声明已移除，renderer 全局类型统一由 `src/types/electron.d.ts` 维护。
 - 已移除 `package.json` 中与 `electron-builder.yml` 重复且不一致的旧打包配置，Electron Builder 配置事实来源统一为 `electron-builder.yml`。
 - 已移除未直接使用的顶层 `javascript-obfuscator` devDependency；生产混淆仍通过 `vite-plugin-javascript-obfuscator` 及其自带依赖执行。

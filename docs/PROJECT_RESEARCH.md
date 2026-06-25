@@ -26,8 +26,7 @@ Yes Sessions 是一个 Electron 桌面应用，用于浏览、管理和恢复 AI
 
 ### 会话管理
 
-- 支持 Claude Code、Claude Code Internal、OpenCode、Codebuddy、VS Code Codebuddy Extension。
-- Codex 类型已保留在类型与 UI 配置中，但当前标记为未支持。
+- 支持 Claude Code、OpenCode、Codebuddy、Codex CLI。
 - 会话列表支持按日期/目录查看、虚拟滚动和详情加载。
 - 会话详情支持 Markdown、代码高亮、工具调用、子 Agent、模型信息和思考内容显示控制。
 

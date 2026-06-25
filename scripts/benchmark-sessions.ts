@@ -2,11 +2,9 @@ import { JSDOM } from 'jsdom';
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { claudeSessionService } from '@electron/services/session/claude';
-import { claudeInternalSessionService } from '@electron/services/session/claude-internal';
 import { codebuddySessionService } from '@electron/services/session/codebuddy';
 import { codexSessionService } from '@electron/services/session/codex';
 import { opencodeSessionService } from '@electron/services/session/opencode';
-import { vscodeExtensionSessionService } from '@electron/services/session/vscode-extension';
 import { groupMessagesIntoTurnsWithCount } from '@/components/sessions/ConversationView/utils';
 import { ConversationView } from '@/components/sessions/ConversationView';
 import '@/lib/i18n';
@@ -20,11 +18,9 @@ type Service = {
 
 const services: Array<{ appType: AppType; service: Service }> = [
   { appType: 'claude', service: claudeSessionService },
-  { appType: 'claude-internal', service: claudeInternalSessionService },
   { appType: 'codex', service: codexSessionService },
   { appType: 'opencode', service: opencodeSessionService },
   { appType: 'codebuddy', service: codebuddySessionService },
-  { appType: 'vscode-extension', service: vscodeExtensionSessionService },
 ];
 
 function now(): number {

@@ -9,11 +9,9 @@ export type { AccentColor } from '@/lib/theme/colors';
 // ============ App Types ============
 export type AppType =
   | 'claude'
-  | 'claude-internal'
   | 'codex'
   | 'opencode'
-  | 'codebuddy'
-  | 'vscode-extension';
+  | 'codebuddy';
 
 // 注意：应用顺序和配置请从 @/config/apps 导入
 // import { APP_ORDER } from '@/config/apps'

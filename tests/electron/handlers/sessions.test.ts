@@ -49,10 +49,6 @@ vi.mock('@electron/services/session/claude', () => ({
   claudeSessionService: mocks.makeService('claude'),
 }));
 
-vi.mock('@electron/services/session/claude-internal', () => ({
-  claudeInternalSessionService: mocks.makeService('claude-internal'),
-}));
-
 vi.mock('@electron/services/session/opencode', () => ({
   opencodeSessionService: mocks.makeService('opencode'),
 }));
@@ -63,10 +59,6 @@ vi.mock('@electron/services/session/codebuddy', () => ({
 
 vi.mock('@electron/services/session/codex', () => ({
   codexSessionService: mocks.makeService('codex'),
-}));
-
-vi.mock('@electron/services/session/vscode-extension', () => ({
-  vscodeExtensionSessionService: mocks.makeService('vscode-extension'),
 }));
 
 vi.mock('@electron/services/terminal/launcher', () => ({

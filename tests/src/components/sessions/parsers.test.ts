@@ -57,14 +57,6 @@ describe('message content parsers', () => {
     ]);
   });
 
-  it('converts common VS Code extension HTML to markdown-like text', () => {
-    const content = '<p>Hello <strong>world</strong></p><pre><code>npm test</code></pre>';
-
-    expect(parseMessageContent(content, 'vscode-extension')).toEqual([
-      { type: 'text', content: 'Hello **world**\n\n```\nnpm test\n```' },
-    ]);
-  });
-
   it('falls back to plain text for apps without a special parser', () => {
     expect(hasSpecialParser('unknown-app')).toBe(false);
     expect(parseMessageContent('raw text', 'unknown-app')).toEqual([
