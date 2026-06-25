@@ -26,6 +26,20 @@ extraResources:
       - '!**/binding.gyp'
       - '!**/build/Makefile'
       - '!**/build/*.mk'
+  - from: node_modules/bindings
+    to: node_modules/bindings
+    filter:
+      - '**/*'
+      - '!**/*.map'
+      - '!**/test/**/*'
+      - '!**/*.md'
+  - from: node_modules/file-uri-to-path
+    to: node_modules/file-uri-to-path
+    filter:
+      - '**/*'
+      - '!**/*.map'
+      - '!**/test/**/*'
+      - '!**/*.md'
 mac:
   category: public.app-category.developer-tools
   target:
